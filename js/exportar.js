@@ -5,7 +5,7 @@ function abrirEditar(id) {
   const l = lancamentos.find(x => x.id === id);
   if (!l) return;
   editandoId = id;
-  document.getElementById('e-data').value       = l.data;
+  document.getElementById('e-data').value       = (l.data || '').slice(0, 10);
   document.getElementById('e-tipo').value       = l.tipo;
   document.getElementById('e-valor').value      = l.valor;
   popularCats('e-categoria', 'e-tipo');

@@ -3,6 +3,18 @@
 // ══════════════════════════════════════════════════════════════════════════════
 const API_URL = 'https://controle-de-bordo-backend-production.up.railway.app';
 
+// Normaliza campos que o PostgreSQL retorna em formato diferente
+function normalizarLancamento(l) {
+  return {
+    ...l,
+    data:          (l.data || '').slice(0, 10),
+    isCMV:         l.is_cmv || false,
+    grupoId:       l.grupo_id || null,
+    valorRecebido: l.valor_recebido != null ? parseFloat(l.valor_recebido) : null,
+    valor:         parseFloat(l.valor),
+  };
+}
+
 async function apiFetch(path, options = {}) {
   const res = await fetch(API_URL + path, {
     headers: { 'Content-Type': 'application/json' },
@@ -23,9 +35,9 @@ const API = {
   excluirCliente:  (id)     => apiFetch(`/clientes/${id}`, { method: 'DELETE' }),
 
   // Lançamentos
-  listarLancamentos: (cid)        => apiFetch(`/clientes/${cid}/lancamentos`),
-  criarLancamento:   (cid, dados) => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'POST', body: JSON.stringify(dados) }),
-  editarLancamento:  (id, dados)  => apiFetch(`/clientes/0/lancamentos/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
+  listarLancamentos: (cid)        => apiFetch(`/clientes/${cid}/lancamentos`).then(lans => lans.map(normalizarLancamento)),
+  criarLancamento:   (cid, dados) => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'POST', body: JSON.stringify(dados) }).then(normalizarLancamento),
+  editarLancamento:  (id, dados)  => apiFetch(`/clientes/0/lancamentos/${id}`, { method: 'PUT', body: JSON.stringify(dados) }).then(normalizarLancamento),
   excluirLancamento: (cid, id)    => apiFetch(`/clientes/${cid}/lancamentos/${id}`, { method: 'DELETE' }),
   limparLancamentos: (cid)        => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'DELETE' }),
 
