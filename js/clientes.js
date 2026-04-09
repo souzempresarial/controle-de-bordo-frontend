@@ -1,41 +1,46 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // TELA DE CLIENTES
 // ══════════════════════════════════════════════════════════════════════════════
-function renderClientes() {
-  const clientes = DB.getClientes();
+let clientesCache = [];
+
+async function renderClientes() {
   const lista = document.getElementById('clientes-lista');
-  if (!clientes.length) {
-    lista.innerHTML = `<div class="clientes-empty"><div class="icon">👤</div><div>Nenhum cliente cadastrado ainda.</div></div>`;
-    return;
+  try {
+    clientesCache = await API.listarClientes();
+    if (!clientesCache.length) {
+      lista.innerHTML = `<div class="clientes-empty"><div class="icon">👤</div><div>Nenhum cliente cadastrado ainda.</div></div>`;
+      return;
+    }
+    lista.innerHTML = clientesCache.map(c => {
+      const lans   = DB.getLancamentos(c.id);
+      const totais = calcularTotais(lans);
+      return `
+      <div class="cliente-card" onclick="entrarCliente(${c.id})">
+        <div class="cliente-avatar" style="background:${c.cor}22;color:${c.cor}">${initials(c.nome)}</div>
+        <div class="cliente-info">
+          <div class="nome">${c.nome}</div>
+          <div class="meta">${lans.length} lançamento${lans.length!==1?'s':''} · Saldo: <strong style="color:${totais.saldo>=0?'var(--entrada)':'var(--saida)'}">${fmt(totais.saldo)}</strong></div>
+        </div>
+        <div class="cliente-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarClienteById(${c.id})">✏️</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarExcluirCliente(${c.id},'${c.nome}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    lista.innerHTML = `<div class="clientes-empty"><div class="icon">⚠️</div><div>Erro ao carregar clientes</div></div>`;
+    console.error(err);
   }
-  lista.innerHTML = clientes.map(c => {
-    const lans = DB.getLancamentos(c.id);
-    const totais = calcularTotais(lans);
-    return `
-    <div class="cliente-card" onclick="entrarCliente('${c.id}')">
-      <div class="cliente-avatar" style="background:${c.cor}22;color:${c.cor}">${initials(c.nome)}</div>
-      <div class="cliente-info">
-        <div class="nome">${c.nome}</div>
-        <div class="meta">${lans.length} lançamento${lans.length!==1?'s':''} · Saldo: <strong style="color:${totais.saldo>=0?'var(--entrada)':'var(--saida)'}">${fmt(totais.saldo)}</strong></div>
-      </div>
-      <div class="cliente-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-ghost btn-sm" onclick="abrirEditarClienteById('${c.id}')">✏️</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarExcluirCliente('${c.id}','${c.nome}')">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 function entrarCliente(id) {
-  const clientes = DB.getClientes();
-  clienteAtivo = clientes.find(c => c.id === id);
+  clienteAtivo = clientesCache.find(c => c.id === id);
   if (!clienteAtivo) return;
   lancamentos = DB.getLancamentos(id);
   nextId      = DB.getNextId(id);
   contas      = DB.getContas(id);
   nextContaId = DB.getNextContaId(id);
 
-  // Chip no topbar
   document.getElementById('chip-cliente').innerHTML = `
     <div class="chip-avatar" style="background:${clienteAtivo.cor}22;color:${clienteAtivo.cor}">${initials(clienteAtivo.nome)}</div>
     <span>${clienteAtivo.nome}</span>`;
@@ -43,7 +48,6 @@ function entrarCliente(id) {
   document.getElementById('tela-clientes').style.display = 'none';
   document.getElementById('tela-app').style.display = 'block';
 
-  // Reset navegação
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelector('#page-dashboard').classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -81,54 +85,46 @@ function abrirEditarCliente() {
 }
 
 function abrirEditarClienteById(id) {
-  const c = DB.getClientes().find(x => x.id === id);
+  const c = clientesCache.find(x => x.id === id);
   if (!c) return;
   editandoClienteId = id;
   document.getElementById('modal-cliente-titulo').textContent = 'Editar Cliente';
   document.getElementById('btn-salvar-cliente').textContent = 'Salvar';
   document.getElementById('c-nome').value = c.nome;
   document.getElementById('c-obs').value = c.obs || '';
-  document.getElementById('c-cor').value = c.cor;
+  document.getElementById('c-cor').value = c.cor || '#6c63ff';
   document.getElementById('modal-cliente').classList.add('open');
   setTimeout(() => document.getElementById('c-nome').focus(), 50);
 }
 
-function salvarCliente() {
+async function salvarCliente() {
   const nome = document.getElementById('c-nome').value.trim();
   if (!nome) { toast('Informe o nome', 'error'); return; }
-  const clientes = DB.getClientes();
-
-  if (editandoClienteId) {
-    const idx = clientes.findIndex(c => c.id === editandoClienteId);
-    if (idx !== -1) {
-      clientes[idx].nome = nome;
-      clientes[idx].cor  = document.getElementById('c-cor').value;
-      clientes[idx].obs  = document.getElementById('c-obs').value.trim();
-    }
-    DB.saveClientes(clientes);
-    fecharModalCliente();
-    if (clienteAtivo && clienteAtivo.id === editandoClienteId) {
-      clienteAtivo = clientes[idx];
-      document.getElementById('chip-cliente').innerHTML = `
-        <div class="chip-avatar" style="background:${clienteAtivo.cor}22;color:${clienteAtivo.cor}">${initials(clienteAtivo.nome)}</div>
-        <span>${clienteAtivo.nome}</span>`;
+  const dados = {
+    nome,
+    cor: document.getElementById('c-cor').value,
+    obs: document.getElementById('c-obs').value.trim(),
+  };
+  try {
+    if (editandoClienteId) {
+      const atualizado = await API.editarCliente(editandoClienteId, dados);
+      fecharModalCliente();
+      if (clienteAtivo && clienteAtivo.id === editandoClienteId) {
+        clienteAtivo = atualizado;
+        document.getElementById('chip-cliente').innerHTML = `
+          <div class="chip-avatar" style="background:${clienteAtivo.cor}22;color:${clienteAtivo.cor}">${initials(clienteAtivo.nome)}</div>
+          <span>${clienteAtivo.nome}</span>`;
+      }
+      toast('Cliente atualizado');
     } else {
-      renderClientes();
+      await API.criarCliente(dados);
+      fecharModalCliente();
+      toast('Cliente criado — clique para entrar');
     }
-    toast('Cliente atualizado');
-  } else {
-    const novo = {
-      id: 'c' + Date.now(),
-      nome,
-      cor: document.getElementById('c-cor').value,
-      obs: document.getElementById('c-obs').value.trim(),
-      criadoEm: new Date().toISOString(),
-    };
-    clientes.push(novo);
-    DB.saveClientes(clientes);
-    fecharModalCliente();
     renderClientes();
-    toast('Cliente criado — clique para entrar');
+  } catch (err) {
+    toast('Erro ao salvar cliente', 'error');
+    console.error(err);
   }
 }
 
@@ -144,10 +140,14 @@ function confirmarExcluirCliente(id, nome) {
   document.getElementById('modal-confirmar').classList.add('open');
 }
 
-function excluirCliente(id) {
-  const clientes = DB.getClientes().filter(c => c.id !== id);
-  DB.saveClientes(clientes);
-  DB.deleteClienteData(id);
-  renderClientes();
-  toast('Cliente excluído');
+async function excluirCliente(id) {
+  try {
+    await API.excluirCliente(id);
+    DB.deleteClienteData(id);
+    renderClientes();
+    toast('Cliente excluído');
+  } catch (err) {
+    toast('Erro ao excluir cliente', 'error');
+    console.error(err);
+  }
 }
