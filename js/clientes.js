@@ -33,13 +33,40 @@ async function renderClientes() {
   }
 }
 
-function entrarCliente(id) {
+async function entrarCliente(id) {
   clienteAtivo = clientesCache.find(c => c.id === id);
   if (!clienteAtivo) return;
-  lancamentos = DB.getLancamentos(id);
-  nextId      = DB.getNextId(id);
-  contas      = DB.getContas(id);
-  nextContaId = DB.getNextContaId(id);
+  try {
+    const [lans, cts, metasArr] = await Promise.all([
+      API.listarLancamentos(id),
+      API.listarContas(id),
+      API.listarMetas(id),
+    ]);
+    lancamentos = lans;
+    contas      = cts;
+    // Converte array de metas para { [mesChave]: { [campo]: valor } }
+    metasCache = {};
+    metasArr.forEach(row => {
+      if (!metasCache[row.mes_chave]) metasCache[row.mes_chave] = {};
+      metasCache[row.mes_chave][row.campo] = parseFloat(row.valor);
+    });
+    // Carrega saldo inicial para todos os anos presentes
+    const anos = [...new Set(lans.map(l => l.data.slice(0,4)))];
+    if (!anos.includes(hoje().slice(0,4))) anos.push(hoje().slice(0,4));
+    const saldoResults = await Promise.all(anos.map(a => API.buscarSaldo(id, a).catch(() => null)));
+    saldosIniciais = {};
+    anos.forEach((a, i) => {
+      if (saldoResults[i]) saldosIniciais[a] = { valor: parseFloat(saldoResults[i].valor) || 0, mes: parseInt(saldoResults[i].mes) || 0 };
+    });
+  } catch (err) {
+    console.error('Erro ao carregar dados do cliente:', err);
+    lancamentos    = [];
+    contas         = [];
+    metasCache     = {};
+    saldosIniciais = {};
+  }
+  nextId      = 1;
+  nextContaId = 1;
 
   document.getElementById('chip-cliente').innerHTML = `
     <div class="chip-avatar" style="background:${clienteAtivo.cor}22;color:${clienteAtivo.cor}">${initials(clienteAtivo.nome)}</div>
@@ -63,7 +90,7 @@ function entrarCliente(id) {
 function voltarClientes() {
   document.getElementById('tela-app').style.display = 'none';
   document.getElementById('tela-clientes').style.display = 'flex';
-  clienteAtivo = null; lancamentos = []; nextId = 1; contas = []; nextContaId = 1;
+  clienteAtivo = null; lancamentos = []; nextId = 1; contas = []; nextContaId = 1; metasCache = {}; saldosIniciais = {};
   renderClientes();
 }
 

@@ -27,6 +27,7 @@ const API = {
   criarLancamento:   (cid, dados) => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'POST', body: JSON.stringify(dados) }),
   editarLancamento:  (id, dados)  => apiFetch(`/clientes/0/lancamentos/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
   excluirLancamento: (cid, id)    => apiFetch(`/clientes/${cid}/lancamentos/${id}`, { method: 'DELETE' }),
+  limparLancamentos: (cid)        => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'DELETE' }),
 
   // Contas
   listarContas:  (cid)        => apiFetch(`/clientes/${cid}/contas`),

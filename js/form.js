@@ -59,7 +59,7 @@ function toggleRecorrencia() {
   document.getElementById('conta-periodicidade-wrap').style.display = checked ? '' : 'none';
 }
 
-function salvarConta() {
+async function salvarConta() {
   const desc          = document.getElementById('conta-desc').value.trim();
   const valor         = parseFloat(document.getElementById('conta-valor').value.replace(',','.'));
   const venc          = document.getElementById('conta-venc').value;
@@ -74,22 +74,25 @@ function salvarConta() {
   if (!venc)               { toast('Informe o vencimento', 'error'); return; }
   if (!cat)                { toast('Selecione a categoria', 'error'); return; }
 
-  if (editandoContaId) {
-    const c = contas.find(c => c.id === editandoContaId);
-    if (c) {
-      c.descricao = desc; c.valor = valor; c.vencimento = venc;
-      c.categoria = cat; c.subcategoria = subcat; c.tipo = tipo;
-      c.recorrente = recorrente; c.periodicidade = periodicidade || null;
-    }
-    toast('Conta atualizada');
-  } else {
-    contas.push({ id: nextContaId++, tipo, descricao: desc, valor, vencimento: venc, categoria: cat, subcategoria: subcat, status: 'pendente', recorrente, periodicidade: periodicidade || null, criadoEm: new Date().toISOString() });
-    toast('Conta adicionada');
-  }
+  const dados = { tipo, descricao: desc, valor, vencimento: venc, categoria: cat, subcategoria: subcat, recorrente, periodicidade: periodicidade || null };
 
-  salvarContas();
-  fecharModal('modal-conta');
-  renderAll();
+  try {
+    if (editandoContaId) {
+      const atualizada = await API.editarConta(clienteAtivo.id, editandoContaId, dados);
+      const idx = contas.findIndex(c => c.id === editandoContaId);
+      if (idx !== -1) contas[idx] = atualizada;
+      toast('Conta atualizada');
+    } else {
+      const nova = await API.criarConta(clienteAtivo.id, dados);
+      contas.push(nova);
+      toast('Conta adicionada');
+    }
+    fecharModal('modal-conta');
+    renderAll();
+  } catch (err) {
+    toast('Erro ao salvar conta', 'error');
+    console.error(err);
+  }
 }
 
 function calcularContasReceber() {
@@ -180,7 +183,7 @@ function limparForm() {
   document.getElementById('margem-preview').style.display = 'none';
 }
 
-function salvarLancamento() {
+async function salvarLancamento() {
   const valor     = parseFloat(document.getElementById('f-valor').value);
   const descricao = document.getElementById('f-descricao').value.trim();
   const categoria = document.getElementById('f-categoria').value;
@@ -189,13 +192,12 @@ function salvarLancamento() {
   if (!valor || valor <= 0)    { toast('Informe o valor', 'error'); return; }
   if (!categoria)              { toast('Selecione a categoria', 'error'); return; }
 
-  const data      = document.getElementById('f-data').value || hoje();
-  const pagamento = document.getElementById('f-pagamento').value;
-  const status    = document.getElementById('f-status').value;
-  const obs       = document.getElementById('f-obs').value.trim();
+  const data         = document.getElementById('f-data').value || hoje();
+  const pagamento    = document.getElementById('f-pagamento').value;
+  const status       = document.getElementById('f-status').value;
+  const obs          = document.getElementById('f-obs').value.trim();
   const subcategoria = document.getElementById('f-subcategoria').value;
 
-  // CMV: só se for Entrada e tiver valor de custo preenchido
   const cmvValor = tipo === 'Entrada' ? (parseFloat(document.getElementById('f-cmv-valor').value) || 0) : 0;
   const cmvCat   = document.getElementById('f-cmv-cat').value;
   const cmvSub   = document.getElementById('f-cmv-sub').value;
@@ -203,49 +205,39 @@ function salvarLancamento() {
   if (cmvValor > 0 && !cmvCat) { toast('Selecione o tipo de custo do CMV', 'error'); return; }
   if (cmvValor >= valor)        { toast('CMV não pode ser maior ou igual à receita', 'warn'); }
 
-  const grupoId  = cmvValor > 0 ? ('g' + Date.now()) : undefined;
-  const quantidade = tipo === 'Entrada' ? (parseInt(document.getElementById('f-quantidade').value) || null) : null;
-  const recebidoRaw = tipo === 'Entrada' ? parseFloat(document.getElementById('f-recebido').value) : NaN;
+  const grupoId       = cmvValor > 0 ? ('g' + Date.now()) : null;
+  const quantidade    = tipo === 'Entrada' ? (parseInt(document.getElementById('f-quantidade').value) || null) : null;
+  const recebidoRaw   = tipo === 'Entrada' ? parseFloat(document.getElementById('f-recebido').value) : NaN;
   const valorRecebido = (!isNaN(recebidoRaw) && recebidoRaw < valor) ? recebidoRaw : null;
 
-  const l = {
-    id: nextId++,
-    data, tipo, categoria, subcategoria,
-    descricao, pagamento, status, valor, obs,
-    ...(quantidade    && { quantidade }),
-    ...(valorRecebido !== null && { valorRecebido }),
-    ...(grupoId       && { grupoId }),
-  };
+  try {
+    const l = await API.criarLancamento(clienteAtivo.id, {
+      tipo, valor, data, categoria, subcategoria,
+      descricao, pagamento, status, obs,
+      quantidade, valor_recebido: valorRecebido, grupo_id: grupoId,
+    });
+    lancamentos.unshift(l);
 
-  lancamentos.unshift(l);
+    if (cmvValor > 0) {
+      const lCMV = await API.criarLancamento(clienteAtivo.id, {
+        tipo: 'Saída', valor: cmvValor, data,
+        categoria: cmvCat, subcategoria: cmvSub,
+        descricao: 'CMV — ' + descricao,
+        pagamento, status,
+        obs: 'Lançamento CMV vinculado ao #' + String(l.id).padStart(3,'0'),
+        grupo_id: grupoId, is_cmv: true,
+      });
+      lancamentos.unshift(lCMV);
+      toast('Entrada #' + String(l.id).padStart(3,'0') + ' + CMV #' + String(lCMV.id).padStart(3,'0') + ' adicionados');
+    } else {
+      toast('Lançamento #' + String(l.id).padStart(3,'0') + ' adicionado');
+    }
 
-  // Lançamento CMV vinculado (saída automática)
-  if (cmvValor > 0) {
-    const lCMV = {
-      id:          nextId++,
-      data,
-      tipo:        'Saída',
-      categoria:   cmvCat,
-      subcategoria: cmvSub,
-      descricao:   'CMV — ' + descricao,
-      pagamento,
-      status,
-      valor:       cmvValor,
-      obs:         'Lançamento CMV vinculado ao #' + String(l.id).padStart(3,'0'),
-      grupoId,
-      isCMV:       true,
-    };
-    lancamentos.unshift(lCMV);
-    salvarDados();
     limparForm();
     fecharModal('modal-lancamento');
     renderAll();
-    toast('Entrada #' + String(l.id).padStart(3,'0') + ' + CMV #' + String(lCMV.id).padStart(3,'0') + ' adicionados');
-  } else {
-    salvarDados();
-    limparForm();
-    fecharModal('modal-lancamento');
-    renderAll();
-    toast('Lançamento #' + String(l.id).padStart(3,'0') + ' adicionado');
+  } catch (err) {
+    toast('Erro ao salvar lançamento', 'error');
+    console.error(err);
   }
 }

@@ -218,46 +218,49 @@ function marcarTodos(ignorar) {
   renderImportPreview();
 }
 
-function confirmarImport() {
+async function confirmarImport() {
   const validos = importLinhas.filter(l => !l.ignorar && l.valor > 0 && l.descricao);
   if (!validos.length) { toast('Nenhuma transação selecionada', 'error'); return; }
 
-  validos.forEach(l => {
-    lancamentos.unshift({
-      id:          nextId++,
-      data:        l.data,
-      tipo:        l.tipo,
-      categoria:   l.categoria || 'Outro',
-      subcategoria:l.subcategoria || '',
-      descricao:   l.descricao,
-      pagamento:   l.pagamento || '',
-      recorrencia: '',
-      status:      l.status,
-      valor:       l.valor,
-      obs:         'Importado do extrato',
-    });
-  });
+  try {
+    const criados = await Promise.all(validos.map(l =>
+      API.criarLancamento(clienteAtivo.id, {
+        data:        l.data,
+        tipo:        l.tipo,
+        categoria:   l.categoria || 'Outro',
+        subcategoria:l.subcategoria || '',
+        descricao:   l.descricao,
+        pagamento:   l.pagamento || '',
+        status:      l.status,
+        valor:       l.valor,
+        obs:         'Importado do extrato',
+      })
+    ));
+    criados.forEach(l => lancamentos.unshift(l));
 
-  // Salvar regras novas
-  const regras = DB.getRegras(clienteAtivo.id);
-  let regrasSalvas = 0;
-  validos.forEach(l => {
-    if (l.lembrar && l.palavraRegra && l.palavraRegra.trim() && l.categoria) {
-      const palavra = l.palavraRegra.trim().toLowerCase();
-      const jaExiste = regras.some(r => r.palavra.toLowerCase() === palavra);
-      if (!jaExiste) {
-        regras.push({ id: Date.now() + Math.random(), palavra, categoria: l.categoria, subcategoria: l.subcategoria || '', criadaEm: new Date().toISOString() });
-        regrasSalvas++;
+    // Salvar regras novas
+    const regras = DB.getRegras(clienteAtivo.id);
+    let regrasSalvas = 0;
+    validos.forEach(l => {
+      if (l.lembrar && l.palavraRegra && l.palavraRegra.trim() && l.categoria) {
+        const palavra = l.palavraRegra.trim().toLowerCase();
+        const jaExiste = regras.some(r => r.palavra.toLowerCase() === palavra);
+        if (!jaExiste) {
+          regras.push({ id: Date.now() + Math.random(), palavra, categoria: l.categoria, subcategoria: l.subcategoria || '', criadaEm: new Date().toISOString() });
+          regrasSalvas++;
+        }
       }
-    }
-  });
-  if (regrasSalvas) DB.saveRegras(clienteAtivo.id, regras);
+    });
+    if (regrasSalvas) DB.saveRegras(clienteAtivo.id, regras);
 
-  salvarDados();
-  importLinhas = [];
-  document.getElementById('import-texto').value = '';
-  document.getElementById('import-preview').innerHTML = '';
-  const msg = regrasSalvas ? `${validos.length} lançamentos importados · ${regrasSalvas} regra${regrasSalvas>1?'s':''} salva${regrasSalvas>1?'s':''}` : `${validos.length} lançamentos importados`;
-  toast(msg);
-  navTo('lancamentos', document.querySelectorAll('.nav-btn')[2]);
+    importLinhas = [];
+    document.getElementById('import-texto').value = '';
+    document.getElementById('import-preview').innerHTML = '';
+    const msg = regrasSalvas ? `${validos.length} lançamentos importados · ${regrasSalvas} regra${regrasSalvas>1?'s':''} salva${regrasSalvas>1?'s':''}` : `${validos.length} lançamentos importados`;
+    toast(msg);
+    navTo('lancamentos', document.querySelectorAll('.nav-btn')[2]);
+  } catch (err) {
+    toast('Erro ao importar lançamentos', 'error');
+    console.error(err);
+  }
 }

@@ -60,17 +60,17 @@ function confirmarSaldoInicial() {
 }
 
 function getSaldoInicial(ano) {
-  const raw = localStorage.getItem(`fin_${clienteAtivo.id}_saldo_inicial_${ano}`);
-  if (!raw) return { valor: 0, mes: 0 };
-  try {
-    const parsed = JSON.parse(raw);
-    return (parsed && typeof parsed === 'object') ? parsed : { valor: parseFloat(raw) || 0, mes: 0 };
-  } catch { return { valor: parseFloat(raw) || 0, mes: 0 }; }
+  return saldosIniciais[ano] || { valor: 0, mes: 0 };
 }
 
-function saveSaldoInicial(ano, valor, mes) {
+async function saveSaldoInicial(ano, valor, mes) {
   const obj = { valor: parseFloat(valor) || 0, mes: parseInt(mes) || 0 };
-  localStorage.setItem(`fin_${clienteAtivo.id}_saldo_inicial_${ano}`, JSON.stringify(obj));
+  saldosIniciais[ano] = obj;
+  try {
+    await API.salvarSaldo(clienteAtivo.id, ano, obj);
+  } catch (err) {
+    console.error('Erro ao salvar saldo inicial:', err);
+  }
   renderFluxo();
 }
 

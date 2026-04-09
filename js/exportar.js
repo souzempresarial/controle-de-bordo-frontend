@@ -21,25 +21,32 @@ function abrirEditar(id) {
   document.getElementById('modal-editar').classList.add('open');
 }
 
-function salvarEdicao() {
+async function salvarEdicao() {
   const idx = lancamentos.findIndex(x => x.id === editandoId);
   if (idx === -1) return;
   const l = lancamentos[idx];
-  l.data        = document.getElementById('e-data').value;
-  l.tipo        = document.getElementById('e-tipo').value;
-  l.valor       = parseFloat(document.getElementById('e-valor').value);
-  l.categoria   = document.getElementById('e-categoria').value;
-  l.subcategoria= document.getElementById('e-subcategoria').value;
-  l.descricao   = document.getElementById('e-descricao').value.trim();
-  l.pagamento   = document.getElementById('e-pagamento').value;
-  l.recorrencia = document.getElementById('e-recorrencia').value;
-  l.status      = document.getElementById('e-status').value;
-  l.obs         = document.getElementById('e-obs').value.trim();
-  const qtd = parseInt(document.getElementById('e-quantidade').value);
-  if (l.tipo === 'Entrada' && qtd > 0) l.quantidade = qtd;
-  else delete l.quantidade;
-  salvarDados(); fecharModal('modal-editar'); renderAll();
-  toast('Lançamento #' + String(l.id).padStart(3,'0') + ' atualizado');
+  const dados = {
+    data:        document.getElementById('e-data').value,
+    tipo:        document.getElementById('e-tipo').value,
+    valor:       parseFloat(document.getElementById('e-valor').value),
+    categoria:   document.getElementById('e-categoria').value,
+    subcategoria:document.getElementById('e-subcategoria').value,
+    descricao:   document.getElementById('e-descricao').value.trim(),
+    pagamento:   document.getElementById('e-pagamento').value,
+    status:      document.getElementById('e-status').value,
+    obs:         document.getElementById('e-obs').value.trim(),
+    quantidade:  parseInt(document.getElementById('e-quantidade').value) || null,
+  };
+  try {
+    const atualizado = await API.editarLancamento(editandoId, dados);
+    lancamentos[idx] = { ...l, ...atualizado };
+    fecharModal('modal-editar');
+    renderAll();
+    toast('Lançamento #' + String(l.id).padStart(3,'0') + ' atualizado');
+  } catch (err) {
+    toast('Erro ao atualizar lançamento', 'error');
+    console.error(err);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -53,18 +60,34 @@ function confirmarExcluir(id) {
   document.getElementById('modal-confirmar').classList.add('open');
 }
 
-function excluir(id) {
-  lancamentos = lancamentos.filter(x => x.id !== id);
-  // Remove CMVs órfãos (sem entrada pai correspondente)
-  const pais = new Set(lancamentos.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
-  lancamentos = lancamentos.filter(l => !l.isCMV || pais.has(l.grupoId));
-  salvarDados(); renderAll(); toast('Lançamento excluído');
+async function excluir(id) {
+  try {
+    await API.excluirLancamento(clienteAtivo.id, id);
+    lancamentos = lancamentos.filter(x => x.id !== id);
+    // Remove CMVs órfãos (sem entrada pai correspondente)
+    const pais = new Set(lancamentos.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
+    const orfaos = lancamentos.filter(l => l.isCMV && !pais.has(l.grupoId));
+    await Promise.all(orfaos.map(l => API.excluirLancamento(clienteAtivo.id, l.id)));
+    lancamentos = lancamentos.filter(l => !l.isCMV || pais.has(l.grupoId));
+    renderAll(); toast('Lançamento excluído');
+  } catch (err) {
+    toast('Erro ao excluir lançamento', 'error');
+    console.error(err);
+  }
 }
 
 function confirmarLimpar() {
   document.getElementById('modal-confirmar-titulo').textContent = 'Limpar Dados do Cliente';
   document.getElementById('modal-confirmar-msg').textContent    = `Apagar TODOS os lançamentos de "${clienteAtivo?.nome}"? Esta ação não pode ser desfeita.`;
-  document.getElementById('btn-confirmar-ok').onclick = () => { lancamentos=[]; nextId=1; salvarDados(); renderAll(); fecharModal('modal-confirmar'); toast('Dados apagados'); };
+  document.getElementById('btn-confirmar-ok').onclick = async () => {
+    try {
+      await API.limparLancamentos(clienteAtivo.id);
+      lancamentos = []; nextId = 1;
+      renderAll(); fecharModal('modal-confirmar'); toast('Dados apagados');
+    } catch (err) {
+      toast('Erro ao apagar dados', 'error'); console.error(err);
+    }
+  };
   document.getElementById('modal-confirmar').classList.add('open');
 }
 

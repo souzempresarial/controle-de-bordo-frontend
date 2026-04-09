@@ -102,15 +102,12 @@ function renderContas() {
   document.getElementById('contas-pagar-tabela').innerHTML   = buildTabela(pendP, 'var(--saida)',   'pagar');
 }
 
-function quitarConta(id) {
+async function quitarConta(id) {
   const c = contas.find(c => c.id === id);
   if (!c) return;
-  c.status = 'quitado';
 
-  // Cria lançamento correspondente
   const tipoLanc = c.tipo === 'receber' ? 'Entrada' : 'Saída';
-  lancamentos.push({
-    id: nextId++,
+  const dadosLanc = {
     tipo: tipoLanc,
     descricao: c.descricao,
     valor: c.valor,
@@ -118,33 +115,49 @@ function quitarConta(id) {
     categoria: c.categoria || (tipoLanc === 'Saída' ? 'Despesas Variáveis' : 'Aparelhos'),
     subcategoria: c.subcategoria || '',
     status: 'Confirmado',
-    isCMV: false,
-    origem: 'conta',
-  });
-  salvarDados();
+  };
 
-  // Gera próxima se recorrente
-  if (c.recorrente && c.periodicidade && c.vencimento) {
-    const d = new Date(c.vencimento + 'T00:00:00');
-    if (c.periodicidade === 'mensal')       d.setMonth(d.getMonth() + 1);
-    else if (c.periodicidade === 'semanal') d.setDate(d.getDate() + 7);
-    else if (c.periodicidade === 'anual')   d.setFullYear(d.getFullYear() + 1);
-    const novaVenc = d.toISOString().split('T')[0];
-    contas.push({ id: nextContaId++, tipo: c.tipo, descricao: c.descricao, valor: c.valor, vencimento: novaVenc, categoria: c.categoria, status: 'pendente', recorrente: true, periodicidade: c.periodicidade, criadoEm: new Date().toISOString() });
-    toast('Conta quitada — lançamento criado e próxima gerada');
-  } else {
-    toast('Conta quitada — lançamento criado');
+  try {
+    // Marca como quitada
+    await API.editarConta(clienteAtivo.id, id, { ...c, status: 'quitado' });
+    const idx = contas.findIndex(c => c.id === id);
+    if (idx !== -1) contas[idx].status = 'quitado';
+
+    // Cria lançamento correspondente
+    const novoLanc = await API.criarLancamento(clienteAtivo.id, dadosLanc);
+    lancamentos.unshift(novoLanc);
+
+    // Gera próxima se recorrente
+    if (c.recorrente && c.periodicidade && c.vencimento) {
+      const d = new Date(c.vencimento + 'T00:00:00');
+      if (c.periodicidade === 'mensal')       d.setMonth(d.getMonth() + 1);
+      else if (c.periodicidade === 'semanal') d.setDate(d.getDate() + 7);
+      else if (c.periodicidade === 'anual')   d.setFullYear(d.getFullYear() + 1);
+      const novaVenc = d.toISOString().split('T')[0];
+      const novaConta = await API.criarConta(clienteAtivo.id, { tipo: c.tipo, descricao: c.descricao, valor: c.valor, vencimento: novaVenc, categoria: c.categoria, subcategoria: c.subcategoria || '', recorrente: true, periodicidade: c.periodicidade });
+      contas.push(novaConta);
+      toast('Conta quitada — lançamento criado e próxima gerada');
+    } else {
+      toast('Conta quitada — lançamento criado');
+    }
+
+    renderAll();
+  } catch (err) {
+    toast('Erro ao quitar conta', 'error');
+    console.error(err);
   }
-
-  salvarContas();
-  renderAll();
 }
 
-function excluirConta(id) {
-  contas = contas.filter(c => c.id !== id);
-  salvarContas();
-  renderAll();
-  toast('Conta excluída');
+async function excluirConta(id) {
+  try {
+    await API.excluirConta(clienteAtivo.id, id);
+    contas = contas.filter(c => c.id !== id);
+    renderAll();
+    toast('Conta excluída');
+  } catch (err) {
+    toast('Erro ao excluir conta', 'error');
+    console.error(err);
+  }
 }
 
 function editarConta(id) {
@@ -345,14 +358,17 @@ function atualizarFiltros() {
 // KPIs + METAS
 // ══════════════════════════════════════════════════════════════════════════════
 function getMetas() {
-  return JSON.parse(localStorage.getItem(`fin_${clienteAtivo.id}_metas`) || '{}');
+  return metasCache;
 }
 
-function saveMeta(mesChave, field, valor) {
-  const m = getMetas();
-  if (!m[mesChave]) m[mesChave] = {};
-  m[mesChave][field] = parseFloat(valor) || 0;
-  localStorage.setItem(`fin_${clienteAtivo.id}_metas`, JSON.stringify(m));
+async function saveMeta(mesChave, field, valor) {
+  if (!metasCache[mesChave]) metasCache[mesChave] = {};
+  metasCache[mesChave][field] = parseFloat(valor) || 0;
+  try {
+    await API.salvarMeta(clienteAtivo.id, { mes_chave: mesChave, campo: field, valor: parseFloat(valor) || 0 });
+  } catch (err) {
+    console.error('Erro ao salvar meta:', err);
+  }
   renderKPIs();
 }
 

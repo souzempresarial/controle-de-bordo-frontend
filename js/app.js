@@ -39,14 +39,16 @@ function atualizarSubs(catId, subId, valorAtual) {
 // ══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════════
-let clienteAtivo = null;
-let lancamentos  = [];
-let nextId       = 1;
-let editandoId   = null;
+let clienteAtivo   = null;
+let lancamentos    = [];
+let nextId         = 1;
+let editandoId     = null;
 let editandoClienteId = null;
-let contas       = [];
-let nextContaId  = 1;
+let contas         = [];
+let nextContaId    = 1;
 let editandoContaId = null;
+let metasCache     = {};   // { [mesChave]: { faturamento, lucro } }
+let saldosIniciais = {};   // { [ano]: { valor, mes } }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // APP — NAVEGAÇÃO
