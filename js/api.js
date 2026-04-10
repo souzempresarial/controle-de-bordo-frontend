@@ -16,10 +16,18 @@ function normalizarLancamento(l) {
 }
 
 async function apiFetch(path, options = {}) {
+  const token = typeof AUTH !== 'undefined' ? AUTH.getToken() : null;
   const res = await fetch(API_URL + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
     ...options,
   });
+  if (res.status === 401) {
+    if (typeof AUTH !== 'undefined') AUTH.logout();
+    throw new Error('Sessão expirada. Faça login novamente.');
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data.erro || 'Erro na requisição');
   return data;
@@ -27,6 +35,11 @@ async function apiFetch(path, options = {}) {
 
 // ── CLIENTES ──────────────────────────────────────────────────────────────────
 const API = {
+
+  // Auth (admin)
+  criarUsuario:   (dados) => apiFetch('/auth/usuarios', { method: 'POST', body: JSON.stringify(dados) }),
+  listarUsuarios: ()      => apiFetch('/auth/usuarios'),
+  excluirUsuario: (id)    => apiFetch(`/auth/usuarios/${id}`, { method: 'DELETE' }),
 
   // Clientes
   listarClientes:  ()       => apiFetch('/clientes'),

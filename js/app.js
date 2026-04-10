@@ -71,6 +71,16 @@ function navFinanceiro(tab, btn) {
 // ══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  renderClientes();
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!AUTH.estaLogado()) {
+    mostrarTelaLogin();
+    return;
+  }
+  aplicarModoUsuario();
+  if (AUTH.eAdmin()) {
+    await renderClientes();
+    mostrarTelaClientes();
+  } else {
+    await iniciarComoCliente();
+  }
 });

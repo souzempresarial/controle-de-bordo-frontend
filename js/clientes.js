@@ -11,22 +11,19 @@ async function renderClientes() {
       lista.innerHTML = `<div class="clientes-empty"><div class="icon">👤</div><div>Nenhum cliente cadastrado ainda.</div></div>`;
       return;
     }
-    lista.innerHTML = clientesCache.map(c => {
-      const lans   = DB.getLancamentos(c.id);
-      const totais = calcularTotais(lans);
-      return `
+    lista.innerHTML = clientesCache.map(c => `
       <div class="cliente-card" onclick="entrarCliente(${c.id})">
         <div class="cliente-avatar" style="background:${c.cor}22;color:${c.cor}">${initials(c.nome)}</div>
         <div class="cliente-info">
           <div class="nome">${c.nome}</div>
-          <div class="meta">${lans.length} lançamento${lans.length!==1?'s':''} · Saldo: <strong style="color:${totais.saldo>=0?'var(--entrada)':'var(--saida)'}">${fmt(totais.saldo)}</strong></div>
+          <div class="meta" style="color:var(--text2);font-size:12px">${c.obs || 'Clique para acessar'}</div>
         </div>
         <div class="cliente-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" title="Criar/editar acesso" onclick="abrirModalAcesso(${c.id},'${c.nome.replace(/'/g,"\\'")}')">🔑</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirEditarClienteById(${c.id})">✏️</button>
           <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarExcluirCliente(${c.id},'${c.nome}')">🗑</button>
         </div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   } catch (err) {
     lista.innerHTML = `<div class="clientes-empty"><div class="icon">⚠️</div><div>Erro ao carregar clientes</div></div>`;
     console.error(err);
@@ -72,8 +69,7 @@ async function entrarCliente(id) {
     <div class="chip-avatar" style="background:${clienteAtivo.cor}22;color:${clienteAtivo.cor}">${initials(clienteAtivo.nome)}</div>
     <span>${clienteAtivo.nome}</span>`;
 
-  document.getElementById('tela-clientes').style.display = 'none';
-  document.getElementById('tela-app').style.display = 'block';
+  mostrarTelaApp();
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelector('#page-dashboard').classList.add('active');
@@ -87,11 +83,10 @@ async function entrarCliente(id) {
   renderAll();
 }
 
-function voltarClientes() {
-  document.getElementById('tela-app').style.display = 'none';
-  document.getElementById('tela-clientes').style.display = 'flex';
+async function voltarClientes() {
   clienteAtivo = null; lancamentos = []; nextId = 1; contas = []; nextContaId = 1; metasCache = {}; saldosIniciais = {};
-  renderClientes();
+  await renderClientes();
+  mostrarTelaClientes();
 }
 
 // ── NOVO / EDITAR CLIENTE ──
@@ -170,11 +165,38 @@ function confirmarExcluirCliente(id, nome) {
 async function excluirCliente(id) {
   try {
     await API.excluirCliente(id);
-    DB.deleteClienteData(id);
     renderClientes();
     toast('Cliente excluído');
   } catch (err) {
     toast('Erro ao excluir cliente', 'error');
     console.error(err);
+  }
+}
+
+// ── ACESSO DO CLIENTE ──
+function abrirModalAcesso(clienteId, clienteNome) {
+  document.getElementById('acesso-cliente-id').value    = clienteId;
+  document.getElementById('acesso-cliente-nome').textContent = clienteNome;
+  document.getElementById('acesso-email').value  = '';
+  document.getElementById('acesso-senha').value  = '';
+  document.getElementById('acesso-erro').textContent = '';
+  document.getElementById('modal-acesso').classList.add('open');
+}
+
+async function salvarAcesso() {
+  const clienteId = parseInt(document.getElementById('acesso-cliente-id').value);
+  const email     = document.getElementById('acesso-email').value.trim();
+  const senha     = document.getElementById('acesso-senha').value;
+  const erroEl    = document.getElementById('acesso-erro');
+
+  if (!email || !senha) { erroEl.textContent = 'Preencha email e senha'; return; }
+  if (senha.length < 6)  { erroEl.textContent = 'Senha deve ter pelo menos 6 caracteres'; return; }
+
+  try {
+    await API.criarUsuario({ email, senha, clienteId, nome: clientesCache.find(c => c.id === clienteId)?.nome });
+    fecharModal('modal-acesso');
+    toast('Acesso criado com sucesso');
+  } catch (err) {
+    erroEl.textContent = err.message || 'Erro ao criar acesso';
   }
 }

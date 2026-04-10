@@ -9,6 +9,7 @@
 <script src="js/constants.js"></script>
 <script src="js/db.js"></script>
 <script src="js/api.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/clientes.js"></script>
 <script src="js/exportar.js"></script>
@@ -17,9 +18,30 @@
 <body>
 
 <!-- ══════════════════════════════════════════════════════════
+     TELA 0 — LOGIN
+══════════════════════════════════════════════════════════ -->
+<div id="tela-login" style="display:none">
+  <div class="clientes-box" style="max-width:400px">
+    <div class="clientes-header">
+      <div class="clientes-logo">📊</div>
+      <h1>Controle de Bordo 2.0</h1>
+      <p>Faça login para continuar</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+      <input id="login-email" type="email" placeholder="Email" onkeydown="loginKeydown(event)"
+        style="width:100%;box-sizing:border-box;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none">
+      <input id="login-senha" type="password" placeholder="Senha" onkeydown="loginKeydown(event)"
+        style="width:100%;box-sizing:border-box;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none">
+      <div id="login-erro" style="color:var(--saida);font-size:13px;min-height:18px"></div>
+      <button id="login-btn" class="btn btn-primary" style="width:100%;padding:13px;font-size:14px;border-radius:10px" onclick="fazerLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      TELA 1 — SELEÇÃO DE CLIENTES
 ══════════════════════════════════════════════════════════ -->
-<div id="tela-clientes">
+<div id="tela-clientes" style="display:none">
   <div class="clientes-box">
     <div class="clientes-header">
       <div class="clientes-logo">📊</div>
@@ -72,7 +94,9 @@
         <span id="souz-txt" style="display:none;font-size:15px;font-weight:900;letter-spacing:3px;color:var(--text)">SOUZ</span>
       </div>
       <div class="cliente-chip" id="chip-cliente"></div>
+      <span id="topbar-usuario" style="font-size:12px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       <button id="btn-tema" onclick="alternarTema()" title="Alternar tema" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);padding:5px 9px;cursor:pointer;font-size:15px;line-height:1;transition:all .15s">🌙</button>
+      <button onclick="AUTH.logout()" title="Sair" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);padding:5px 9px;cursor:pointer;font-size:13px;line-height:1;transition:all .15s">Sair</button>
     </div>
   </header>
 
@@ -83,15 +107,15 @@
     <button class="nav-btn" onclick="navTo('relatorio', this)"><span class="nav-icon">📈</span> Relatório</button>
     <button class="nav-btn" onclick="navTo('contas', this)"><span class="nav-icon">🔄</span> Gestão de Contas</button>
     <button class="nav-btn" onclick="navTo('financeiro', this)"><span class="nav-icon">💹</span> Financeiro</button>
-    <span class="nav-section">Ações</span>
-    <button class="nav-btn" onclick="confirmarExportarCSV()"><span class="nav-icon">⬇️</span> Exportar CSV</button>
-    <button class="nav-btn" onclick="confirmarBackupJSON()"><span class="nav-icon">💾</span> Backup JSON</button>
-    <button class="nav-btn" onclick="document.getElementById('input-restore').click()"><span class="nav-icon">📂</span> Restaurar Backup</button>
+    <span class="nav-section admin-only">Ações</span>
+    <button class="nav-btn admin-only" onclick="confirmarExportarCSV()"><span class="nav-icon">⬇️</span> Exportar CSV</button>
+    <button class="nav-btn admin-only" onclick="confirmarBackupJSON()"><span class="nav-icon">💾</span> Backup JSON</button>
+    <button class="nav-btn admin-only" onclick="document.getElementById('input-restore').click()"><span class="nav-icon">📂</span> Restaurar Backup</button>
     <input type="file" id="input-restore" accept=".json" style="display:none" onchange="importarBackup(this)">
-    <button class="nav-btn" onclick="confirmarLimpar()"><span class="nav-icon">🗑️</span> Limpar Dados</button>
+    <button class="nav-btn admin-only" onclick="confirmarLimpar()"><span class="nav-icon">🗑️</span> Limpar Dados</button>
     <span class="nav-section">Cliente</span>
-    <button class="nav-btn" onclick="voltarClientes()"><span class="nav-icon">🔀</span> Trocar Cliente</button>
-    <button class="nav-btn" onclick="abrirEditarCliente()"><span class="nav-icon">✏️</span> Editar Cliente</button>
+    <button class="nav-btn admin-only" onclick="voltarClientes()"><span class="nav-icon">🔀</span> Trocar Cliente</button>
+    <button class="nav-btn admin-only" onclick="abrirEditarCliente()"><span class="nav-icon">✏️</span> Editar Cliente</button>
   </nav>
 
   <main class="main">
@@ -406,6 +430,23 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="fecharModalCliente()">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-cliente" onclick="salvarCliente()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL — CRIAR ACESSO DO CLIENTE -->
+<div class="modal-overlay" id="modal-acesso">
+  <div class="modal" style="max-width:420px">
+    <h3>Criar Acesso — <span id="acesso-cliente-nome"></span></h3>
+    <input type="hidden" id="acesso-cliente-id">
+    <div class="form-grid">
+      <div class="field span2"><label>Email de acesso</label><input type="email" id="acesso-email" placeholder="email@exemplo.com"></div>
+      <div class="field span2"><label>Senha</label><input type="password" id="acesso-senha" placeholder="Mínimo 6 caracteres"></div>
+    </div>
+    <div id="acesso-erro" style="color:var(--saida);font-size:13px;min-height:18px;margin:4px 0"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="fecharModal('modal-acesso')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAcesso()">Criar Acesso</button>
     </div>
   </div>
 </div>
