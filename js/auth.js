@@ -43,14 +43,14 @@ function mostrarTelaLogin() {
 
 function mostrarTelaClientes() {
   document.getElementById('tela-login').style.display    = 'none';
-  document.getElementById('tela-clientes').style.display = '';
+  document.getElementById('tela-clientes').style.display = 'flex';
   document.getElementById('tela-app').style.display      = 'none';
 }
 
 function mostrarTelaApp() {
   document.getElementById('tela-login').style.display    = 'none';
   document.getElementById('tela-clientes').style.display = 'none';
-  document.getElementById('tela-app').style.display      = '';
+  document.getElementById('tela-app').style.display      = 'block';
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
