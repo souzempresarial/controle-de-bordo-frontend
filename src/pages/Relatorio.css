@@ -1,0 +1,15 @@
+.relatorio-page { display: flex; flex-direction: column; gap: 18px; }
+
+.rel-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mes-atual td { background: #22c55e08 !important; }
+
+.total-row td {
+  border-top: 2px solid var(--border) !important;
+  background: var(--surface2);
+}
