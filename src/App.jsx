@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import ClienteSelect from './pages/ClienteSelect';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Lancamentos from './pages/Lancamentos';
 
 function getUsuarioInicial() {
   const token = localStorage.getItem('cb_token');
@@ -64,6 +65,16 @@ export default function App() {
                 ? <Navigate to="/login" replace />
                 : <Layout usuario={usuario} onLogout={handleLogout}>
                     <Dashboard />
+                  </Layout>
+            }
+          />
+          <Route
+            path="/lancamentos"
+            element={
+              !usuario
+                ? <Navigate to="/login" replace />
+                : <Layout usuario={usuario} onLogout={handleLogout}>
+                    <Lancamentos />
                   </Layout>
             }
           />
