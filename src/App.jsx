@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Lancamentos from './pages/Lancamentos';
 import Relatorio from './pages/Relatorio';
+import Contas from './pages/Contas';
 
 function getUsuarioInicial() {
   const token = localStorage.getItem('cb_token');
@@ -86,6 +87,16 @@ export default function App() {
                 ? <Navigate to="/login" replace />
                 : <Layout usuario={usuario} onLogout={handleLogout}>
                     <Relatorio />
+                  </Layout>
+            }
+          />
+          <Route
+            path="/contas"
+            element={
+              !usuario
+                ? <Navigate to="/login" replace />
+                : <Layout usuario={usuario} onLogout={handleLogout}>
+                    <Contas />
                   </Layout>
             }
           />
