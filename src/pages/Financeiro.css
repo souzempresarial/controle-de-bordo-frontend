@@ -1,0 +1,59 @@
+.financeiro-page { display: flex; flex-direction: column; gap: 18px; }
+
+/* ── ABAS ── */
+.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.aba-btn {
+  background: none; border: none; color: var(--text2);
+  padding: 8px 18px; font-size: 13px; font-weight: 600;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: all .15s;
+}
+.aba-btn:hover { color: var(--text); }
+.aba-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── DRE TABLE ── */
+.dre-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dre-table th {
+  padding: 8px 12px; text-align: left; font-size: 11px;
+  color: var(--text2); text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 1px solid var(--border); background: var(--surface2);
+  font-weight: 600; white-space: nowrap;
+}
+.dre-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dre-table tr:hover td { background: var(--surface2); }
+
+.row-big td { font-weight: 700; background: var(--surface2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); font-size: 12px; }
+.row-med td { font-weight: 600; }
+.row-pct td { font-style: italic; }
+.row-final td { font-weight: 800; background: #22c55e18; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; width: 100%; max-width: 560px;
+  max-height: 90vh; display: flex; flex-direction: column;
+}
+.modal-small { max-width: 380px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.modal-header h3 { font-size: 15px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--text2); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); }
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+.modal-body { padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+.field input, .field select {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 8px 10px; font-size: 13px; font-family: inherit;
+  outline: none; transition: border .15s;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); }
