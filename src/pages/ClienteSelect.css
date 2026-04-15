@@ -1,0 +1,126 @@
+.clientes-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+  background: radial-gradient(ellipse at 60% 0%, #071a0e 0%, #050805 60%);
+}
+
+.clientes-box {
+  width: 100%;
+  max-width: 580px;
+}
+
+.clientes-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.clientes-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #22c55e22;
+  border: 1px solid #22c55e44;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
+.clientes-header h1 {
+  font-size: 32px;
+  font-weight: 900;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.clientes-header p {
+  color: #527060;
+  font-size: 13px;
+}
+
+.clientes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cliente-card {
+  background: #0d110d;
+  border: 1px solid #1e2a1e;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.cliente-card:hover {
+  border-color: #22c55e;
+  background: #141a14;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px #22c55e18;
+}
+
+.cliente-card.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cliente-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.cliente-info { flex: 1; }
+.cliente-info .nome { font-size: 15px; font-weight: 700; color: #f0f8f2; }
+.cliente-info .meta { font-size: 12px; color: #527060; margin-top: 3px; }
+
+.clientes-empty {
+  text-align: center;
+  padding: 48px 40px;
+  color: #527060;
+  background: #0d110d;
+  border: 1px dashed #1e2a1e;
+  border-radius: 12px;
+}
+.clientes-empty .icon { font-size: 40px; margin-bottom: 12px; }
+
+.clientes-loading,
+.clientes-erro {
+  text-align: center;
+  padding: 20px;
+  color: #527060;
+  font-size: 13px;
+}
+.clientes-erro { color: #f03e3e; }
+
+.btn-sair {
+  width: 100%;
+  padding: 13px;
+  background: none;
+  border: 1px solid #1e2a1e;
+  border-radius: 8px;
+  color: #527060;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all .15s;
+}
+.btn-sair:hover { border-color: #527060; color: #f0f8f2; }
