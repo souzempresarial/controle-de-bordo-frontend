@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(cp -r \"c:/Users/souze/OneDrive/Desktop/Controle de bordo 2.0/css\" \"c:/Users/souze/OneDrive/Desktop/controle-de-bordo-frontend/\")",
+      "Bash(cp -r \"c:/Users/souze/OneDrive/Desktop/Controle de bordo 2.0/js\" \"c:/Users/souze/OneDrive/Desktop/controle-de-bordo-frontend/\")",
+      "Bash(cp \"c:/Users/souze/OneDrive/Desktop/Controle de bordo 2.0/financas.html\" \"c:/Users/souze/OneDrive/Desktop/controle-de-bordo-frontend/\")"
+    ]
+  }
+}
