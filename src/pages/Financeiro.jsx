@@ -2,10 +2,8 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS } from '../services/constants';
-import { fmt, fmtPct, hoje, MESES_FULL } from '../services/utils';
+import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
 import './Financeiro.css';
-
-const MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
 // ── DRE ────────────────────────────────────────────────────────────────────────
 function calcDREMes(lancamentos, pfx) {
