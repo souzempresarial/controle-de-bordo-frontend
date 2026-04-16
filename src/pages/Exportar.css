@@ -1,0 +1,156 @@
+.exportar-page {
+  padding: 24px;
+  max-width: 700px;
+}
+
+.exportar-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.exportar-titulo {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.exportar-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 0;
+}
+
+.exportar-filtros {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exportar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.exportar-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.exportar-field input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.exportar-field input:focus {
+  border-color: var(--accent);
+}
+
+.exportar-erro {
+  font-size: 13px;
+  color: var(--saida);
+  margin: 0;
+}
+
+.exportar-resumo {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.resumo-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.resumo-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.resumo-valor {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.resumo-valor.entrada { color: var(--entrada); }
+.resumo-valor.saida   { color: var(--saida); }
+
+.exportar-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exportar-vazio {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 0;
+}
+
+/* Tabela de prévia — oculta na tela, visível só no print */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .print-only {
+    display: block;
+  }
+
+  .exportar-panel {
+    display: none;
+  }
+
+  .exportar-preview h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .exportar-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .exportar-preview th,
+  .exportar-preview td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+  }
+
+  .exportar-preview th {
+    background: #f0f0f0;
+    font-weight: 700;
+  }
+
+  .exportar-preview tfoot td {
+    background: #f0f0f0;
+  }
+}

@@ -9,6 +9,7 @@ import Lancamentos from './pages/Lancamentos';
 import Relatorio from './pages/Relatorio';
 import Contas from './pages/Contas';
 import Financeiro from './pages/Financeiro';
+import Exportar from './pages/Exportar';
 
 function getUsuarioInicial() {
   const token = localStorage.getItem('cb_token');
@@ -108,6 +109,17 @@ export default function App() {
                 ? <Navigate to="/login" replace />
                 : <Layout usuario={usuario} onLogout={handleLogout}>
                     <Financeiro />
+                  </Layout>
+            }
+          />
+
+          <Route
+            path="/exportar"
+            element={
+              !usuario
+                ? <Navigate to="/login" replace />
+                : <Layout usuario={usuario} onLogout={handleLogout}>
+                    <Exportar />
                   </Layout>
             }
           />
