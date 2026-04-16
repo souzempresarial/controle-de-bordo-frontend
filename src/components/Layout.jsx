@@ -84,6 +84,9 @@ export default function Layout({ children, usuario, onLogout }) {
         <NavLink to="/financeiro" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">💹</span> Financeiro
         </NavLink>
+        <NavLink to="/exportar" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+          <span className="nav-icon">📥</span> Exportar
+        </NavLink>
 
         {isAdmin && (
           <>
