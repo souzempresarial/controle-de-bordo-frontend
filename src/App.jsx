@@ -18,6 +18,16 @@ function getUsuarioInicial() {
   return token ? { token, papel, nome } : null;
 }
 
+function PrivateRoute({ usuario, children }) {
+  if (!usuario) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function PrivateLayout({ usuario, onLogout, children }) {
+  if (!usuario) return <Navigate to="/login" replace />;
+  return <Layout usuario={usuario} onLogout={onLogout}>{children}</Layout>;
+}
+
 export default function App() {
   const [usuario, setUsuario] = useState(getUsuarioInicial);
 
@@ -53,76 +63,21 @@ export default function App() {
           <Route
             path="/clientes"
             element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : papel !== 'admin'
-                ? <Navigate to="/dashboard" replace />
-                : <ClienteSelect onLogout={handleLogout} />
+              <PrivateRoute usuario={usuario}>
+                {papel !== 'admin'
+                  ? <Navigate to="/dashboard" replace />
+                  : <ClienteSelect onLogout={handleLogout} />}
+              </PrivateRoute>
             }
           />
 
-          {/* Dashboard e demais páginas — dentro do Layout */}
-          <Route
-            path="/dashboard"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Dashboard />
-                  </Layout>
-            }
-          />
-          <Route
-            path="/lancamentos"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Lancamentos />
-                  </Layout>
-            }
-          />
-          <Route
-            path="/relatorio"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Relatorio />
-                  </Layout>
-            }
-          />
-          <Route
-            path="/contas"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Contas />
-                  </Layout>
-            }
-          />
-          <Route
-            path="/financeiro"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Financeiro />
-                  </Layout>
-            }
-          />
-
-          <Route
-            path="/exportar"
-            element={
-              !usuario
-                ? <Navigate to="/login" replace />
-                : <Layout usuario={usuario} onLogout={handleLogout}>
-                    <Exportar />
-                  </Layout>
-            }
-          />
+          {/* Páginas dentro do Layout */}
+          <Route path="/dashboard"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Dashboard /></PrivateLayout>} />
+          <Route path="/lancamentos" element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Lancamentos /></PrivateLayout>} />
+          <Route path="/relatorio"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Relatorio /></PrivateLayout>} />
+          <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Contas /></PrivateLayout>} />
+          <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Financeiro /></PrivateLayout>} />
+          <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Exportar /></PrivateLayout>} />
 
           {/* Rota raiz: redireciona conforme papel */}
           <Route
