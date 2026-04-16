@@ -1,14 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { CMVCATS } from '../services/constants';
+import { fmt, fmtPct, hoje } from '../services/utils';
 import './Dashboard.css';
-
-const fmt = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtPct = (v) => v !== null && v !== undefined ? v.toFixed(2) + '%' : '—';
-
-function hoje() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function mesAnterior(mes) {
   const [ano, m] = mes.split('-');

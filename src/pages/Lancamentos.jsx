@@ -2,11 +2,8 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { getCatsPorTipo, getSubcats, CATEGORIAS_CMV } from '../services/constants';
+import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
-
-const fmt = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtData = (d) => { if (!d) return '—'; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; };
-const hoje = () => new Date().toISOString().slice(0, 10);
 
 const formVazio = () => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
