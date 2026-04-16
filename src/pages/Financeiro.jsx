@@ -365,7 +365,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
               <div className="form-grid">
                 <div className="field">
                   <label>Mês</label>
-                  <select value={siMes} onChange={e => setSiMes(e.target.value)}>
+                  <select value={siMes} onChange={e => setSiMes(parseInt(e.target.value))}>
                     {MESES_FULL.map((m, i) => <option key={i} value={i}>{m}</option>)}
                   </select>
                 </div>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
+import { API } from '../services/api';
 import './Login.css';
-
-const API_URL = 'https://controle-de-bordo-backend-production.up.railway.app';
 
 export default function Login({ onLogin }) {
   const [email, setEmail]     = useState('');
@@ -17,13 +16,7 @@ export default function Login({ onLogin }) {
     setErro('');
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.erro || 'Erro ao fazer login');
+      const data = await API.login({ email, senha });
 
       localStorage.setItem('cb_token',     data.token);
       localStorage.setItem('cb_papel',     data.papel);
