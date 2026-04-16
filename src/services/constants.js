@@ -36,6 +36,11 @@ export const CATEGORIAS_TRANSF = {
   'Transferência': ['Entre Contas Próprias','Para Reserva / Caixa','Para Investimento','Para Terceiros','Outros'],
 };
 
+// Constantes de classificação financeira — usadas em Dashboard, Relatorio, Financeiro e Layout
+export const CMVCATS   = ['Custos Variáveis Diretos'];
+export const SGA_CATS  = ['Deduções das Vendas','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'];
+export const NAOOP_CATS = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
+
 export function getCatsPorTipo(tipo) {
   if (tipo === 'Entrada') return CATEGORIAS_ENTRADA;
   if (tipo === 'Transferência') return CATEGORIAS_TRANSF;

@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { CMVCATS } from '../services/constants';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
@@ -10,7 +11,6 @@ export default function Layout({ children, usuario, onLogout }) {
   const isAdmin = papel === 'admin';
 
   // Totais do topbar
-  const CMVCATS = ['Custos Variáveis Diretos'];
   let entradas = 0, saidas = 0;
   lancamentos
     .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'))

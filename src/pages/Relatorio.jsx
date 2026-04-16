@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { CMVCATS, SGA_CATS, NAOOP_CATS } from '../services/constants';
 import './Relatorio.css';
 
 const fmt    = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -8,9 +9,6 @@ const hoje   = () => new Date().toISOString().slice(0, 10);
 
 const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const CMVCATS    = ['Custos Variáveis Diretos'];
-const SGA_CATS   = ['Deduções das Vendas','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'];
-const NAOOP_CATS = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
 
 function calcMes(lancamentos, pfx) {
   const lm     = lancamentos.filter(l => l.data.startsWith(pfx));

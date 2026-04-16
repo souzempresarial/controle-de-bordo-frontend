@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { CMVCATS } from '../services/constants';
 import './Dashboard.css';
-
-const CMVCATS = ['Custos Variáveis Diretos'];
 
 const fmt = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtPct = (v) => v !== null && v !== undefined ? v.toFixed(2) + '%' : '—';

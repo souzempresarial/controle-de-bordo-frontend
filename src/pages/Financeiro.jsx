@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
+import { CMVCATS } from '../services/constants';
 import './Financeiro.css';
 
 const fmt    = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -9,7 +10,6 @@ const hoje   = () => new Date().toISOString().slice(0, 10);
 
 const MESES     = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 const MESES_FULL= ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const CMVCATS   = ['Custos Variáveis Diretos'];
 
 // ── DRE ────────────────────────────────────────────────────────────────────────
 function calcDREMes(lancamentos, pfx) {
