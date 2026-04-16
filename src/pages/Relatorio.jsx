@@ -1,14 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { CMVCATS, SGA_CATS, NAOOP_CATS } from '../services/constants';
+import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
 import './Relatorio.css';
-
-const fmt    = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtPct = (v) => v !== null ? v.toFixed(2) + '%' : '—';
-const hoje   = () => new Date().toISOString().slice(0, 10);
-
-const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 function calcMes(lancamentos, pfx) {
   const lm     = lancamentos.filter(l => l.data.startsWith(pfx));

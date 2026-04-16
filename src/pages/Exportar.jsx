@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { fmt, hoje } from '../services/utils';
 import './Exportar.css';
-
-const fmt    = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const hoje   = () => new Date().toISOString().slice(0, 10);
 
 export default function Exportar() {
   const { lancamentos, clienteAtivo } = useApp();

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { CMVCATS } from '../services/constants';
+import { fmt } from '../services/utils';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
@@ -19,8 +20,6 @@ export default function Layout({ children, usuario, onLogout }) {
       else if (l.tipo === 'Saída') saidas += l.valor;
     });
   const saldo = entradas - saidas;
-
-  const fmt = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   function handleVoltarClientes() {
     sairCliente();

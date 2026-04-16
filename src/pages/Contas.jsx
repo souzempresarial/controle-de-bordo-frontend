@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { getCatsPorTipo, getSubcats } from '../services/constants';
+import { fmt, fmtData, hoje } from '../services/utils';
 import './Contas.css';
-
-const fmt    = (v) => (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const hoje   = () => new Date().toISOString().slice(0, 10);
-const fmtData = (d) => { if (!d) return '—'; const [y,m,day] = d.split('-'); return `${day}/${m}/${y}`; };
 
 function vencInfo(venc) {
   if (!venc) return { label: '—', cor: 'var(--text2)', extra: '' };
