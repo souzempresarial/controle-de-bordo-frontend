@@ -13,3 +13,115 @@
   border-top: 2px solid var(--border) !important;
   background: var(--surface2);
 }
+
+/* Gráficos anuais — grid 2x2 */
+.rel-graficos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .rel-graficos-grid { grid-template-columns: 1fr; }
+}
+
+/* Sparklines */
+.spark-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .spark-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 540px) {
+  .spark-grid { grid-template-columns: 1fr; }
+}
+
+.spark-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.spark-chart {
+  padding: 12px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.spark-info {
+  padding: 10px 14px 12px;
+}
+
+.spark-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 4px;
+}
+
+.spark-valor {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.spark-sub {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 3px;
+}
+
+/* Resumo Executivo */
+.resumo-exec .resumo-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+@media (max-width: 900px) {
+  .resumo-exec .resumo-body { grid-template-columns: 1fr; }
+}
+
+.resumo-bloco {
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.resumo-bloco:nth-child(2n) { border-right: none; }
+
+.resumo-bloco-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 14px;
+}
+
+/* Health score */
+.health-score-bar-bg {
+  height: 10px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.health-score-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width .5s ease;
+}
+
+.health-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.health-saudável  { background: #22c55e22; color: #22c55e; }
+.health-atenção   { background: #f59e0b22; color: #f59e0b; }
+.health-crítico   { background: #ef444422; color: #ef4444; }

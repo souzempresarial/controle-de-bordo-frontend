@@ -40,6 +40,7 @@ export default function App() {
     localStorage.removeItem('cb_papel');
     localStorage.removeItem('cb_nome');
     localStorage.removeItem('cb_cliente_id');
+    localStorage.removeItem('cb_cliente_json');
     setUsuario(null);
   }
 
