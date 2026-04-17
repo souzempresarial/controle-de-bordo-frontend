@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { API } from '../services/api';
 
 const AppContext = createContext(null);
@@ -19,7 +19,6 @@ export function AppProvider({ children }) {
         API.listarMetas(cliente.id),
       ]);
 
-      // Converte array de metas para { [mesChave]: { [campo]: valor } }
       const mc = {};
       metasArr.forEach(m => {
         if (!mc[m.mes_chave]) mc[m.mes_chave] = {};
@@ -30,6 +29,7 @@ export function AppProvider({ children }) {
       setLancamentos(lans);
       setContas(cts);
       setMetasCache(mc);
+      localStorage.setItem('cb_cliente_json', JSON.stringify(cliente));
     } finally {
       setLoading(false);
     }
@@ -40,6 +40,21 @@ export function AppProvider({ children }) {
     setLancamentos([]);
     setContas([]);
     setMetasCache({});
+    localStorage.removeItem('cb_cliente_json');
+  }, []);
+
+  // Restaura cliente ativo ao recarregar a página
+  useEffect(() => {
+    const token       = localStorage.getItem('cb_token');
+    const clienteJson = localStorage.getItem('cb_cliente_json');
+    if (token && clienteJson) {
+      try {
+        const cliente = JSON.parse(clienteJson);
+        entrarCliente(cliente);
+      } catch {
+        localStorage.removeItem('cb_cliente_json');
+      }
+    }
   }, []);
 
   return (
