@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { CMVCATS } from '../services/constants';
-import { fmt, fmtPct, hoje } from '../services/utils';
+import { API } from '../services/api';
+import { CMVCATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV } from '../services/constants';
+import { fmt, fmtPct, fmtData, hoje } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
@@ -21,18 +23,32 @@ function calcularTotais(lista) {
   return { entradas, saidas, saldo: entradas - saidas };
 }
 
-function fmtData(d) {
-  if (!d) return '—';
-  const [y, m, day] = d.split('-');
-  return `${day}/${m}/${y}`;
-}
+const formVazio = () => ({
+  data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
+  subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
+  valorRecebido: '', cmvValor: '', cmvCat: '', cmvSub: '',
+});
 
 export default function Dashboard() {
-  const { lancamentos } = useApp();
+  const { lancamentos, setLancamentos, clienteAtivo } = useApp();
+  const navigate = useNavigate();
 
   const mesAtual = hoje().slice(0, 7);
-  const [mes, setMes]   = useState(mesAtual.slice(5, 7));
-  const [ano, setAno]   = useState(mesAtual.slice(0, 4));
+  const [mes, setMes] = useState(mesAtual.slice(5, 7));
+  const [ano, setAno] = useState(mesAtual.slice(0, 4));
+
+  // Modal
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editandoId, setEditandoId]   = useState(null);
+  const [form, setForm]               = useState(formVazio);
+  const [salvando, setSalvando]       = useState(false);
+  const [erroForm, setErroForm]       = useState('');
+  const [confirmando, setConfirmando] = useState(null);
+
+  const cats    = getCatsPorTipo(form.tipo);
+  const subcats = getSubcats(form.categoria);
+  const cmvCats = CATEGORIAS_CMV;
+  const cmvSubs = getSubcats(form.cmvCat);
 
   const periodo = `${ano}-${mes}`;
   const prevMes = mesAnterior(periodo);
@@ -46,8 +62,8 @@ export default function Dashboard() {
   const lm    = useMemo(() => lancamentos.filter(l => l.data.startsWith(periodo)), [lancamentos, periodo]);
   const lprev = useMemo(() => lancamentos.filter(l => l.data.startsWith(prevMes)), [lancamentos, prevMes]);
 
-  const tm    = calcularTotais(lm);
-  const tp    = calcularTotais(lprev);
+  const tm       = calcularTotais(lm);
+  const tp       = calcularTotais(lprev);
   const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
@@ -70,6 +86,123 @@ export default function Dashboard() {
 
   const semCMV = lm.filter(l => !l.isCMV).slice(0, 50);
 
+  function setField(campo, valor) {
+    setForm(f => {
+      const novo = { ...f, [campo]: valor };
+      if (campo === 'tipo')     { novo.categoria = ''; novo.subcategoria = ''; novo.cmvValor = ''; novo.cmvCat = ''; novo.cmvSub = ''; }
+      if (campo === 'categoria') { novo.subcategoria = ''; }
+      if (campo === 'cmvCat')   { novo.cmvSub = ''; }
+      return novo;
+    });
+  }
+
+  function abrirNovo() {
+    setEditandoId(null);
+    setForm(formVazio());
+    setErroForm('');
+    setModalAberto(true);
+  }
+
+  function abrirEditar(l) {
+    setEditandoId(l.id);
+    setForm({
+      data: l.data || hoje(),
+      tipo: l.tipo,
+      valor: l.valor,
+      descricao: l.descricao,
+      categoria: l.categoria,
+      subcategoria: l.subcategoria || '',
+      pagamento: l.pagamento || '',
+      status: l.status,
+      obs: l.obs || '',
+      quantidade: l.quantidade || '',
+      valorRecebido: l.valorRecebido ?? '',
+      cmvValor: '', cmvCat: '', cmvSub: '',
+    });
+    setErroForm('');
+    setModalAberto(true);
+  }
+
+  function fecharModal() { setModalAberto(false); setEditandoId(null); }
+
+  async function salvar() {
+    if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
+    if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
+
+    setSalvando(true);
+    setErroForm('');
+    try {
+      if (editandoId) {
+        const atualizado = await API.editarLancamento(editandoId, {
+          data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
+          categoria: form.categoria, subcategoria: form.subcategoria,
+          descricao: form.descricao, pagamento: form.pagamento,
+          status: form.status, obs: form.obs,
+          quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
+        });
+        setLancamentos(prev => prev.map(l => l.id === editandoId ? { ...l, ...atualizado } : l));
+      } else {
+        const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
+        if (cmvValor > 0 && !form.cmvCat) { setErroForm('Selecione o tipo de custo do CMV'); setSalvando(false); return; }
+
+        const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
+        const vrRaw         = parseFloat(form.valorRecebido);
+        const valorRecebido = (!isNaN(vrRaw) && vrRaw < parseFloat(form.valor)) ? vrRaw : null;
+        const grupoId       = cmvValor > 0 ? ('g' + Date.now()) : null;
+
+        const novo = await API.criarLancamento(clienteAtivo.id, {
+          tipo: form.tipo, valor: parseFloat(form.valor), data: form.data,
+          categoria: form.categoria, subcategoria: form.subcategoria,
+          descricao: form.descricao, pagamento: form.pagamento,
+          status: form.status, obs: form.obs,
+          quantidade, valor_recebido: valorRecebido, grupo_id: grupoId,
+        });
+
+        let novosLans = [novo];
+
+        if (cmvValor > 0) {
+          const cmv = await API.criarLancamento(clienteAtivo.id, {
+            tipo: 'Saída', valor: cmvValor, data: form.data,
+            categoria: form.cmvCat, subcategoria: form.cmvSub,
+            descricao: 'CMV — ' + form.descricao,
+            pagamento: form.pagamento, status: form.status,
+            obs: 'CMV vinculado ao #' + String(novo.id).padStart(3, '0'),
+            grupo_id: grupoId, is_cmv: true,
+          });
+          novosLans = [cmv, novo];
+        }
+
+        setLancamentos(prev => [...novosLans, ...prev]);
+      }
+      fecharModal();
+    } catch (err) {
+      setErroForm(err.message || 'Erro ao salvar');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function excluir(id) {
+    try {
+      await API.excluirLancamento(clienteAtivo.id, id);
+      setLancamentos(prev => {
+        const sem = prev.filter(l => l.id !== id);
+        const pais = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
+        const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
+        orfaos.forEach(o => API.excluirLancamento(clienteAtivo.id, o.id));
+        return sem.filter(l => !l.isCMV || pais.has(l.grupoId));
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    setConfirmando(null);
+  }
+
+  const isEntrada = form.tipo === 'Entrada';
+  const margemPreview = isEntrada && form.valor && form.cmvValor
+    ? { lucro: parseFloat(form.valor) - parseFloat(form.cmvValor), margem: ((parseFloat(form.valor) - parseFloat(form.cmvValor)) / parseFloat(form.valor) * 100).toFixed(2) }
+    : null;
+
   return (
     <div className="dashboard">
       {/* Seletor de período */}
@@ -89,17 +222,17 @@ export default function Dashboard() {
 
       {/* Cards resumo */}
       <div className="cards">
-        <div className="card c-entrada">
+        <div className="card">
           <div className="card-label">Faturamento do Mês</div>
           <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(fat)}</div>
           <div className="card-sub">Mês anterior: <span style={{ color: 'var(--entrada)' }}>{fmt(fatPrev)}</span></div>
         </div>
-        <div className="card c-saida">
+        <div className="card">
           <div className="card-label">Saídas do Mês</div>
           <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(tm.saidas)}</div>
           <div className="card-sub">Mês anterior: <span style={{ color: 'var(--saida)' }}>{fmt(tp.saidas)}</span></div>
         </div>
-        <div className="card c-saldo">
+        <div className="card">
           <div className="card-label">Saldo do Mês</div>
           <div className="card-value" style={{ color: tm.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tm.saldo)}</div>
           <div className="card-sub">Mês anterior: <span style={{ color: tp.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tp.saldo)}</span></div>
@@ -135,10 +268,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Botão novo lançamento */}
+      <div>
+        <button className="btn btn-primary" onClick={abrirNovo}>
+          ＋ Novo Lançamento
+        </button>
+      </div>
+
       {/* Tabela de últimos lançamentos */}
       <div className="table-panel">
         <div className="table-header">
           <h2>Últimos lançamentos</h2>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/lancamentos')}>Ver todos →</button>
         </div>
 
         {semCMV.length === 0 ? (
@@ -158,6 +299,7 @@ export default function Dashboard() {
                   <th>Descrição</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Valor</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -186,6 +328,12 @@ export default function Dashboard() {
                       <td style={{ textAlign: 'right', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '-' : ''}{fmt(l.valor)}
                       </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)}>✏️</button>
+                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(l)}>🗑</button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -194,6 +342,151 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Modal Novo Lançamento */}
+      {modalAberto && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <h3>{editandoId ? `Editar Lançamento #${String(editandoId).padStart(3,'0')}` : 'Novo Lançamento'}</h3>
+              <button className="modal-close" onClick={fecharModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="field">
+                  <label>Data</label>
+                  <input type="date" value={form.data} onChange={e => setField('data', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Tipo</label>
+                  <select value={form.tipo} onChange={e => setField('tipo', e.target.value)} disabled={!!editandoId}>
+                    <option>Entrada</option><option>Saída</option><option>Transferência</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{isEntrada ? 'Valor Venda (R$)' : 'Valor (R$)'}</label>
+                  <input type="number" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setField('valor', e.target.value)} />
+                </div>
+                {isEntrada && !editandoId && (
+                  <div className="field">
+                    <label>Valor Recebido (R$)</label>
+                    <input type="number" step="0.01" placeholder="deixe vazio se total" value={form.valorRecebido} onChange={e => setField('valorRecebido', e.target.value)} />
+                  </div>
+                )}
+                <div className="field">
+                  <label>Categoria</label>
+                  <select value={form.categoria} onChange={e => setField('categoria', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {Object.entries(cats).map(([cat, subs]) =>
+                      subs === null
+                        ? <option key={cat} disabled style={{ color: 'var(--text2)', fontSize: 11 }}>{cat}</option>
+                        : <option key={cat}>{cat}</option>
+                    )}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Subcategoria</label>
+                  <select value={form.subcategoria} onChange={e => setField('subcategoria', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {subcats.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="field span2">
+                  <label>Descrição</label>
+                  <input type="text" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Pagamento</label>
+                  <select value={form.pagamento} onChange={e => setField('pagamento', e.target.value)}>
+                    <option value="">—</option>
+                    <option>Dinheiro</option><option>Pix</option><option>Crédito</option>
+                    <option>Débito</option><option>Boleto</option><option>Transferência</option><option>Outro</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Status</label>
+                  <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                    <option>Confirmado</option><option>Pendente</option>
+                  </select>
+                </div>
+                {isEntrada && (
+                  <div className="field">
+                    <label>Quantidade</label>
+                    <input type="number" placeholder="1" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
+                  </div>
+                )}
+                <div className="field span2">
+                  <label>Observações</label>
+                  <input type="text" placeholder="Opcional" value={form.obs} onChange={e => setField('obs', e.target.value)} />
+                </div>
+              </div>
+
+              {isEntrada && !editandoId && (
+                <div className="cmv-section">
+                  <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Valor CMV (R$)</label>
+                      <input type="number" step="0.01" placeholder="0,00" value={form.cmvValor} onChange={e => setField('cmvValor', e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Tipo de Custo</label>
+                      <select value={form.cmvCat} onChange={e => setField('cmvCat', e.target.value)}>
+                        <option value="">— selecione —</option>
+                        {Object.keys(cmvCats).map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Subcategoria CMV</label>
+                      <select value={form.cmvSub} onChange={e => setField('cmvSub', e.target.value)}>
+                        <option value="">— selecione —</option>
+                        {cmvSubs.map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {margemPreview && (
+                    <div className="margem-preview">
+                      <span>Receita: <strong>{fmt(parseFloat(form.valor))}</strong></span>
+                      <span>CMV: <strong style={{ color: 'var(--saida)' }}>{fmt(parseFloat(form.cmvValor))}</strong></span>
+                      <span>Lucro: <strong style={{ color: margemPreview.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(margemPreview.lucro)}</strong></span>
+                      <span>Margem: <strong style={{ color: margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem}%</strong></span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {erroForm && <div className="form-erro">{erroForm}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
+              <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
+                {salvando ? 'Salvando...' : editandoId ? 'Salvar Alterações' : 'Adicionar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Exclusão */}
+      {confirmando && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmando(null)}>
+          <div className="modal-box modal-small">
+            <div className="modal-header">
+              <h3>Excluir Lançamento</h3>
+              <button className="modal-close" onClick={() => setConfirmando(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text2)', fontSize: 13 }}>
+                Excluir <strong style={{ color: 'var(--text)' }}>#{String(confirmando.id).padStart(3,'0')} — {confirmando.descricao}</strong> ({fmt(confirmando.valor)})?
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setConfirmando(null)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={() => excluir(confirmando.id)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
