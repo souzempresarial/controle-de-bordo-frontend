@@ -1,7 +1,7 @@
 .financeiro-page { display: flex; flex-direction: column; gap: 18px; }
 
 /* ── ABAS ── */
-.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; flex-wrap: wrap; }
 .aba-btn {
   background: none; border: none; color: var(--text2);
   padding: 8px 18px; font-size: 13px; font-weight: 600;
@@ -22,7 +22,18 @@
 .dre-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .dre-table tr:hover td { background: var(--surface2); }
 
-.row-big td { font-weight: 700; background: var(--surface2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); font-size: 12px; }
-.row-med td { font-weight: 600; }
-.row-pct td { font-style: italic; }
+.row-big td   { font-weight: 700; background: var(--surface2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); font-size: 12px; }
+.row-med td   { font-weight: 600; }
+.row-pct td   { font-style: italic; }
+.row-sub td   { background: transparent; }
 .row-final td { font-weight: 800; background: #22c55e18; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+.row-sep td   { background: #22c55e22; color: #22c55e; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 12px; }
+
+/* ── DRE MANUAL INPUT ── */
+.dre-input {
+  width: 76px; text-align: right;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text);
+  padding: 2px 5px; font-size: 12px; outline: none;
+}
+.dre-input:focus { border-color: var(--accent); }
