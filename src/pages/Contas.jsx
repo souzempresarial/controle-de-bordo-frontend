@@ -32,6 +32,12 @@ export default function Contas() {
   const [erroForm, setErroForm]       = useState('');
   const [confirmando, setConfirmando] = useState(null);
   const [quitando, setQuitando]       = useState(null);
+  const [toast, setToast]             = useState(null);
+
+  function showToast(msg, tipo = 'ok') {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   const pendR = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente');
   const pendP = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente');
@@ -50,9 +56,9 @@ export default function Contas() {
     });
   }
 
-  function abrirNovo(tipo = 'receber') {
+  function abrirNovo() {
     setEditandoId(null);
-    setForm(formVazio(tipo));
+    setForm(formVazio('receber'));
     setErroForm('');
     setModalAberto(true);
   }
@@ -89,9 +95,11 @@ export default function Contas() {
       if (editandoId) {
         const atualizada = await API.editarConta(clienteAtivo.id, editandoId, dados);
         setContas(prev => prev.map(c => c.id === editandoId ? atualizada : c));
+        showToast('Conta atualizada');
       } else {
         const nova = await API.criarConta(clienteAtivo.id, dados);
         setContas(prev => [...prev, nova]);
+        showToast('Conta criada');
       }
       fecharModal();
     } catch (err) {
@@ -105,8 +113,9 @@ export default function Contas() {
     try {
       await API.excluirConta(clienteAtivo.id, id);
       setContas(prev => prev.filter(c => c.id !== id));
+      showToast('Conta excluída');
     } catch (err) {
-      console.error(err);
+      showToast('Erro ao excluir', 'erro');
     }
     setConfirmando(null);
   }
@@ -120,7 +129,7 @@ export default function Contas() {
 
       const novoLanc = await API.criarLancamento(clienteAtivo.id, {
         tipo: tipoLanc, descricao: c.descricao, valor: c.valor,
-        data: hoje(), categoria: c.categoria || (tipoLanc === 'Saída' ? 'Despesas Variáveis' : 'Aparelhos'),
+        data: hoje(), categoria: c.categoria || (tipoLanc === 'Saída' ? 'Despesas Variáveis' : 'Outras Receitas'),
         subcategoria: c.subcategoria || '', status: 'Confirmado',
       });
       setLancamentos(prev => [novoLanc, ...prev]);
@@ -137,9 +146,12 @@ export default function Contas() {
           recorrente: true, periodicidade: c.periodicidade,
         });
         setContas(prev => [...prev, novaConta]);
+        showToast('Conta quitada — lançamento criado e próxima gerada');
+      } else {
+        showToast('Conta quitada — lançamento criado');
       }
     } catch (err) {
-      console.error(err);
+      showToast(err.message || 'Erro ao quitar conta', 'erro');
     }
     setQuitando(null);
   }
@@ -213,10 +225,9 @@ export default function Contas() {
         </div>
       </div>
 
-      {/* Botões */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-primary" onClick={() => abrirNovo('receber')}>＋ Nova Conta a Receber</button>
-        <button className="btn btn-ghost" onClick={() => abrirNovo('pagar')}>＋ Nova Conta a Pagar</button>
+      {/* Botão */}
+      <div>
+        <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta</button>
       </div>
 
       {/* Contas a Receber */}
@@ -333,6 +344,10 @@ export default function Contas() {
             </div>
           </div>
         </div>
+      )}
+      {/* Toast */}
+      {toast && (
+        <div className={`toast toast-${toast.tipo}`}>{toast.msg}</div>
       )}
     </div>
   );
