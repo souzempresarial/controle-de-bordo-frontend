@@ -16,7 +16,11 @@ export default function Usuarios({ onLogout }) {
   const [form, setForm]           = useState(formVazio());
   const [formErro, setFormErro]   = useState('');
   const [salvando, setSalvando]   = useState(false);
-  const [confirmId, setConfirmId] = useState(null);
+  const [confirmId, setConfirmId]     = useState(null);
+  const [redefinindo, setRedefinindo] = useState(null);
+  const [novaSenha, setNovaSenha]     = useState('');
+  const [senhaErro, setSenhaErro]     = useState('');
+  const [senhaSalvando, setSenhaSalvando] = useState(false);
   const navigate                  = useNavigate();
 
   useEffect(() => {
@@ -53,6 +57,19 @@ export default function Usuarios({ onLogout }) {
       setFormErro(err.message);
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function handleRedefinirSenha() {
+    if (!novaSenha || novaSenha.length < 6) { setSenhaErro('Senha deve ter no mínimo 6 caracteres'); return; }
+    setSenhaSalvando(true); setSenhaErro('');
+    try {
+      await API.redefinirSenha(redefinindo, novaSenha);
+      setRedefinindo(null); setNovaSenha('');
+    } catch (err) {
+      setSenhaErro(err.message);
+    } finally {
+      setSenhaSalvando(false);
     }
   }
 
@@ -112,6 +129,12 @@ export default function Usuarios({ onLogout }) {
                     <div className="meta">{u.email}</div>
                   </div>
                   <span className={`papel-badge papel-${u.papel}`}>{u.papel}</span>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setRedefinindo(u.id); setNovaSenha(''); setSenhaErro(''); }}
+                  >
+                    Redefinir Senha
+                  </button>
                   <button
                     className="btn btn-ghost btn-sm btn-excluir"
                     onClick={() => setConfirmId(u.id)}
@@ -188,6 +211,38 @@ export default function Usuarios({ onLogout }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal redefinir senha */}
+      {redefinindo && (
+        <div className="modal-overlay" onClick={() => setRedefinindo(null)}>
+          <div className="modal-box modal-small" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Redefinir Senha</h3>
+              <button className="modal-close" onClick={() => setRedefinindo(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label>Nova Senha</label>
+                <input
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={novaSenha}
+                  onChange={e => setNovaSenha(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleRedefinirSenha()}
+                />
+              </div>
+              {senhaErro && <div className="form-erro">{senhaErro}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setRedefinindo(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleRedefinirSenha} disabled={senhaSalvando}>
+                {senhaSalvando ? 'Salvando...' : 'Redefinir'}
+              </button>
+            </div>
           </div>
         </div>
       )}

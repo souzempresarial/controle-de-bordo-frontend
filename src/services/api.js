@@ -40,7 +40,8 @@ export const API = {
   login:          (dados)    => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(dados) }),
   criarUsuario:   (dados)    => apiFetch('/auth/usuarios', { method: 'POST', body: JSON.stringify(dados) }),
   listarUsuarios: ()         => apiFetch('/auth/usuarios'),
-  excluirUsuario: (id)       => apiFetch(`/auth/usuarios/${id}`, { method: 'DELETE' }),
+  excluirUsuario:  (id)            => apiFetch(`/auth/usuarios/${id}`, { method: 'DELETE' }),
+  redefinirSenha:  (id, novaSenha) => apiFetch(`/auth/usuarios/${id}/senha`, { method: 'PUT', body: JSON.stringify({ novaSenha }) }),
 
   // Clientes
   listarClientes:  ()           => apiFetch('/clientes'),
