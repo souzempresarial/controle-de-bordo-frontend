@@ -38,6 +38,12 @@ export default function ClienteSelect({ onLogout }) {
   const [confirmCliente, setConfirmCliente] = useState(null);
   const [confirmUsuario, setConfirmUsuario] = useState(null);
 
+  // Redefinir senha
+  const [redefinindo, setRedefinindo]       = useState(null); // userId
+  const [novaSenha, setNovaSenha]           = useState('');
+  const [senhaErro, setSenhaErro]           = useState('');
+  const [senhaSalvando, setSenhaSalvando]   = useState(false);
+
   const { entrarCliente } = useApp();
   const navigate          = useNavigate();
 
@@ -142,6 +148,19 @@ export default function ClienteSelect({ onLogout }) {
     }
   }
 
+  async function handleRedefinirSenha() {
+    if (!novaSenha || novaSenha.length < 6) { setSenhaErro('Senha deve ter no mínimo 6 caracteres'); return; }
+    setSenhaSalvando(true); setSenhaErro('');
+    try {
+      await API.redefinirSenha(redefinindo, novaSenha);
+      setRedefinindo(null); setNovaSenha('');
+    } catch (err) {
+      setSenhaErro(err.message);
+    } finally {
+      setSenhaSalvando(false);
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem('cb_token');
     localStorage.removeItem('cb_papel');
@@ -237,6 +256,12 @@ export default function ClienteSelect({ onLogout }) {
                                   <span className="meta">{u.email}</span>
                                 </div>
                                 <span className={`papel-badge papel-${u.papel}`}>{u.papel}</span>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  onClick={() => { setRedefinindo(u.id); setNovaSenha(''); setSenhaErro(''); }}
+                                >
+                                  Redefinir Senha
+                                </button>
                                 <button
                                   className="btn btn-ghost btn-sm btn-excluir"
                                   onClick={() => setConfirmUsuario({ id: u.id, clienteId: c.id })}
@@ -362,6 +387,38 @@ export default function ClienteSelect({ onLogout }) {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setConfirmCliente(null)}>Cancelar</button>
               <button className="btn-danger" onClick={() => handleExcluirCliente(confirmCliente)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal redefinir senha */}
+      {redefinindo && (
+        <div className="modal-overlay" onClick={() => setRedefinindo(null)}>
+          <div className="modal-box modal-small" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Redefinir Senha</h3>
+              <button className="modal-close" onClick={() => setRedefinindo(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label>Nova Senha</label>
+                <input
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={novaSenha}
+                  onChange={e => setNovaSenha(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => e.key === 'Enter' && handleRedefinirSenha()}
+                />
+              </div>
+              {senhaErro && <div className="form-erro">{senhaErro}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setRedefinindo(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleRedefinirSenha} disabled={senhaSalvando}>
+                {senhaSalvando ? 'Salvando...' : 'Redefinir'}
+              </button>
             </div>
           </div>
         </div>
