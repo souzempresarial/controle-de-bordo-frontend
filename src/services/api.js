@@ -1,4 +1,4 @@
-const API_URL = 'https://controle-de-bordo-backend-production.up.railway.app';
+const API_URL = 'https://controle-de-bordo-backend.onrender.com';
 
 function normalizarLancamento(l) {
   return {
