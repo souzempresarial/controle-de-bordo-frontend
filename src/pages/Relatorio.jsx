@@ -209,7 +209,7 @@ export default function Relatorio() {
     lucLiq:    mv.reduce((a, m) => a + m.lucLiq, 0),
     caixaLiq:  mv.reduce((a, m) => a + m.caixaLiq, 0),
   };
-  const kpiLucAcum = mesSel !== null ? lucroAcum[mesSel] : (lucroAcum[11] ?? 0);
+  const kpiLucAcum = mesSel !== null ? mv[mesSel].lucBruto : (lucroAcum[11] ?? 0);
 
   function handleBarClick(data) {
     if (data && data.activeTooltipIndex !== undefined) {
@@ -270,7 +270,7 @@ export default function Relatorio() {
         <KpiCard label="FATURAMENTO"        value={fmt(kpi.fat)}                             cor="#22c55e" sub={`${kpi.uni} unidades`} delta={mesSel !== null && fatVar !== null ? delta(fatVar) : null} corDelta={corDelta(fatVar)} />
         <KpiCard label="QTD VENDIDOS"        value={String(kpi.uni)}                          cor="#3b82f6" />
         <KpiCard label="LUCRO MÉDIO / UNID." value={kpi.uni > 0 ? fmt(kpi.lucMedioUni) : '—'} cor="#f59e0b" />
-        <KpiCard label="LUCRO ACUMULADO"     value={fmt(kpiLucAcum)}                          cor="#8b5cf6" sub={mesSel !== null ? `jan a ${MESES[mesSel].toLowerCase()}` : 'acumulado no ano'} />
+        <KpiCard label="LUCRO ACUMULADO"     value={fmt(kpiLucAcum)}                          cor="#8b5cf6" sub={mesSel !== null ? MESES_FULL[mesSel] : 'acumulado no ano'} />
         <KpiCard label="GASTOS TOTAIS"       value={fmt(kpi.gastos)}                          cor="#ef4444" delta={mesSel !== null && gastosVar !== null ? delta(gastosVar) : null} corDelta={corDelta(-gastosVar)} />
         <KpiCard label="TICKET MÉDIO"        value={kpi.uni > 0 ? fmt(kpi.ticket) : '—'}      cor="#14b8a6" />
         <KpiCard label="LUCRO LÍQUIDO"       value={fmt(kpi.lucLiq)}                          cor={kpi.lucLiq >= 0 ? '#22c55e' : '#ef4444'} delta={mesSel !== null && lucVar !== null ? delta(lucVar) : null} corDelta={corDelta(lucVar)} />
