@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
@@ -24,7 +24,11 @@ function calcMes(lancamentos, pfx) {
   const ticket    = uni > 0 ? fat / uni : 0;
   const margem    = fat > 0 ? (lucBruto / fat * 100) : 0;
   const cmvPct    = fat > 0 ? (cmv / fat * 100) : 0;
-  return { fat, cmv, sga, naoOp, gastos, lucBruto, lucLiq, uni, ticket, margem, cmvPct };
+  const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
+  const saiCaixa  = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const caixaLiq  = entCaixa - saiCaixa;
+  const lucMedioUni = uni > 0 ? lucBruto / uni : 0;
+  return { fat, cmv, sga, naoOp, gastos, lucBruto, lucLiq, uni, ticket, margem, cmvPct, caixaLiq, lucMedioUni };
 }
 
 function TooltipBRL({ active, payload, label }) {
@@ -77,13 +81,49 @@ function SparkMetrica({ label, valor, sub, dados, fmtFn, cor }) {
   );
 }
 
+function MetricRow({ label, valores, fmtFn, cor, mesAtual, mesSel, onSelect, totalOverride }) {
+  const sparkData = valores.map((v, i) => ({ v: Math.max(0, v), atual: i === mesAtual }));
+  const total = totalOverride !== undefined ? totalOverride : valores.reduce((a, v) => a + v, 0);
+  return (
+    <tr className="metric-tr">
+      <td className="metric-name-cell">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 52, height: 26, flexShrink: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sparkData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barCategoryGap={2}>
+                <Bar dataKey="v" radius={[1,1,0,0]}>
+                  {sparkData.map((d, i) => <Cell key={i} fill={d.atual ? cor : cor + '55'} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <span className="metric-label-text">{label}</span>
+        </div>
+      </td>
+      {valores.map((v, i) => (
+        <td
+          key={i}
+          className={`metric-val${i === mesAtual ? ' col-atual' : ''}${i === mesSel ? ' col-sel' : ''}`}
+          onClick={() => onSelect(i)}
+          style={{ color: v === 0 ? 'var(--text2)' : v < 0 ? 'var(--saida)' : cor }}
+        >
+          {v === 0 ? '—' : fmtFn(v)}
+        </td>
+      ))}
+      <td className="metric-total" style={{ color: total < 0 ? 'var(--saida)' : cor }}>
+        {total === 0 ? '—' : fmtFn(total)}
+      </td>
+    </tr>
+  );
+}
+
 export default function Relatorio() {
   const { lancamentos, contas } = useApp();
 
   const anoAtual = hoje().slice(0, 4);
   const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
 
-  const [ano, setAno]         = useState(anoAtual);
+  const [ano, setAno]             = useState(anoAtual);
   const [mesFiltro, setMesFiltro] = useState('');
 
   const anos = useMemo(() => {
@@ -92,13 +132,19 @@ export default function Relatorio() {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  // Dados mensais do ano
   const mv = useMemo(() =>
     MESES.map((_, i) => calcMes(lancamentos, `${ano}-${String(i + 1).padStart(2, '0')}`)),
     [lancamentos, ano]
   );
 
-  // Período filtrado
+  const lucroAcum = useMemo(() => {
+    let acc = 0;
+    return mv.map(m => { acc += m.lucBruto; return acc; });
+  }, [mv]);
+
+  const mesAtualIdx = ano === anoAtual ? mesAtual : -1;
+  const mesSel      = mesFiltro !== '' ? parseInt(mesFiltro) : null;
+
   const filtrados = useMemo(() => {
     const lancAno = lancamentos.filter(l => l.data.startsWith(ano));
     if (mesFiltro === '') return lancAno;
@@ -106,15 +152,14 @@ export default function Relatorio() {
     return lancAno.filter(l => parseInt(l.data.slice(5, 7)) - 1 === m);
   }, [lancamentos, ano, mesFiltro]);
 
-  const mesIdx      = mesFiltro !== '' ? parseInt(mesFiltro) : null;
+  const mesIdx       = mesFiltro !== '' ? parseInt(mesFiltro) : null;
   const labelPeriodo = mesIdx !== null ? `${MESES_FULL[mesIdx]}/${ano}` : ano;
 
-  // Totais do período
-  const totFat     = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const totCMV     = filtrados.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const totSGA     = filtrados.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const totNaoOp   = filtrados.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const totGastos  = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const totFat      = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
+  const totCMV      = filtrados.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const totSGA      = filtrados.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const totNaoOp    = filtrados.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const totGastos   = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const totLucBruto = totFat - totCMV;
   const totLucLiq   = totFat - totCMV - totSGA - totNaoOp;
   const totMargem   = totFat > 0 ? (totLucBruto / totFat * 100) : null;
@@ -123,7 +168,6 @@ export default function Relatorio() {
   const totTicket   = totUni > 0 ? totFat / totUni : null;
   const totCMVPct   = totFat > 0 ? (totCMV / totFat * 100) : null;
 
-  // Mês anterior
   const prevMesIdx = mesIdx !== null ? (mesIdx === 0 ? 11 : mesIdx - 1) : null;
   const prevAno    = mesIdx === 0 ? String(parseInt(ano) - 1) : ano;
   const prevPfx    = prevMesIdx !== null ? `${prevAno}-${String(prevMesIdx + 1).padStart(2, '0')}` : null;
@@ -132,17 +176,14 @@ export default function Relatorio() {
   const lucVar     = prevDados && prevDados.lucLiq !== 0 ? ((totLucLiq - prevDados.lucLiq) / Math.abs(prevDados.lucLiq) * 100) : null;
   const gastosVar  = prevDados && prevDados.gastos > 0 ? ((totGastos - prevDados.gastos) / prevDados.gastos * 100) : null;
 
-  // Geração de caixa (DFC — exclui CMV cats e pendentes)
-  const entCaixa  = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
-  const saiCaixa  = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const entCaixa     = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
+  const saiCaixa     = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const geracaoCaixa = entCaixa - saiCaixa;
 
-  // NCG
   const ncgReceber = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente').reduce((a, c) => a + c.valor, 0);
   const ncgPagar   = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente').reduce((a, c) => a + c.valor, 0);
   const ncg        = ncgReceber - ncgPagar;
 
-  // Score de saúde financeira
   const scoreML    = totFat > 0 ? Math.max(0, Math.min(100, (totLucLiq / totFat) / 0.25 * 100)) : 0;
   const scoreGC    = totFat > 0 ? Math.max(0, Math.min(100, (geracaoCaixa / totFat) / 0.20 * 100)) : 0;
   const scoreCresc = fatVar !== null ? Math.max(0, Math.min(100, (fatVar + 20) / 40 * 100)) : 50;
@@ -151,7 +192,6 @@ export default function Relatorio() {
   const healthLabel = healthScore >= 70 ? 'Saudável' : healthScore >= 40 ? 'Atenção' : 'Crítico';
   const healthColor = healthScore >= 70 ? '#22c55e' : healthScore >= 40 ? '#f59e0b' : '#ef4444';
 
-  // Receita por categoria (dinâmico)
   const recPorCat = useMemo(() => {
     const obj = {};
     filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV)
@@ -159,7 +199,6 @@ export default function Relatorio() {
     return Object.entries(obj).sort((a, b) => b[1] - a[1]);
   }, [filtrados]);
 
-  // Gastos por categoria
   const gastPorCat = useMemo(() => {
     const obj = {};
     filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria))
@@ -167,25 +206,27 @@ export default function Relatorio() {
     return Object.entries(obj).sort((a, b) => b[1] - a[1]);
   }, [filtrados]);
 
-  // Dados para gráficos anuais
-  const dadosAnuais = MESES.map((m, i) => ({
-    mes: m,
-    Faturamento: mv[i].fat,
-    'Lucro Bruto': mv[i].lucBruto,
-    'Lucro Líq.': mv[i].lucLiq,
-  }));
-  const dadosTicket = MESES.map((m, i) => ({ mes: m, 'Ticket Médio': mv[i].ticket }));
-  const dadosCMVPct = MESES.map((m, i) => ({ mes: m, 'CMV %': parseFloat(mv[i].cmvPct.toFixed(2)) }));
+  const dadosAnuais  = MESES.map((m, i) => ({ mes: m, Faturamento: mv[i].fat, 'Lucro Bruto': mv[i].lucBruto, 'Lucro Líq.': mv[i].lucLiq }));
+  const dadosTicket  = MESES.map((m, i) => ({ mes: m, 'Ticket Médio': mv[i].ticket }));
+  const dadosCMVPct  = MESES.map((m, i) => ({ mes: m, 'CMV %': parseFloat(mv[i].cmvPct.toFixed(2)) }));
   const dadosDoughnut = gastPorCat.slice(0, 8).map(([cat, val]) => ({ name: cat, value: val }));
 
-  // Dados sparklines (visão mensal)
-  const mkSpark = (dados, mesAtualIdx) =>
-    MESES.map((_, i) => ({ v: dados[i], atual: i === mesAtualIdx }));
+  const mkSpark = (dados, idx) => MESES.map((_, i) => ({ v: dados[i], atual: i === idx }));
 
   const corMargem = (m) => m === null ? 'var(--text2)' : m >= 30 ? 'var(--entrada)' : m >= 15 ? 'var(--warn)' : 'var(--saida)';
   const corLucro  = (v) => v >= 0 ? 'var(--entrada)' : 'var(--saida)';
   const delta     = (v) => v === null ? null : (v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`);
   const corDelta  = (v) => v === null ? 'var(--text2)' : v >= 0 ? 'var(--entrada)' : 'var(--saida)';
+
+  const totAnualFat      = mv.reduce((a, m) => a + m.fat, 0);
+  const totAnualUni      = mv.reduce((a, m) => a + m.uni, 0);
+  const totAnualLucMedio = totAnualUni > 0 ? mv.reduce((a, m) => a + m.lucBruto, 0) / totAnualUni : 0;
+  const totAnualGastos   = mv.reduce((a, m) => a + m.gastos, 0);
+  const totAnualTicket   = totAnualUni > 0 ? totAnualFat / totAnualUni : 0;
+  const totAnualLucLiq   = mv.reduce((a, m) => a + m.lucLiq, 0);
+  const totAnualCaixa    = mv.reduce((a, m) => a + m.caixaLiq, 0);
+
+  const rowProps = { mesAtual: mesAtualIdx, mesSel, onSelect: i => setMesFiltro(String(i)) };
 
   return (
     <div className="relatorio-page">
@@ -199,6 +240,9 @@ export default function Relatorio() {
         <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
+        {mesFiltro !== '' && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setMesFiltro('')}>← Voltar ao ano</button>
+        )}
       </div>
 
       {/* Cards resumo */}
@@ -233,6 +277,37 @@ export default function Relatorio() {
       {/* ── VISÃO ANUAL ── */}
       {mesFiltro === '' && (
         <>
+          {/* Tabela planilha */}
+          <div className="table-panel">
+            <div className="table-header">
+              <h2>Visão Anual — {ano}</h2>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>Clique em um mês para detalhar</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="rel-matrix-table">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>MÉTRICA</th>
+                    {MESES.map((m, i) => (
+                      <th key={i} className={i === mesAtualIdx ? 'col-atual' : ''}>{m}</th>
+                    ))}
+                    <th className="col-total">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <MetricRow label="FATURAMENTO"         valores={mv.map(m => m.fat)}         fmtFn={fmt}          cor="#22c55e" {...rowProps} totalOverride={totAnualFat} />
+                  <MetricRow label="QTD VENDIDOS"        valores={mv.map(m => m.uni)}         fmtFn={v => v}       cor="#3b82f6" {...rowProps} totalOverride={totAnualUni} />
+                  <MetricRow label="LUCRO MÉDIO / UNID." valores={mv.map(m => m.lucMedioUni)} fmtFn={fmt}          cor="#f59e0b" {...rowProps} totalOverride={totAnualLucMedio} />
+                  <MetricRow label="LUCRO ACUMULADO"     valores={lucroAcum}                  fmtFn={fmt}          cor="#8b5cf6" {...rowProps} totalOverride={lucroAcum[11] ?? 0} />
+                  <MetricRow label="GASTOS TOTAIS"       valores={mv.map(m => m.gastos)}      fmtFn={fmt}          cor="#ef4444" {...rowProps} totalOverride={totAnualGastos} />
+                  <MetricRow label="TICKET MÉDIO"        valores={mv.map(m => m.ticket)}      fmtFn={fmt}          cor="#14b8a6" {...rowProps} totalOverride={totAnualTicket} />
+                  <MetricRow label="LUCRO LÍQUIDO"       valores={mv.map(m => m.lucLiq)}      fmtFn={fmt}          cor="#22c55e" {...rowProps} totalOverride={totAnualLucLiq} />
+                  <MetricRow label="CAIXA LÍQUIDO"       valores={mv.map(m => m.caixaLiq)}    fmtFn={fmt}          cor="#3b82f6" {...rowProps} totalOverride={totAnualCaixa} />
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Gráficos anuais */}
           <div className="rel-graficos-grid">
             <div className="table-panel">
@@ -302,123 +377,26 @@ export default function Relatorio() {
               </div>
             </div>
           </div>
-
-          {/* Tabela mensal */}
-          <div className="table-panel">
-            <div className="table-header">
-              <h2>Evolução Mensal — {ano}</h2>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Mês</th>
-                    <th style={{ textAlign: 'right' }}>Faturamento</th>
-                    <th style={{ textAlign: 'right' }}>CMV</th>
-                    <th style={{ textAlign: 'right' }}>Lucro Bruto</th>
-                    <th style={{ textAlign: 'right' }}>Margem</th>
-                    <th style={{ textAlign: 'right' }}>Lucro Líq.</th>
-                    <th style={{ textAlign: 'right' }}>Ticket Médio</th>
-                    <th style={{ textAlign: 'right' }}>Unidades</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mv.map((m, i) => (
-                    <tr
-                      key={i}
-                      className={i === mesAtual && ano === anoAtual ? 'mes-atual' : ''}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setMesFiltro(String(i))}
-                    >
-                      <td style={{ fontWeight: 600 }}>{MESES_FULL[i]}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 600 }}>{m.fat > 0 ? fmt(m.fat) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--saida)' }}>{m.cmv > 0 ? fmt(m.cmv) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corLucro(m.lucBruto) }}>{m.fat > 0 ? fmt(m.lucBruto) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corMargem(m.margem) }}>{m.fat > 0 ? fmtPct(m.margem) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corLucro(m.lucLiq) }}>{m.fat > 0 ? fmt(m.lucLiq) : '—'}</td>
-                      <td style={{ textAlign: 'right' }}>{m.ticket > 0 ? fmt(m.ticket) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{m.uni > 0 ? m.uni : '—'}</td>
-                    </tr>
-                  ))}
-                  <tr className="total-row">
-                    <td style={{ fontWeight: 700 }}>TOTAL</td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(mv.reduce((a, m) => a + m.fat, 0))}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--saida)', fontWeight: 700 }}>{fmt(mv.reduce((a, m) => a + m.cmv, 0))}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: corLucro(mv.reduce((a, m) => a + m.lucBruto, 0)) }}>{fmt(mv.reduce((a, m) => a + m.lucBruto, 0))}</td>
-                    <td style={{ textAlign: 'right' }}>—</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: corLucro(mv.reduce((a, m) => a + m.lucLiq, 0)) }}>{fmt(mv.reduce((a, m) => a + m.lucLiq, 0))}</td>
-                    <td style={{ textAlign: 'right' }}>—</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text2)', fontWeight: 700 }}>{mv.reduce((a, m) => a + m.uni, 0)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </>
       )}
 
       {/* ── VISÃO MENSAL ── */}
       {mesIdx !== null && (
         <>
-          {/* Sparklines */}
           <div className="spark-grid">
-            <SparkMetrica
-              label="Faturamento"
-              valor={totFat}
-              sub={totUni + ' unidades'}
-              dados={mkSpark(mv.map(v => v.fat), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--entrada)"
-            />
-            <SparkMetrica
-              label="Lucro Líquido"
-              valor={totLucLiq}
-              sub={totFat > 0 ? `Margem: ${(totLucLiq/totFat*100).toFixed(1)}%` : null}
-              dados={mkSpark(mv.map(v => v.lucLiq), mesIdx)}
-              fmtFn={fmt}
-            />
-            <SparkMetrica
-              label="Ticket Médio"
-              valor={totTicket}
-              sub={totUni + ' vendas'}
-              dados={mkSpark(mv.map(v => v.ticket), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--accent)"
-            />
-            <SparkMetrica
-              label="Gastos Totais"
-              valor={totGastos}
-              sub={gastosVar !== null ? `${delta(gastosVar)} vs mês ant.` : null}
-              dados={mkSpark(mv.map(v => v.gastos), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--saida)"
-            />
-            <SparkMetrica
-              label="CMV %"
-              valor={totCMVPct}
-              sub={`CMV: ${fmt(totCMV)}`}
-              dados={mkSpark(mv.map(v => v.cmvPct), mesIdx)}
-              fmtFn={v => v.toFixed(2) + '%'}
-              cor={totCMVPct !== null ? (totCMVPct <= 60 ? 'var(--entrada)' : totCMVPct <= 75 ? 'var(--warn)' : 'var(--saida)') : 'var(--text2)'}
-            />
-            <SparkMetrica
-              label="Margem Bruta"
-              valor={totMargem}
-              sub={`Lucro Bruto: ${fmt(totLucBruto)}`}
-              dados={mkSpark(mv.map(v => v.margem), mesIdx)}
-              fmtFn={v => v.toFixed(2) + '%'}
-              cor={corMargem(totMargem)}
-            />
+            <SparkMetrica label="Faturamento"   valor={totFat}     sub={totUni + ' unidades'}                                    dados={mkSpark(mv.map(v => v.fat),     mesIdx)} fmtFn={fmt} cor="var(--entrada)" />
+            <SparkMetrica label="Lucro Líquido" valor={totLucLiq}  sub={totFat > 0 ? `Margem: ${(totLucLiq/totFat*100).toFixed(1)}%` : null} dados={mkSpark(mv.map(v => v.lucLiq),  mesIdx)} fmtFn={fmt} />
+            <SparkMetrica label="Ticket Médio"  valor={totTicket}  sub={totUni + ' vendas'}                                       dados={mkSpark(mv.map(v => v.ticket),  mesIdx)} fmtFn={fmt} cor="var(--accent)" />
+            <SparkMetrica label="Gastos Totais" valor={totGastos}  sub={gastosVar !== null ? `${delta(gastosVar)} vs mês ant.` : null} dados={mkSpark(mv.map(v => v.gastos),  mesIdx)} fmtFn={fmt} cor="var(--saida)" />
+            <SparkMetrica label="CMV %"         valor={totCMVPct}  sub={`CMV: ${fmt(totCMV)}`}                                   dados={mkSpark(mv.map(v => v.cmvPct),  mesIdx)} fmtFn={v => v.toFixed(2) + '%'} cor={totCMVPct !== null ? (totCMVPct <= 60 ? 'var(--entrada)' : totCMVPct <= 75 ? 'var(--warn)' : 'var(--saida)') : 'var(--text2)'} />
+            <SparkMetrica label="Margem Bruta"  valor={totMargem}  sub={`Lucro Bruto: ${fmt(totLucBruto)}`}                       dados={mkSpark(mv.map(v => v.margem),  mesIdx)} fmtFn={v => v.toFixed(2) + '%'} cor={corMargem(totMargem)} />
           </div>
 
-          {/* Resumo Executivo */}
           <div className="table-panel resumo-exec">
             <div className="table-header">
               <h2>Resumo Executivo — {labelPeriodo}</h2>
             </div>
             <div className="resumo-body">
-
-              {/* Score de saúde */}
               <div className="resumo-bloco">
                 <div className="resumo-bloco-title">Saúde Financeira</div>
                 <div className="health-score-wrap">
@@ -449,7 +427,6 @@ export default function Relatorio() {
                 </div>
               </div>
 
-              {/* Variação vs mês anterior */}
               <div className="resumo-bloco">
                 <div className="resumo-bloco-title">vs. {prevMesIdx !== null ? MESES_FULL[prevMesIdx] : 'Mês Anterior'}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -481,7 +458,6 @@ export default function Relatorio() {
                 </div>
               </div>
 
-              {/* Breakdown receita por categoria */}
               <div className="resumo-bloco">
                 <div className="resumo-bloco-title">Receita por Categoria</div>
                 {recPorCat.length > 0 ? (
@@ -512,7 +488,6 @@ export default function Relatorio() {
                 )}
               </div>
 
-              {/* Capital de giro */}
               <div className="resumo-bloco">
                 <div className="resumo-bloco-title">Capital de Giro (NCG)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -537,7 +512,6 @@ export default function Relatorio() {
             </div>
           </div>
 
-          {/* Gastos por categoria */}
           {gastPorCat.length > 0 && (
             <div className="table-panel">
               <div className="table-header"><h2>Gastos por Categoria — {labelPeriodo}</h2></div>

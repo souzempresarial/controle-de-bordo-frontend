@@ -125,3 +125,64 @@
 .health-saudável  { background: #22c55e22; color: #22c55e; }
 .health-atenção   { background: #f59e0b22; color: #f59e0b; }
 .health-crítico   { background: #ef444422; color: #ef4444; }
+
+/* Matrix table (planilha style) */
+.rel-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.rel-matrix-table thead th {
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--border);
+}
+.rel-matrix-table thead th.col-atual {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+.rel-matrix-table thead th.col-total {
+  border-left: 1px solid var(--border);
+}
+.metric-name-cell {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  min-width: 220px;
+  background: var(--surface);
+}
+.metric-label-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+.metric-val {
+  padding: 7px 10px;
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+  min-width: 72px;
+}
+.metric-val:hover { background: var(--surface2); }
+.metric-val.col-atual { background: #3b82f610; }
+.metric-val.col-sel   { background: #3b82f620; outline: 1px solid #3b82f644; }
+.metric-total {
+  padding: 7px 14px;
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--surface2);
+}
