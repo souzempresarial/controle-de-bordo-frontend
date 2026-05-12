@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { CMVCATS, SGA_CATS, NAOOP_CATS } from '../services/constants';
+import { CMVCATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS } from '../services/constants';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
 import './Relatorio.css';
 
@@ -16,7 +16,7 @@ function calcMes(lancamentos, pfx) {
   const cmv     = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const sga     = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const naoOp   = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const gastos  = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const gastos  = lm.filter(l => l.tipo === 'Saída' && GASTOS_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const lucBruto   = fat - cmv;
   const lucLiq     = fat - cmv - sga - naoOp;
   const vendas     = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV);
