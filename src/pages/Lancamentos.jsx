@@ -25,8 +25,8 @@ export default function Lancamentos() {
     if (busca) {
       const b = busca.toLowerCase();
       lista = lista.filter(l =>
-        l.descricao.toLowerCase().includes(b) ||
-        l.categoria.toLowerCase().includes(b) ||
+        (l.descricao||'').toLowerCase().includes(b) ||
+        (l.categoria||'').toLowerCase().includes(b) ||
         (l.subcategoria||'').toLowerCase().includes(b) ||
         String(l.id).includes(b)
       );
