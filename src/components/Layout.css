@@ -39,7 +39,7 @@ body {
 .topbar-left { display: flex; align-items: center; min-width: 200px; }
 .app-name { font-size: 13px; font-weight: 800; letter-spacing: .5px; color: var(--text2); text-transform: uppercase; }
 .topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 32px; }
-.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 .topbar-divider { width: 1px; height: 28px; background: var(--border); }
 .saldo-item { text-align: center; }
 .saldo-item .label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
