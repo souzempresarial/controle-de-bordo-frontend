@@ -226,9 +226,10 @@ export default function Relatorio() {
         <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setMesFiltro(''); }}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
-        {mesSel !== null && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setMesFiltro('')}>✕ {MESES_FULL[mesSel]}</button>
-        )}
+        <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(e.target.value)}>
+          <option value="">Ano todo</option>
+          {MESES_FULL.map((m, i) => <option key={i} value={String(i)}>{m}</option>)}
+        </select>
       </div>
 
       {/* Gráfico full width */}
@@ -276,18 +277,6 @@ export default function Relatorio() {
         <KpiCard label="LUCRO LÍQUIDO"       value={fmt(kpi.lucLiq)}                          cor={kpi.lucLiq >= 0 ? '#22c55e' : '#ef4444'} delta={mesSel !== null && lucVar !== null ? delta(lucVar) : null} corDelta={corDelta(lucVar)} />
         <KpiCard label="CAIXA LÍQUIDO"       value={fmt(kpi.caixaLiq)}                        cor={kpi.caixaLiq >= 0 ? '#3b82f6' : '#ef4444'} />
       </div>
-
-      {/* Sparklines (quando mês selecionado) */}
-      {mesIdx !== null && (
-        <div className="spark-grid">
-          <SparkMetrica label="Faturamento"   valor={totFat}    sub={totUni + ' unidades'}                                         dados={mkSpark(mv.map(v => v.fat),    mesIdx)} fmtFn={fmt} cor="var(--entrada)" />
-          <SparkMetrica label="Lucro Líquido" valor={totLucLiq} sub={totFat > 0 ? `Margem: ${(totLucLiq/totFat*100).toFixed(1)}%` : null} dados={mkSpark(mv.map(v => v.lucLiq), mesIdx)} fmtFn={fmt} />
-          <SparkMetrica label="Ticket Médio"  valor={totTicket} sub={totUni + ' vendas'}                                            dados={mkSpark(mv.map(v => v.ticket), mesIdx)} fmtFn={fmt} cor="var(--accent)" />
-          <SparkMetrica label="Gastos Totais" valor={totGastos} sub={gastosVar !== null ? `${delta(gastosVar)} vs mês ant.` : null}  dados={mkSpark(mv.map(v => v.gastos), mesIdx)} fmtFn={fmt} cor="var(--saida)" />
-          <SparkMetrica label="CMV %"         valor={totCMVPct} sub={`CMV: ${fmt(totCMV)}`}                                         dados={mkSpark(mv.map(v => v.cmvPct), mesIdx)} fmtFn={v => v.toFixed(2) + '%'} cor={totCMVPct !== null ? (totCMVPct <= 60 ? 'var(--entrada)' : totCMVPct <= 75 ? 'var(--warn)' : 'var(--saida)') : 'var(--text2)'} />
-          <SparkMetrica label="Margem Bruta"  valor={totMargem} sub={`Lucro Bruto: ${fmt(totLucBruto)}`}                            dados={mkSpark(mv.map(v => v.margem), mesIdx)} fmtFn={v => v.toFixed(2) + '%'} cor={corMargem(totMargem)} />
-        </div>
-      )}
 
       {/* Resumo Executivo (quando mês selecionado) */}
       {mesIdx !== null && (
