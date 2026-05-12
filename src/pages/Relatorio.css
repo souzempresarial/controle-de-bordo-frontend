@@ -126,68 +126,50 @@
 .health-atenção   { background: #f59e0b22; color: #f59e0b; }
 .health-crítico   { background: #ef444422; color: #ef4444; }
 
-/* Layout principal: gráfico + KPIs lado a lado */
-.rel-main-layout {
+/* KPI strip abaixo do gráfico */
+.kpi-strip {
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
-@media (max-width: 900px) {
-  .rel-main-layout { grid-template-columns: 1fr; }
+@media (max-width: 1100px) {
+  .kpi-strip { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 750px) {
+  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
 }
 
-.rel-chart-col { min-width: 0; }
-
-.rel-kpi-col {
+.kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 10px;
+  padding: 16px 18px 14px;
+  transition: box-shadow .15s;
+}
+.kpi-card:hover {
+  box-shadow: 0 4px 16px #0002;
 }
 
-.rel-kpi-titulo {
-  padding: 14px 16px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  border-bottom: 1px solid var(--border);
-}
-
-.rel-kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.rel-kpi-card {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
-.rel-kpi-card:nth-child(2n) { border-right: none; }
-.rel-kpi-card:nth-last-child(-n+2) { border-bottom: none; }
-
-.rel-kpi-label {
+.kpi-card-label {
   font-size: 9px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: .4px;
-  margin-bottom: 4px;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
 }
 
-.rel-kpi-value {
-  font-size: 15px;
+.kpi-card-value {
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
-.rel-kpi-sub {
-  font-size: 10px;
-  color: var(--text2);
-  margin-top: 2px;
+.kpi-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 /* Matrix table (planilha style) */

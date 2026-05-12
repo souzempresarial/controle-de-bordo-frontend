@@ -77,12 +77,17 @@ function SparkMetrica({ label, valor, sub, dados, fmtFn, cor }) {
   );
 }
 
-function KpiCard({ label, value, cor, sub }) {
+function KpiCard({ label, value, cor, sub, delta, corDelta }) {
   return (
-    <div className="rel-kpi-card">
-      <div className="rel-kpi-label">{label}</div>
-      <div className="rel-kpi-value" style={{ color: cor || 'var(--text)' }}>{value}</div>
-      {sub && <div className="rel-kpi-sub">{sub}</div>}
+    <div className="kpi-card" style={{ borderTop: `3px solid ${cor || 'var(--border)'}` }}>
+      <div className="kpi-card-label">{label}</div>
+      <div className="kpi-card-value" style={{ color: cor || 'var(--text)' }}>{value}</div>
+      {(sub || delta) && (
+        <div className="kpi-card-footer">
+          {delta && <span style={{ color: corDelta, fontWeight: 700, fontSize: 11 }}>{delta}</span>}
+          {sub && <span style={{ color: 'var(--text2)', fontSize: 11 }}>{sub}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -226,59 +231,50 @@ export default function Relatorio() {
         )}
       </div>
 
-      {/* Layout principal: gráfico esquerda + KPIs direita */}
-      <div className="rel-main-layout">
-
-        {/* Gráfico esquerda */}
-        <div className="table-panel rel-chart-col">
-          <div className="table-header">
-            <h2>{mesSel !== null ? MESES_FULL[mesSel] + ' / ' + ano : 'Visão Anual — ' + ano}</h2>
-            <span style={{ fontSize: 11, color: 'var(--text2)' }}>Clique em um mês para detalhar</span>
-          </div>
-          <div style={{ padding: '8px 16px 16px' }}>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={dadosGrafico} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} onClick={handleBarClick} style={{ cursor: 'pointer' }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                <YAxis tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                <Tooltip content={<TooltipBRL />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text2)' }} />
-                <Bar dataKey="Faturamento" radius={[3,3,0,0]}>
-                  {dadosGrafico.map((_, i) => (
-                    <Cell key={i} fill="#22c55e" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.2} />
-                  ))}
-                </Bar>
-                <Bar dataKey="Lucro Líq." radius={[3,3,0,0]}>
-                  {dadosGrafico.map((_, i) => (
-                    <Cell key={i} fill="#8b5cf6" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.2} />
-                  ))}
-                </Bar>
-                <Bar dataKey="Gastos" radius={[3,3,0,0]}>
-                  {dadosGrafico.map((_, i) => (
-                    <Cell key={i} fill="#ef4444" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.2} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Gráfico full width */}
+      <div className="table-panel">
+        <div className="table-header">
+          <h2>{mesSel !== null ? MESES_FULL[mesSel] + ' / ' + ano : 'Visão Anual — ' + ano}</h2>
+          <span style={{ fontSize: 11, color: 'var(--text2)' }}>Clique em um mês para detalhar</span>
         </div>
-
-        {/* KPIs direita */}
-        <div className="rel-kpi-col">
-          <div className="rel-kpi-titulo">
-            {mesSel !== null ? MESES_FULL[mesSel] + ' / ' + ano : 'Ano ' + ano}
-          </div>
-          <div className="rel-kpi-grid">
-            <KpiCard label="FATURAMENTO"        value={fmt(kpi.fat)}          cor="#22c55e" sub={`${kpi.uni} unidades`} />
-            <KpiCard label="QTD VENDIDOS"        value={kpi.uni}               cor="#3b82f6" />
-            <KpiCard label="LUCRO MÉDIO / UNID." value={kpi.uni > 0 ? fmt(kpi.lucMedioUni) : '—'} cor="#f59e0b" />
-            <KpiCard label="LUCRO ACUMULADO"     value={fmt(kpiLucAcum)}       cor="#8b5cf6" />
-            <KpiCard label="GASTOS TOTAIS"       value={fmt(kpi.gastos)}       cor="#ef4444" />
-            <KpiCard label="TICKET MÉDIO"        value={kpi.uni > 0 ? fmt(kpi.ticket) : '—'} cor="#14b8a6" />
-            <KpiCard label="LUCRO LÍQUIDO"       value={fmt(kpi.lucLiq)}       cor={kpi.lucLiq >= 0 ? '#22c55e' : '#ef4444'} />
-            <KpiCard label="CAIXA LÍQUIDO"       value={fmt(kpi.caixaLiq)}     cor={kpi.caixaLiq >= 0 ? '#3b82f6' : '#ef4444'} />
-          </div>
+        <div style={{ padding: '8px 20px 20px' }}>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={dadosGrafico} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} onClick={handleBarClick} style={{ cursor: 'pointer' }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
+              <YAxis tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
+              <Tooltip content={<TooltipBRL />} />
+              <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text2)' }} />
+              <Bar dataKey="Faturamento" radius={[4,4,0,0]}>
+                {dadosGrafico.map((_, i) => (
+                  <Cell key={i} fill="#22c55e" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.18} />
+                ))}
+              </Bar>
+              <Bar dataKey="Lucro Líq." radius={[4,4,0,0]}>
+                {dadosGrafico.map((_, i) => (
+                  <Cell key={i} fill="#8b5cf6" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.18} />
+                ))}
+              </Bar>
+              <Bar dataKey="Gastos" radius={[4,4,0,0]}>
+                {dadosGrafico.map((_, i) => (
+                  <Cell key={i} fill="#ef4444" fillOpacity={mesSel === null || mesSel === i ? 1 : 0.18} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* KPIs em grade abaixo do gráfico */}
+      <div className="kpi-strip">
+        <KpiCard label="FATURAMENTO"        value={fmt(kpi.fat)}                             cor="#22c55e" sub={`${kpi.uni} unidades`} delta={mesSel !== null && fatVar !== null ? delta(fatVar) : null} corDelta={corDelta(fatVar)} />
+        <KpiCard label="QTD VENDIDOS"        value={String(kpi.uni)}                          cor="#3b82f6" />
+        <KpiCard label="LUCRO MÉDIO / UNID." value={kpi.uni > 0 ? fmt(kpi.lucMedioUni) : '—'} cor="#f59e0b" />
+        <KpiCard label="LUCRO ACUMULADO"     value={fmt(kpiLucAcum)}                          cor="#8b5cf6" sub="no ano" />
+        <KpiCard label="GASTOS TOTAIS"       value={fmt(kpi.gastos)}                          cor="#ef4444" delta={mesSel !== null && gastosVar !== null ? delta(gastosVar) : null} corDelta={corDelta(-gastosVar)} />
+        <KpiCard label="TICKET MÉDIO"        value={kpi.uni > 0 ? fmt(kpi.ticket) : '—'}      cor="#14b8a6" />
+        <KpiCard label="LUCRO LÍQUIDO"       value={fmt(kpi.lucLiq)}                          cor={kpi.lucLiq >= 0 ? '#22c55e' : '#ef4444'} delta={mesSel !== null && lucVar !== null ? delta(lucVar) : null} corDelta={corDelta(lucVar)} />
+        <KpiCard label="CAIXA LÍQUIDO"       value={fmt(kpi.caixaLiq)}                        cor={kpi.caixaLiq >= 0 ? '#3b82f6' : '#ef4444'} />
       </div>
 
       {/* Sparklines (quando mês selecionado) */}
