@@ -1,25 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { CMVCATS } from '../services/constants';
-import { fmt } from '../services/utils';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
-  const { clienteAtivo, lancamentos, sairCliente } = useApp();
+  const { clienteAtivo, sairCliente } = useApp();
   const navigate = useNavigate();
 
   const papel = localStorage.getItem('cb_papel');
   const isAdmin = papel === 'admin';
-
-  // Totais do topbar
-  let entradas = 0, saidas = 0;
-  lancamentos
-    .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'))
-    .forEach(l => {
-      if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? l.valor;
-      else if (l.tipo === 'Saída') saidas += l.valor;
-    });
-  const saldo = entradas - saidas;
 
   function handleVoltarClientes() {
     sairCliente();
@@ -36,25 +24,6 @@ export default function Layout({ children, usuario, onLogout }) {
       <header className="topbar">
         <div className="topbar-left">
           <span className="app-name">Controle de Bordo</span>
-        </div>
-
-        <div className="topbar-divider" />
-
-        <div className="topbar-center">
-          <div className="saldo-item">
-            <div className="label">Entradas</div>
-            <div className="valor entrada">{fmt(entradas)}</div>
-          </div>
-          <div className="topbar-divider" />
-          <div className="saldo-item">
-            <div className="label">Saídas</div>
-            <div className="valor saida">{fmt(saidas)}</div>
-          </div>
-          <div className="topbar-divider" />
-          <div className="saldo-item">
-            <div className="label">Saldo</div>
-            <div className={`valor ${saldo >= 0 ? 'entrada' : 'saida'}`}>{fmt(saldo)}</div>
-          </div>
         </div>
 
         <div className="topbar-right">
