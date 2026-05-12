@@ -292,10 +292,10 @@ export default function Dashboard() {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Data</th>
                   <th>Tipo</th>
                   <th>Categoria</th>
+                  <th>Subcategoria</th>
                   <th>Descrição</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Valor</th>
@@ -307,10 +307,10 @@ export default function Dashboard() {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
                   return (
                     <tr key={l.id}>
-                      <td className="id-cell">#{String(l.id).padStart(3, '0')}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{fmtData(l.data)}</td>
                       <td><span className={`tipo-badge tipo-${l.tipo}`}>{l.tipo}</span></td>
                       <td>{l.categoria}</td>
+                      <td style={{ color: 'var(--text2)' }}>{l.subcategoria || '—'}</td>
                       <td>
                         {l.descricao}
                         {cmv && (
