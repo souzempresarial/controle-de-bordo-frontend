@@ -15,7 +15,7 @@ export default function Lancamentos() {
   const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].sort(), [lancamentos]);
   const todosMeses = useMemo(() => [...new Set(lancamentos.map(l => l.data.slice(0,7)))].sort().reverse(), [lancamentos]);
 
-  const semCMV = useMemo(() => lancamentos.filter(l => !l.isCMV), [lancamentos]);
+  const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
 
   const filtrados = useMemo(() => {
     let lista = semCMV;

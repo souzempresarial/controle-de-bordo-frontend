@@ -95,7 +95,7 @@ export default function Dashboard() {
   const corCMV = cmvPct === null ? 'var(--text2)' : cmvPct <= 60 ? 'var(--entrada)' : cmvPct <= 75 ? 'var(--warn)' : 'var(--saida)';
   const corROI = roi === null ? 'var(--text2)' : roi >= 50 ? 'var(--entrada)' : roi >= 20 ? 'var(--warn)' : 'var(--saida)';
 
-  const semCMV = lm.filter(l => !l.isCMV).slice(0, 50);
+  const semCMV = lm.filter(l => !(l.isCMV && l.grupoId)).slice(0, 50);
 
   function setField(campo, valor) {
     setForm(f => {
