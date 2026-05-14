@@ -147,11 +147,14 @@ export default function Dashboard() {
 
         const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
         const vrRaw         = parseFloat(form.valorRecebido);
-        const valorRecebido = (!isNaN(vrRaw) && vrRaw < parseFloat(form.valor)) ? vrRaw : null;
-        const grupoId       = cmvValor > 0 ? ('g' + Date.now()) : null;
+        const valorBruto    = parseFloat(form.valor);
+        const isCartao      = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
+        const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
+        const taxaCartao    = isCartao && valorRecebido !== null ? valorBruto - valorRecebido : 0;
+        const grupoId       = (cmvValor > 0 || taxaCartao > 0) ? ('g' + Date.now()) : null;
 
         const novo = await API.criarLancamento(clienteAtivo.id, {
-          tipo: form.tipo, valor: parseFloat(form.valor), data: form.data,
+          tipo: form.tipo, valor: valorBruto, data: form.data,
           categoria: form.categoria, subcategoria: form.subcategoria,
           descricao: form.descricao, pagamento: form.pagamento,
           status: form.status, obs: form.obs,
@@ -169,7 +172,18 @@ export default function Dashboard() {
             obs: 'CMV vinculado ao #' + String(novo.id).padStart(3, '0'),
             grupo_id: grupoId, is_cmv: true,
           });
-          novosLans = [cmv, novo];
+          novosLans = [cmv, ...novosLans];
+        }
+
+        if (taxaCartao > 0) {
+          const taxa = await API.criarLancamento(clienteAtivo.id, {
+            tipo: 'Saída', valor: taxaCartao, data: form.data,
+            categoria: 'Deduções das Vendas', subcategoria: 'Taxas de Maquininha',
+            descricao: 'Taxa ' + form.pagamento + ' — ' + form.descricao,
+            pagamento: form.pagamento, status: 'Confirmado',
+            grupo_id: grupoId,
+          });
+          novosLans = [taxa, ...novosLans];
         }
 
         setLancamentos(prev => [...novosLans, ...prev]);
