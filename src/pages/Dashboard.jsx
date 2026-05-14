@@ -161,12 +161,14 @@ export default function Dashboard() {
         const taxaCartao    = isCartao && valorRecebido !== null ? valorBruto - valorRecebido : 0;
         const grupoId       = (cmvValor > 0 || taxaCartao > 0) ? ('g' + Date.now()) : null;
 
+        const isCmvDireto = CMVCATS.includes(form.categoria);
         const novo = await API.criarLancamento(clienteAtivo.id, {
           tipo: form.tipo, valor: valorBruto, data: form.data,
           categoria: form.categoria, subcategoria: form.subcategoria,
           descricao: form.descricao, pagamento: form.pagamento,
           status: form.status, obs: form.obs,
           quantidade, valor_recebido: valorRecebido, grupo_id: grupoId,
+          is_cmv: isCmvDireto || undefined,
         });
 
         let novosLans = [novo];
