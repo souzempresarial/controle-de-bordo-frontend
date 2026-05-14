@@ -81,6 +81,13 @@ export default function Dashboard() {
   const cmvPct      = fat > 0 ? (cmvMes / fat * 100) : null;
   const roi         = cmvMes > 0 ? (lucroBruto / cmvMes * 100) : null;
 
+  const lucBrutoPrev  = fatPrev - cmvPrev;
+  const aparelhosPrev = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Aparelhos');
+  const unidadesPrev  = aparelhosPrev.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const lucPorAp      = unidades > 0 ? lucroBruto / unidades : 0;
+  const lucPorApPrev  = unidadesPrev > 0 ? lucBrutoPrev / unidadesPrev : 0;
+  const lucPorApDelta = lucPorApPrev > 0 ? ((lucPorAp - lucPorApPrev) / lucPorApPrev * 100) : null;
+
   const corMar = margemBruta === null ? 'var(--text2)' : margemBruta >= 30 ? 'var(--entrada)' : margemBruta >= 15 ? 'var(--warn)' : 'var(--saida)';
   const corCMV = cmvPct === null ? 'var(--text2)' : cmvPct <= 60 ? 'var(--entrada)' : cmvPct <= 75 ? 'var(--warn)' : 'var(--saida)';
   const corROI = roi === null ? 'var(--text2)' : roi >= 50 ? 'var(--entrada)' : roi >= 20 ? 'var(--warn)' : 'var(--saida)';
@@ -255,9 +262,10 @@ export default function Dashboard() {
           },
           {
             label: 'Lucro por Aparelho',
-            value: unidades > 0 ? fmt(lucroBruto / unidades) : '—',
+            value: unidades > 0 ? fmt(lucPorAp) : '—',
             cor: '#8b5cf6',
-            sub: `Lucro bruto: ${fmt(lucroBruto)}`,
+            sub: lucPorApPrev > 0 ? `Mês anterior: ${fmt(lucPorApPrev)}` : 'Sem dados anteriores',
+            delta: lucPorApDelta,
           },
           {
             label: 'Aparelhos Vendidos',
