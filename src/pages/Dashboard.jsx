@@ -234,53 +234,56 @@ export default function Dashboard() {
         </select>
       </div>
 
-      {/* Cards resumo */}
-      <div className="cards">
-        <div className="card">
-          <div className="card-label">Faturamento do Mês</div>
-          <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(fat)}</div>
-          <div className="card-sub">Mês anterior: <span style={{ color: 'var(--entrada)' }}>{fmt(fatPrev)}</span></div>
-        </div>
-        <div className="card">
-          <div className="card-label">Saídas do Mês</div>
-          <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(tm.saidas)}</div>
-          <div className="card-sub">Mês anterior: <span style={{ color: 'var(--saida)' }}>{fmt(tp.saidas)}</span></div>
-        </div>
-        <div className="card">
-          <div className="card-label">Saldo do Mês</div>
-          <div className="card-value" style={{ color: tm.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tm.saldo)}</div>
-          <div className="card-sub">Mês anterior: <span style={{ color: tp.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tp.saldo)}</span></div>
-        </div>
-        <div className="card">
-          <div className="card-label">Margem Bruta</div>
-          <div className="card-value" style={{ color: margBruta >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margBruta.toFixed(2)}%</div>
-          <div className="card-sub">Mês anterior: <span style={{ color: margBrutaPrev >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margBrutaPrev.toFixed(2)}%</span></div>
-        </div>
+      {/* 4 KPI cards */}
+      <div className="dash-kpis">
+        {[
+          {
+            label: 'Faturamento',
+            value: fmt(fat),
+            cor: '#22c55e',
+            sub: fatPrev > 0 ? `Mês anterior: ${fmt(fatPrev)}` : 'Sem dados anteriores',
+            delta: fatPrev > 0 ? ((fat - fatPrev) / fatPrev * 100) : null,
+          },
+          {
+            label: 'CMV',
+            value: fmt(cmvMes),
+            cor: '#ef4444',
+            sub: cmvPrev > 0 ? `Mês anterior: ${fmt(cmvPrev)}` : 'Sem dados anteriores',
+            delta: cmvPrev > 0 ? ((cmvMes - cmvPrev) / cmvPrev * 100) : null,
+            deltaInverso: true,
+          },
+          {
+            label: 'Lucro por Aparelho',
+            value: unidades > 0 ? fmt(lucroBruto / unidades) : '—',
+            cor: '#8b5cf6',
+            sub: `Lucro bruto: ${fmt(lucroBruto)}`,
+          },
+          {
+            label: 'Aparelhos Vendidos',
+            value: String(unidades),
+            cor: '#3b82f6',
+            sub: `Ticket médio: ${unidades > 0 ? fmt(fat / unidades) : '—'}`,
+          },
+        ].map(({ label, value, cor, sub, delta, deltaInverso }) => {
+          const deltaOk = delta !== null && delta !== undefined;
+          const deltaPos = deltaInverso ? delta < 0 : delta >= 0;
+          return (
+            <div key={label} className="dash-kpi-card" style={{ borderLeft: `4px solid ${cor}` }}>
+              <div className="dash-kpi-label">{label}</div>
+              <div className="dash-kpi-value" style={{ color: cor }}>{value}</div>
+              <div className="dash-kpi-footer">
+                {deltaOk && (
+                  <span style={{ color: deltaPos ? '#22c55e' : '#ef4444', fontWeight: 700, fontSize: 11 }}>
+                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                  </span>
+                )}
+                <span className="dash-kpi-sub">{sub}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* KPIs */}
-      <div className="cards">
-        <div className="card">
-          <div className="card-label">Margem Bruta — Período</div>
-          <div className="card-value" style={{ color: corMar }}>{fmtPct(margemBruta)}</div>
-          <div className="card-sub">Lucro Bruto: <span style={{ color: lucroBruto >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(lucroBruto)}</span></div>
-        </div>
-        <div className="card">
-          <div className="card-label">Ticket Médio — Período</div>
-          <div className="card-value" style={{ color: 'var(--accent)' }}>{ticket !== null ? fmt(ticket) : '—'}</div>
-          <div className="card-sub">{unidades} unidade{unidades !== 1 ? 's' : ''} vendida{unidades !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="card">
-          <div className="card-label">ROI — Período</div>
-          <div className="card-value" style={{ color: corROI }}>{roi !== null ? fmtPct(roi) : '—'}</div>
-          <div className="card-sub">Lucro {fmt(lucroBruto)} ÷ CMV {fmt(cmvMes)}</div>
-        </div>
-        <div className="card">
-          <div className="card-label">CMV % — Período</div>
-          <div className="card-value" style={{ color: corCMV }}>{fmtPct(cmvPct)}</div>
-          <div className="card-sub">CMV: <span style={{ color: 'var(--saida)' }}>{fmt(cmvMes)}</span></div>
-        </div>
-      </div>
 
       {/* Botão novo lançamento */}
       <div>

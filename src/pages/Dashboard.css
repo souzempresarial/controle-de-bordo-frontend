@@ -10,3 +10,50 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 900px) { .dash-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .dash-kpis { grid-template-columns: 1fr; } }
+
+.dash-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow .15s;
+}
+.dash-kpi-card:hover { box-shadow: 0 4px 20px #0003; }
+
+.dash-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.dash-kpi-value {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -.5px;
+}
+
+.dash-kpi-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.dash-kpi-sub {
+  font-size: 11px;
+  color: var(--text2);
+}
