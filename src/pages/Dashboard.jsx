@@ -74,9 +74,10 @@ export default function Dashboard() {
 
   const lucroBruto  = fat - cmvMes;
   const margemBruta = fat > 0 ? (lucroBruto / fat * 100) : null;
-  const vendas      = lm.filter(l => l.tipo === 'Entrada');
-  const unidades    = vendas.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const ticket      = vendas.length > 0 ? fat / unidades : null;
+  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV);
+  const aparelhos   = vendas.filter(l => l.categoria === 'Aparelhos');
+  const unidades    = aparelhos.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const ticket      = vendas.length > 0 ? fat / vendas.reduce((a, l) => a + (l.quantidade || 1), 0) : null;
   const cmvPct      = fat > 0 ? (cmvMes / fat * 100) : null;
   const roi         = cmvMes > 0 ? (lucroBruto / cmvMes * 100) : null;
 
