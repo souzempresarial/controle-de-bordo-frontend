@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { getCatsPorTipo, getSubcats } from '../services/constants';
@@ -33,14 +33,25 @@ export default function Contas() {
   const [confirmando, setConfirmando] = useState(null);
   const [quitando, setQuitando]       = useState(null);
   const [toast, setToast]             = useState(null);
+  const mesAtual = hoje().slice(0, 7);
+  const [mes, setMes] = useState(mesAtual.slice(5, 7));
+  const [ano, setAno] = useState(mesAtual.slice(0, 4));
 
   function showToast(msg, tipo = 'ok') {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
   }
 
-  const pendP = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente');
-  const totP  = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const periodo = `${ano}-${mes}`;
+
+  const anos = useMemo(() => {
+    const set = new Set(contas.map(c => String(c.vencimento).slice(0, 4)).filter(Boolean));
+    set.add(hoje().slice(0, 4));
+    return [...set].sort().reverse();
+  }, [contas]);
+
+  const pendP    = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
+  const totP     = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
 
   const cats    = getCatsPorTipo('Saída');
   const subcats = getSubcats(form.categoria);
@@ -205,6 +216,21 @@ export default function Contas() {
 
   return (
     <div className="contas-page">
+      {/* Filtro de período */}
+      <div className="period-row">
+        <span className="period-label">Período</span>
+        <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
+          {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
+            <option key={m} value={m}>
+              {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+            </option>
+          ))}
+        </select>
+        <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
+          {anos.map(a => <option key={a}>{a}</option>)}
+        </select>
+      </div>
+
       {/* Resumo */}
       <div className="cards">
         <div className="card">
