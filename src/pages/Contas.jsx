@@ -169,49 +169,75 @@ export default function Contas() {
     setQuitando(null);
   }
 
-  const TabelaContas = ({ lista, cor, tipoLabel }) => (
-    lista.length === 0
-      ? <div className="empty-state"><div className="icon">✅</div><div>Nenhuma conta a {tipoLabel} pendente</div></div>
-      : <div style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
-                <th style={{ textAlign: 'right' }}>Valor</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map(c => {
-                const vi = vencInfo(c.vencimento);
-                return (
-                  <tr key={c.id}>
-                    <td style={{ whiteSpace: 'nowrap', color: vi.cor, fontWeight: vi.extra ? 700 : 400 }}>
-                      {vi.label}{vi.extra}
-                    </td>
-                    <td>
-                      {c.descricao || '—'}
-                      {c.recorrente && (
-                        <span className="recorrente-badge">{c.periodicidade}</span>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
-                    <td style={{ textAlign: 'right', color: cor, fontWeight: 700 }}>{fmt(c.valor)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => quitar(c)}
-                          disabled={quitando === c.id}
-                        >
-                          {quitando === c.id ? '...' : 'Quitar'}
-                        </button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)}>✏️</button>
-                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(c)}>🗑</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+  function agrupar(lista) {
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const grupos = { vencidas: [], semana: [], quinzena: [], depois: [] };
+    lista.forEach(c => {
+      const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
+      const diff = Math.round((d - now) / 86400000);
+      if (diff < 0)       grupos.vencidas.push(c);
+      else if (diff <= 7) grupos.semana.push(c);
+      else if (diff <= 15) grupos.quinzena.push(c);
+      else                grupos.depois.push(c);
+    });
+    return grupos;
+  }
+
+  function LinhasGrupo({ titulo, cor, lista }) {
+    if (!lista.length) return null;
+    return (
+      <>
+        <tr>
+          <td colSpan={5} style={{ background: 'var(--surface)', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: cor, textTransform: 'uppercase', letterSpacing: '.6px' }}>
+            {titulo} · {fmt(lista.reduce((a, c) => a + parseFloat(c.valor), 0))}
+          </td>
+        </tr>
+        {lista.map(c => {
+          const vi = vencInfo(c.vencimento);
+          return (
+            <tr key={c.id}>
+              <td style={{ whiteSpace: 'nowrap', color: vi.cor, fontWeight: vi.extra ? 700 : 400 }}>
+                {vi.label}{vi.extra}
+              </td>
+              <td>
+                {c.descricao || '—'}
+                {c.recorrente && <span className="recorrente-badge">{c.periodicidade}</span>}
+              </td>
+              <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
+              <td style={{ textAlign: 'right', color: 'var(--saida)', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
+              <td>
+                <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary btn-sm" onClick={() => quitar(c)} disabled={quitando === c.id}>
+                    {quitando === c.id ? '...' : 'Quitar'}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)}>✏️</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(c)}>🗑</button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </>
+    );
+  }
+
+  const TabelaContas = ({ lista, tipoLabel }) => {
+    if (lista.length === 0) return <div className="empty-state"><div className="icon">✅</div><div>Nenhuma conta a {tipoLabel} pendente</div></div>;
+    const grupos = agrupar(lista);
+    return (
+      <div style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
+              <th style={{ textAlign: 'right' }}>Valor</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <LinhasGrupo titulo="Vencidas" cor="var(--saida)" lista={grupos.vencidas} />
+            <LinhasGrupo titulo="Esta semana" cor="var(--warn)" lista={grupos.semana} />
+            <LinhasGrupo titulo="Próximos 15 dias" cor="var(--text)" lista={grupos.quinzena} />
+            <LinhasGrupo titulo="Depois" cor="var(--text2)" lista={grupos.depois} />
             </tbody>
           </table>
         </div>
@@ -264,7 +290,7 @@ export default function Contas() {
           <h2 style={{ color: 'var(--saida)' }}>Contas a Pagar</h2>
           {pendP.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendP.length} pendente{pendP.length !== 1 ? 's' : ''} · Total: {fmt(totP)}</span>}
         </div>
-        <TabelaContas lista={pendP} cor="var(--saida)" tipoLabel="pagar" />
+        <TabelaContas lista={pendP} tipoLabel="pagar" />
       </div>
 
       {/* Histórico de quitadas */}
