@@ -41,8 +41,8 @@ export default function Contas() {
 
   const pendR = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente');
   const pendP = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente');
-  const totR  = pendR.reduce((a, c) => a + c.valor, 0);
-  const totP  = pendP.reduce((a, c) => a + c.valor, 0);
+  const totR  = pendR.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totP  = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
 
   const cats    = getCatsPorTipo(form.tipo === 'receber' ? 'Entrada' : 'Saída');
   const subcats = getSubcats(form.categoria);
