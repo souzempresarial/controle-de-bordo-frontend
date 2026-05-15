@@ -97,7 +97,31 @@ export default function Dashboard() {
   const corCMV = cmvPct === null ? 'var(--text2)' : cmvPct <= 60 ? 'var(--entrada)' : cmvPct <= 75 ? 'var(--warn)' : 'var(--saida)';
   const corROI = roi === null ? 'var(--text2)' : roi >= 50 ? 'var(--entrada)' : roi >= 20 ? 'var(--warn)' : 'var(--saida)';
 
-  const semCMV = lm.filter(l => !(l.isCMV && l.grupoId)).slice(0, 50);
+  const [sortCol, setSortCol] = useState('data');
+  const [sortDir, setSortDir] = useState('desc');
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  }
+
+  function sortIcon(col) {
+    if (sortCol !== col) return ' ↕';
+    return sortDir === 'asc' ? ' ↑' : ' ↓';
+  }
+
+  const semCMV = useMemo(() => {
+    const lista = lm.filter(l => !(l.isCMV && l.grupoId)).slice(0, 50);
+    return [...lista].sort((a, b) => {
+      let va = a[sortCol] ?? '';
+      let vb = b[sortCol] ?? '';
+      if (sortCol === 'valor') { va = parseFloat(va); vb = parseFloat(vb); }
+      else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [lm, sortCol, sortDir]);
 
   function setField(campo, valor) {
     setForm(f => {
@@ -325,13 +349,12 @@ export default function Dashboard() {
             <table>
               <thead>
                 <tr>
-                  <th>Data</th>
-                  <th>Tipo</th>
-                  <th>Categoria</th>
-                  <th>Subcategoria</th>
-                  <th>Descrição</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
+                  {[['data','Data'],['tipo','Tipo'],['categoria','Categoria'],['subcategoria','Subcategoria'],['descricao','Descrição'],['status','Status']].map(([col, label]) => (
+                    <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                      {label}{sortIcon(col)}
+                    </th>
+                  ))}
+                  <th style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('valor')}>Valor{sortIcon('valor')}</th>
                   <th></th>
                 </tr>
               </thead>
