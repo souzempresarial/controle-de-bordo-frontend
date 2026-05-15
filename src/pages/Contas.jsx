@@ -17,8 +17,8 @@ function vencInfo(venc) {
   return { label, cor: 'var(--text)', extra: '' };
 }
 
-const formVazio = (tipo = 'receber') => ({
-  tipo, descricao: '', valor: '', vencimento: '', categoria: '',
+const formVazio = () => ({
+  tipo: 'pagar', descricao: '', valor: '', vencimento: '', categoria: '',
   subcategoria: '', recorrente: false, periodicidade: 'mensal',
 });
 
@@ -39,12 +39,10 @@ export default function Contas() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const pendR = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente');
-  const pendP = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente');
-  const totR  = pendR.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const pendP = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente');
   const totP  = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
 
-  const cats    = getCatsPorTipo(form.tipo === 'receber' ? 'Entrada' : 'Saída');
+  const cats    = getCatsPorTipo('Saída');
   const subcats = getSubcats(form.categoria);
 
   function setField(campo, valor) {
@@ -210,34 +208,15 @@ export default function Contas() {
       {/* Resumo */}
       <div className="cards">
         <div className="card">
-          <div className="card-label">A Receber</div>
-          <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totR)}</div>
-          <div className="card-sub">{pendR.length} pendente{pendR.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="card">
           <div className="card-label">A Pagar</div>
           <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(totP)}</div>
           <div className="card-sub">{pendP.length} pendente{pendP.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="card">
-          <div className="card-label">Saldo Previsto</div>
-          <div className="card-value" style={{ color: (totR - totP) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totR - totP)}</div>
-          <div className="card-sub">A receber − a pagar</div>
         </div>
       </div>
 
       {/* Botão */}
       <div>
         <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta</button>
-      </div>
-
-      {/* Contas a Receber */}
-      <div className="table-panel">
-        <div className="table-header">
-          <h2 style={{ color: 'var(--entrada)' }}>Contas a Receber</h2>
-          {pendR.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendR.length} pendente{pendR.length !== 1 ? 's' : ''} · Total: {fmt(totR)}</span>}
-        </div>
-        <TabelaContas lista={pendR} cor="var(--entrada)" tipoLabel="receber" />
       </div>
 
       {/* Contas a Pagar */}
@@ -254,16 +233,10 @@ export default function Contas() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
           <div className="modal-box">
             <div className="modal-header">
-              <h3>{editandoId ? 'Editar Conta' : `Nova Conta a ${form.tipo === 'receber' ? 'Receber' : 'Pagar'}`}</h3>
+              <h3>{editandoId ? 'Editar Conta' : 'Nova Conta a Pagar'}</h3>
               <button className="modal-close" onClick={fecharModal}>✕</button>
             </div>
             <div className="modal-body">
-              {!editandoId && (
-                <div className="tipo-toggle">
-                  <button className={`btn ${form.tipo === 'receber' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setField('tipo', 'receber')}>A Receber</button>
-                  <button className={`btn ${form.tipo === 'pagar' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setField('tipo', 'pagar')}>A Pagar</button>
-                </div>
-              )}
               <div className="form-grid">
                 <div className="field span2">
                   <label>Descrição</label>
