@@ -31,8 +31,9 @@ export default function Contas() {
   const [salvando, setSalvando]       = useState(false);
   const [erroForm, setErroForm]       = useState('');
   const [confirmando, setConfirmando] = useState(null);
-  const [quitando, setQuitando]       = useState(null);
-  const [toast, setToast]             = useState(null);
+  const [quitando, setQuitando]         = useState(null);
+  const [toast, setToast]               = useState(null);
+  const [verQuitadas, setVerQuitadas]   = useState(false);
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(mesAtual.slice(5, 7));
   const [ano, setAno] = useState(mesAtual.slice(0, 4));
@@ -50,8 +51,10 @@ export default function Contas() {
     return [...set].sort().reverse();
   }, [contas]);
 
-  const pendP    = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
+  const pendP    = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente'  && String(c.vencimento).slice(0, 7) === periodo);
+  const quitadasP = contas.filter(c => c.tipo === 'pagar' && c.status === 'quitado' && String(c.vencimento).slice(0, 7) === periodo);
   const totP     = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totQuit  = quitadasP.reduce((a, c) => a + parseFloat(c.valor), 0);
 
   const cats    = getCatsPorTipo('Saída');
   const subcats = getSubcats(form.categoria);
@@ -238,11 +241,21 @@ export default function Contas() {
           <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(totP)}</div>
           <div className="card-sub">{pendP.length} pendente{pendP.length !== 1 ? 's' : ''}</div>
         </div>
+        <div className="card">
+          <div className="card-label">Pago</div>
+          <div className="card-value" style={{ color: 'var(--text2)' }}>{fmt(totQuit)}</div>
+          <div className="card-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
+        </div>
       </div>
 
       {/* Botão */}
-      <div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta</button>
+        {quitadasP.length > 0 && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadas(v => !v)}>
+            {verQuitadas ? 'Ocultar pagas' : `Ver pagas (${quitadasP.length})`}
+          </button>
+        )}
       </div>
 
       {/* Contas a Pagar */}
@@ -253,6 +266,36 @@ export default function Contas() {
         </div>
         <TabelaContas lista={pendP} cor="var(--saida)" tipoLabel="pagar" />
       </div>
+
+      {/* Histórico de quitadas */}
+      {verQuitadas && quitadasP.length > 0 && (
+        <div className="table-panel">
+          <div className="table-header">
+            <h2 style={{ color: 'var(--text2)' }}>Pagas no mês</h2>
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasP.length} conta{quitadasP.length !== 1 ? 's' : ''} · Total: {fmt(totQuit)}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
+                  <th style={{ textAlign: 'right' }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quitadasP.map(c => (
+                  <tr key={c.id} style={{ opacity: 0.6 }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
+                    <td>{c.descricao || '—'}</td>
+                    <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Modal Nova / Editar Conta */}
       {modalAberto && (
