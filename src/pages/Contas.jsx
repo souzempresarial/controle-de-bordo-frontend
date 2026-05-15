@@ -88,6 +88,7 @@ export default function Contas() {
       vencimento: form.vencimento, categoria: form.categoria, subcategoria: form.subcategoria,
       recorrente: form.tipo === 'pagar' ? form.recorrente : false,
       periodicidade: form.recorrente ? form.periodicidade : null,
+      status: 'pendente',
     };
 
     setSalvando(true); setErroForm('');
