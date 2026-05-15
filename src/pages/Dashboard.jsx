@@ -68,6 +68,8 @@ export default function Dashboard() {
   const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const cmvPrev  = lprev.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const gastos   = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
 
   const margBruta     = fat > 0     ? ((fat - cmvMes) / fat * 100) : 0;
   const margBrutaPrev = fatPrev > 0 ? ((fatPrev - cmvPrev) / fatPrev * 100) : 0;
@@ -258,11 +260,11 @@ export default function Dashboard() {
             delta: fatPrev > 0 ? ((fat - fatPrev) / fatPrev * 100) : null,
           },
           {
-            label: 'CMV',
-            value: fmt(cmvMes),
+            label: 'Gastos Totais',
+            value: fmt(gastos),
             cor: '#ef4444',
-            sub: cmvPrev > 0 ? `Mês anterior: ${fmt(cmvPrev)}` : 'Sem dados anteriores',
-            delta: cmvPrev > 0 ? ((cmvMes - cmvPrev) / cmvPrev * 100) : null,
+            sub: gastosPrev > 0 ? `Mês anterior: ${fmt(gastosPrev)}` : 'Sem dados anteriores',
+            delta: gastosPrev > 0 ? ((gastos - gastosPrev) / gastosPrev * 100) : null,
             deltaInverso: true,
           },
           {
