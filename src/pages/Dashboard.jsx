@@ -68,8 +68,8 @@ export default function Dashboard() {
   const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const cmvPrev  = lprev.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const gastos   = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const gastos     = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
+  const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
 
   const margBruta     = fat > 0     ? ((fat - cmvMes) / fat * 100) : 0;
   const margBrutaPrev = fatPrev > 0 ? ((fatPrev - cmvPrev) / fatPrev * 100) : 0;
