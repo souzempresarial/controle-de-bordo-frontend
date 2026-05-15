@@ -238,10 +238,11 @@ export default function Contas() {
             <LinhasGrupo titulo="Esta semana" cor="var(--warn)" lista={grupos.semana} />
             <LinhasGrupo titulo="Próximos 15 dias" cor="var(--text)" lista={grupos.quinzena} />
             <LinhasGrupo titulo="Depois" cor="var(--text2)" lista={grupos.depois} />
-            </tbody>
-          </table>
-        </div>
-  );
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="contas-page">
