@@ -135,7 +135,7 @@ export default function Contas() {
       setLancamentos(prev => [novoLanc, ...prev]);
 
       if (c.recorrente && c.periodicidade && c.vencimento) {
-        const d = new Date(c.vencimento + 'T00:00:00');
+        const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
         if (c.periodicidade === 'mensal')  d.setMonth(d.getMonth() + 1);
         else if (c.periodicidade === 'semanal') d.setDate(d.getDate() + 7);
         else if (c.periodicidade === 'anual')   d.setFullYear(d.getFullYear() + 1);
