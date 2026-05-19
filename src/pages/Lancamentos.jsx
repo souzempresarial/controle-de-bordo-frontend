@@ -34,6 +34,12 @@ export default function Lancamentos() {
     return lista;
   }, [semCMV, filtroTipo, filtroCat, filtroMes, busca]);
 
+  const totaisFiltro = useMemo(() => {
+    const entradas = filtrados.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valor), 0);
+    const saidas   = filtrados.filter(l => l.tipo === 'Saída').reduce((a, l) => a + parseFloat(l.valor), 0);
+    return { entradas, saidas, saldo: entradas - saidas };
+  }, [filtrados]);
+
 
   return (
     <div className="lancamentos-page">
@@ -57,6 +63,19 @@ export default function Lancamentos() {
             })}
           </select>
         </div>
+
+        {filtrados.length > 0 && (
+          <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 13, flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text2)' }}>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</span>
+            {totaisFiltro.entradas > 0 && <span style={{ color: 'var(--entrada)', fontWeight: 700 }}>Entradas: +{fmt(totaisFiltro.entradas)}</span>}
+            {totaisFiltro.saidas   > 0 && <span style={{ color: 'var(--saida)',   fontWeight: 700 }}>Saídas: -{fmt(totaisFiltro.saidas)}</span>}
+            {totaisFiltro.entradas > 0 && totaisFiltro.saidas > 0 && (
+              <span style={{ color: totaisFiltro.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 700 }}>
+                Saldo: {fmt(totaisFiltro.saldo)}
+              </span>
+            )}
+          </div>
+        )}
 
         {filtrados.length === 0 ? (
           <div className="empty-state">
