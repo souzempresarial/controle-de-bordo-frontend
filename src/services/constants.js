@@ -12,7 +12,7 @@ export const CATEGORIAS_SAIDA = {
   '— Custos (CMV) —': null,
   'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
   '— Fornecedores (Estoque) —': null,
-  'Fornecedores (Estoque)':['Aparelhos','Acessórios','Embalagens','Brindes','Assistência Técnica','Boleto','Outro'],
+  'Fornecedores (Estoque)':['Aparelhos','Aparelhos (Upgrade)','Pix Fornecedor','Acessórios','Embalagens','Brindes','Assistência Técnica','Boleto','Outro'],
   '— Deduções das Vendas —': null,
   'Deduções das Vendas':   ['Taxas de Maquininha','Estornos','Descontos','Outro'],
   '— Custos Variáveis —': null,
