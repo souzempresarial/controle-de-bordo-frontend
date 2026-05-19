@@ -25,7 +25,7 @@ export const CATEGORIAS_SAIDA = {
   'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','Outro'],
   'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Outro'],
   '— Não-Operacional —': null,
-  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Outro'],
+  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Patrocínio','Momento Recreativo','Perda de Mercadoria','Outro'],
   'Dívidas / Empréstimos': ['Empréstimo Infinity','Empréstimo Itaú','Outro'],
   '— Investimento —': null,
   'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis','Outro'],
