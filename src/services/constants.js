@@ -20,14 +20,15 @@ export const CATEGORIAS_SAIDA = {
   '— Despesas SG&A —': null,
   'Despesas com Ocupação': ['Luz','Operadora Celular','Internet','Água','Aluguel / Condomínio / IPTU','Outro'],
   'Despesas com Pessoal':  ['Vales - Transporte & Refeição','13º & Férias','INSS & FGTS','Adiantamento','Folha de Pagamento','Pró-Labore / PLR','Outro'],
-  'Despesas Variáveis':    ['Mídia Paga','Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Outros'],
+  'Despesas Variáveis':    ['Mídia Paga','Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Outro'],
   'Softwares / Tecnologias':['CRM','Sistema ERP','Outro'],
-  'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','DAS - Simples Nacional','DAS - MEIs'],
+  'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','Outro'],
+  'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Outro'],
   '— Não-Operacional —': null,
-  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos'],
+  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Outro'],
   'Dívidas / Empréstimos': ['Empréstimo Infinity','Empréstimo Itaú','Outro'],
   '— Investimento —': null,
-  'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis'],
+  'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis','Outro'],
 };
 
 export const CATEGORIAS_CMV = {
@@ -40,7 +41,7 @@ export const CATEGORIAS_TRANSF = {
 
 // Constantes de classificação financeira — usadas em Dashboard, Relatorio, Financeiro e Layout
 export const CMVCATS    = ['Custos Variáveis Diretos'];
-export const SGA_CATS   = ['Deduções das Vendas','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'];
+export const SGA_CATS   = ['Deduções das Vendas','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
 export const NAOOP_CATS = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
 export const GASTOS_CATS = [...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
 
