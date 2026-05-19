@@ -20,7 +20,7 @@ export const CATEGORIAS_SAIDA = {
   '— Despesas SG&A —': null,
   'Despesas com Ocupação': ['Luz','Operadora Celular','Internet','Água','Aluguel / Condomínio / IPTU','Outro'],
   'Despesas com Pessoal':  ['Vales - Transporte & Refeição','13º & Férias','INSS & FGTS','Adiantamento','Folha de Pagamento','Pró-Labore / PLR','Outro'],
-  'Despesas Variáveis':    ['Mídia Paga','Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Outro'],
+  'Despesas Variáveis':    ['Mídia Paga','Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Uber','Deslocamento','Alimentação','Eventos','Outro'],
   'Softwares / Tecnologias':['CRM','Sistema ERP','Outro'],
   'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','Outro'],
   'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Outro'],
