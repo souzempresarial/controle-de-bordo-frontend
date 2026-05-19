@@ -9,10 +9,15 @@ export default function Lancamentos() {
   const [busca, setBusca]           = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroCat, setFiltroCat]   = useState('');
+  const [filtroSub, setFiltroSub]   = useState('');
   const [filtroMes, setFiltroMes]   = useState('');
 
   // Listas para filtros
-  const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].sort(), [lancamentos]);
+  const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].filter(Boolean).sort(), [lancamentos]);
+  const todasSubs  = useMemo(() => {
+    const base = filtroCat ? lancamentos.filter(l => l.categoria === filtroCat) : lancamentos;
+    return [...new Set(base.map(l => l.subcategoria))].filter(Boolean).sort();
+  }, [lancamentos, filtroCat]);
   const todosMeses = useMemo(() => [...new Set(lancamentos.map(l => l.data.slice(0,7)))].sort().reverse(), [lancamentos]);
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
@@ -21,6 +26,7 @@ export default function Lancamentos() {
     let lista = semCMV;
     if (filtroTipo) lista = lista.filter(l => l.tipo === filtroTipo);
     if (filtroCat)  lista = lista.filter(l => l.categoria === filtroCat);
+    if (filtroSub)  lista = lista.filter(l => l.subcategoria === filtroSub);
     if (filtroMes)  lista = lista.filter(l => l.data.startsWith(filtroMes));
     if (busca) {
       const b = busca.toLowerCase();
@@ -32,7 +38,7 @@ export default function Lancamentos() {
       );
     }
     return lista;
-  }, [semCMV, filtroTipo, filtroCat, filtroMes, busca]);
+  }, [semCMV, filtroTipo, filtroCat, filtroSub, filtroMes, busca]);
 
   const totaisFiltro = useMemo(() => {
     const entradas = filtrados.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valor), 0);
@@ -51,9 +57,13 @@ export default function Lancamentos() {
             <option value="">Todos os tipos</option>
             <option>Entrada</option><option>Saída</option><option>Transferência</option>
           </select>
-          <select className="filter-select" value={filtroCat} onChange={e => setFiltroCat(e.target.value)}>
+          <select className="filter-select" value={filtroCat} onChange={e => { setFiltroCat(e.target.value); setFiltroSub(''); }}>
             <option value="">Todas categorias</option>
             {todasCats.map(c => <option key={c}>{c}</option>)}
+          </select>
+          <select className="filter-select" value={filtroSub} onChange={e => setFiltroSub(e.target.value)}>
+            <option value="">Todas subcategorias</option>
+            {todasSubs.map(s => <option key={s}>{s}</option>)}
           </select>
           <select className="filter-select" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
             <option value="">Todos os meses</option>
