@@ -172,6 +172,56 @@
   margin-top: 6px;
 }
 
+/* Big number cards — visão mensal */
+.rel-big-nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .rel-big-nums { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .rel-big-nums { grid-template-columns: 1fr; }
+}
+
+.rel-big-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px 14px;
+}
+
+.rel-big-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
+}
+
+.rel-big-val {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.rel-big-sub {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 5px;
+}
+
+.rel-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 12px;
+}
+
 /* Matrix table (planilha style) */
 .rel-matrix-table {
   width: 100%;

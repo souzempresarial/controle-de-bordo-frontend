@@ -1,34 +1,29 @@
 import { useState, useMemo } from 'react';
-import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS } from '../services/constants';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
 import './Relatorio.css';
 
-const CORES_GRAFICO = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
-
 function calcMes(lancamentos, pfx) {
-  const lm      = lancamentos.filter(l => l.data.startsWith(pfx));
-  const fat     = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const cmv     = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const sga     = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const naoOp   = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const gastos  = lm.filter(l => l.tipo === 'Saída' && GASTOS_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const lucBruto    = fat - cmv;
-  const lucLiq      = fat - cmv - sga - naoOp;
-  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV);
-  const uni         = vendas.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const ticket      = uni > 0 ? fat / uni : 0;
-  const margem      = fat > 0 ? (lucBruto / fat * 100) : 0;
-  const cmvPct      = fat > 0 ? (cmv / fat * 100) : 0;
-  const entCaixa    = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
-  const saiCaixa    = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const caixaLiq    = entCaixa - saiCaixa;
-  const lucMedioUni = uni > 0 ? lucBruto / uni : 0;
-  return { fat, cmv, sga, naoOp, gastos, lucBruto, lucLiq, uni, ticket, margem, cmvPct, caixaLiq, lucMedioUni };
+  const lm       = lancamentos.filter(l => l.data.startsWith(pfx));
+  const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
+  const cmvTotal = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const cmvVinc  = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId).reduce((a, l) => a + l.valor, 0);
+  const sga      = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const naoOp    = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const gastos   = lm.filter(l => l.tipo === 'Saída' && GASTOS_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const lucBruto = fat - cmvTotal;
+  const lucLiq   = fat - cmvTotal - sga - naoOp;
+  const aps      = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV);
+  const fatAp    = aps.reduce((a, l) => a + l.valor, 0);
+  const uni      = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const ticket   = uni > 0 ? fatAp / uni : 0;
+  const lucMedio = uni > 0 ? (fat - cmvVinc) / uni : 0;
+  const entCaixa = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
+  const saiCaixa = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const caixaLiq = entCaixa - saiCaixa;
+  return { fat, cmvTotal, cmvVinc, sga, naoOp, gastos, lucBruto, lucLiq, uni, fatAp, ticket, lucMedio, entCaixa, saiCaixa, caixaLiq };
 }
 
 function TooltipBRL({ active, payload, label }) {
@@ -36,55 +31,23 @@ function TooltipBRL({ active, payload, label }) {
   return (
     <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
       <div style={{ color: 'var(--text2)', marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontWeight: 700 }}>{p.name}: {fmt(p.value)}</div>
-      ))}
+      {payload.map((p, i) => <div key={i} style={{ color: p.color, fontWeight: 700 }}>{p.name}: {fmt(p.value)}</div>)}
     </div>
   );
 }
 
-function TooltipPct({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-      <div style={{ color: 'var(--text2)', marginBottom: 6, fontWeight: 600 }}>{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color, fontWeight: 700 }}>{p.name}: {p.value.toFixed(2)}%</div>
-      ))}
-    </div>
-  );
-}
-
-function SparkMetrica({ label, valor, sub, dados, fmtFn, cor }) {
-  const corValor = cor || (typeof valor === 'number' && valor < 0 ? 'var(--saida)' : 'var(--entrada)');
-  return (
-    <div className="spark-card">
-      <div className="spark-chart">
-        <ResponsiveContainer width="100%" height={70}>
-          <BarChart data={dados} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <Bar dataKey="v" radius={2}>
-              {dados.map((d, i) => <Cell key={i} fill={d.atual ? '#3b82f6' : '#3b82f633'} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="spark-info">
-        <div className="spark-label">{label}</div>
-        <div className="spark-valor" style={{ color: corValor }}>{valor === null ? '—' : fmtFn(valor)}</div>
-        {sub && <div className="spark-sub">{sub}</div>}
-      </div>
-    </div>
-  );
-}
+const varPct   = (curr, prev) => (prev && prev !== 0) ? (curr - prev) / Math.abs(prev) * 100 : null;
+const varCor   = (v, inv = false) => v === null ? 'var(--text2)' : ((inv ? v <= 0 : v >= 0) ? 'var(--entrada)' : 'var(--saida)');
+const varLabel = (v) => v === null ? null : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 
 export default function Relatorio() {
-  const { lancamentos, contas } = useApp();
+  const { lancamentos } = useApp();
 
   const anoAtual = hoje().slice(0, 4);
   const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
 
   const [ano, setAno]             = useState(anoAtual);
-  const [mesFiltro, setMesFiltro] = useState('');
+  const [mesFiltro, setMesFiltro] = useState(String(mesAtual));
 
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -97,8 +60,13 @@ export default function Relatorio() {
     [lancamentos, ano]
   );
 
+  const lucAcum = useMemo(() => {
+    let acc = 0;
+    return mv.map(m => { acc += m.lucBruto; return acc; });
+  }, [mv]);
+
   const mesIdx       = mesFiltro !== '' ? parseInt(mesFiltro) : null;
-  const labelPeriodo = mesIdx !== null ? `${MESES_FULL[mesIdx]}/${ano}` : ano;
+  const labelPeriodo = mesIdx !== null ? `${MESES_FULL[mesIdx]} / ${ano}` : `Anual ${ano}`;
 
   const filtrados = useMemo(() => {
     const lancAno = lancamentos.filter(l => l.data.startsWith(ano));
@@ -107,441 +75,328 @@ export default function Relatorio() {
     return lancAno.filter(l => parseInt(l.data.slice(5, 7)) - 1 === m);
   }, [lancamentos, ano, mesFiltro]);
 
-  const totFat      = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const totCMV      = filtrados.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const totSGA      = filtrados.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const totNaoOp    = filtrados.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const totGastos   = filtrados.filter(l => l.tipo === 'Saída' && GASTOS_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const totLucBruto = totFat - totCMV;
-  const totLucLiq   = totFat - totCMV - totSGA - totNaoOp;
-  const totMargem   = totFat > 0 ? (totLucBruto / totFat * 100) : null;
-  const totVendas   = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV);
-  const totUni      = totVendas.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const totTicket   = totUni > 0 ? totFat / totUni : null;
-  const totCMVPct   = totFat > 0 ? (totCMV / totFat * 100) : null;
+  const d       = mesIdx !== null ? mv[mesIdx] : null;
+  const prevIdx = mesIdx !== null ? (mesIdx === 0 ? 11 : mesIdx - 1) : null;
+  const prevAno = mesIdx === 0 ? String(parseInt(ano) - 1) : ano;
+  const prev    = prevIdx !== null
+    ? calcMes(lancamentos, `${prevAno}-${String(prevIdx + 1).padStart(2, '0')}`)
+    : null;
 
-  const prevMesIdx = mesIdx !== null ? (mesIdx === 0 ? 11 : mesIdx - 1) : null;
-  const prevAno    = mesIdx === 0 ? String(parseInt(ano) - 1) : ano;
-  const prevPfx    = prevMesIdx !== null ? `${prevAno}-${String(prevMesIdx + 1).padStart(2, '0')}` : null;
-  const prevDados  = prevPfx ? calcMes(lancamentos, prevPfx) : null;
-  const fatVar     = prevDados && prevDados.fat > 0 ? ((totFat - prevDados.fat) / prevDados.fat * 100) : null;
-  const lucVar     = prevDados && prevDados.lucLiq !== 0 ? ((totLucLiq - prevDados.lucLiq) / Math.abs(prevDados.lucLiq) * 100) : null;
-  const gastosVar  = prevDados && prevDados.gastos > 0 ? ((totGastos - prevDados.gastos) / prevDados.gastos * 100) : null;
+  const lucAcumMes = mesIdx !== null ? lucAcum[mesIdx] : 0;
 
-  const entCaixa     = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
-  const saiCaixa     = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const geracaoCaixa = entCaixa - saiCaixa;
+  // Deltas para visão mensal
+  const dFat    = d && prev ? varPct(d.fat, prev.fat) : null;
+  const dLucMed = d && prev && prev.lucMedio !== 0 ? varPct(d.lucMedio, prev.lucMedio) : null;
+  const dTicket = d && prev && prev.ticket !== 0 ? varPct(d.ticket, prev.ticket) : null;
+  const dLucLiq = d && prev && prev.lucLiq !== 0 ? varPct(d.lucLiq, prev.lucLiq) : null;
+  const dCusto  = d && prev && (prev.cmvTotal + prev.gastos) > 0 ? varPct(d.cmvTotal + d.gastos, prev.cmvTotal + prev.gastos) : null;
+  const fatDiff = d && prev ? d.fat - prev.fat : null;
 
-  const ncgReceber = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente').reduce((a, c) => a + c.valor, 0);
-  const ncgPagar   = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente').reduce((a, c) => a + c.valor, 0);
-  const ncg        = ncgReceber - ncgPagar;
+  const margemMes  = d && d.fat > 0 ? d.lucLiq / d.fat * 100 : null;
+  const margemPrev = prev && prev.fat > 0 ? prev.lucLiq / prev.fat * 100 : null;
 
-  const scoreML    = totFat > 0 ? Math.max(0, Math.min(100, (totLucLiq / totFat) / 0.25 * 100)) : 0;
-  const scoreGC    = totFat > 0 ? Math.max(0, Math.min(100, (geracaoCaixa / totFat) / 0.20 * 100)) : 0;
-  const scoreCresc = fatVar !== null ? Math.max(0, Math.min(100, (fatVar + 20) / 40 * 100)) : 50;
-  const scoreCMV   = totFat > 0 ? Math.max(0, Math.min(100, (80 - (totCMV / totFat * 100)) / 50 * 100)) : 50;
-  const healthScore = Math.round(scoreML * 0.40 + scoreGC * 0.30 + scoreCresc * 0.20 + scoreCMV * 0.10);
-  const healthLabel = healthScore >= 70 ? 'Saudável' : healthScore >= 40 ? 'Atenção' : 'Crítico';
-  const healthColor = healthScore >= 70 ? '#22c55e' : healthScore >= 40 ? '#f59e0b' : '#ef4444';
-
+  // Receita por categoria (visão mensal)
   const recPorCat = useMemo(() => {
-    const obj = {};
-    filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV)
-      .forEach(l => { obj[l.categoria] = (obj[l.categoria] || 0) + l.valor; });
-    return Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    const vendas = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV);
+    const fat    = vendas.reduce((a, l) => a + l.valor, 0);
+    const obj    = {};
+    vendas.forEach(l => {
+      if (!obj[l.categoria]) obj[l.categoria] = { fat: 0, uni: 0 };
+      obj[l.categoria].fat += l.valor;
+      obj[l.categoria].uni += (l.quantidade || 1);
+    });
+    return Object.entries(obj)
+      .sort((a, b) => b[1].fat - a[1].fat)
+      .map(([key, data]) => ({ key, fat: data.fat, uni: data.uni, pct: fat > 0 ? data.fat / fat * 100 : 0 }));
   }, [filtrados]);
 
+  // Gastos por categoria (visão mensal)
   const gastPorCat = useMemo(() => {
     const obj = {};
-    filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria))
+    filtrados
+      .filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente')
       .forEach(l => { obj[l.categoria] = (obj[l.categoria] || 0) + l.valor; });
     return Object.entries(obj).sort((a, b) => b[1] - a[1]);
   }, [filtrados]);
 
-  const dadosAnuais  = MESES.map((m, i) => ({ mes: m, Faturamento: mv[i].fat, 'Lucro Bruto': mv[i].lucBruto, 'Lucro Líq.': mv[i].lucLiq }));
-  const dadosTicket  = MESES.map((m, i) => ({ mes: m, 'Ticket Médio': mv[i].ticket }));
-  const dadosCMVPct  = MESES.map((m, i) => ({ mes: m, 'CMV %': parseFloat(mv[i].cmvPct.toFixed(2)) }));
-  const dadosDoughnut = gastPorCat.slice(0, 8).map(([cat, val]) => ({ name: cat, value: val }));
+  // Gráfico de barras anual
+  const dadosBar = MESES.map((m, i) => ({
+    mes: m, Faturamento: mv[i].fat, 'Lucro Líq.': mv[i].lucLiq,
+  }));
 
-  const mkSpark = (dados, idx) => MESES.map((_, i) => ({ v: dados[i], atual: i === idx }));
-
-  const corMargem = (m) => m === null ? 'var(--text2)' : m >= 30 ? 'var(--entrada)' : m >= 15 ? 'var(--warn)' : 'var(--saida)';
-  const corLucro  = (v) => v >= 0 ? 'var(--entrada)' : 'var(--saida)';
-  const delta     = (v) => v === null ? null : (v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`);
-  const corDelta  = (v) => v === null ? 'var(--text2)' : v >= 0 ? 'var(--entrada)' : 'var(--saida)';
+  // Linhas da matriz anual
+  const matrizLinhas = [
+    { label: 'Faturamento',             fn: (m) => m.fat > 0 ? fmt(m.fat) : '—',                            cor: (m)    => m.fat > 0 ? 'var(--entrada)' : 'var(--text2)' },
+    { label: 'Qtd Aparelhos Vendidos',  fn: (m) => m.uni > 0 ? String(m.uni) : '—',                         cor: ()     => 'var(--text)' },
+    { label: 'Lucro Médio / Aparelho',  fn: (m) => m.uni > 0 ? fmt(m.lucMedio) : '—',                       cor: (m)    => m.uni > 0 ? (m.lucMedio >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' },
+    { label: 'Lucro Acumulado',         fn: (m, i) => m.fat > 0 ? fmt(lucAcum[i]) : '—',                    cor: (m, i) => m.fat > 0 ? (lucAcum[i] >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)', bold: true },
+    { label: 'Gastos Totais',           fn: (m) => m.gastos > 0 ? fmt(m.gastos) : '—',                      cor: (m)    => m.gastos > 0 ? 'var(--saida)' : 'var(--text2)' },
+    { label: 'Ticket Médio',            fn: (m) => m.uni > 0 ? fmt(m.ticket) : '—',                         cor: ()     => 'var(--text)' },
+    { label: 'Lucro Líquido',           fn: (m) => m.fat > 0 ? fmt(m.lucLiq) : '—',                         cor: (m)    => m.fat > 0 ? (m.lucLiq >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)', bold: true },
+    { label: 'Caixa Líquido',           fn: (m) => m.fat > 0 ? fmt(m.caixaLiq) : '—',                       cor: (m)    => m.fat > 0 ? (m.caixaLiq >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' },
+  ];
 
   return (
     <div className="relatorio-page">
-      {/* Seletor */}
+
+      {/* ── Filtros ── */}
       <div className="rel-filtros">
         <span className="period-label">Relatório</span>
-        <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setMesFiltro(''); }}>
+        <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setMesFiltro(String(mesAtual)); }}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
-        <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(e.target.value)}>
-          <option value="">Ano inteiro</option>
-          {MESES_FULL.map((m, i) => <option key={i} value={String(i)}>{m}</option>)}
-        </select>
+        {mesFiltro === '' ? (
+          <button className="btn btn-ghost btn-sm" onClick={() => setMesFiltro(String(mesAtual))}>← Fechar anual</button>
+        ) : (
+          <>
+            <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(e.target.value)}>
+              {MESES_FULL.map((m, i) => <option key={i} value={String(i)}>{m}</option>)}
+            </select>
+            <button className="btn btn-ghost btn-sm" onClick={() => setMesFiltro('')}>Ver todos os meses →</button>
+          </>
+        )}
       </div>
 
-      {/* Cards resumo */}
-      <div className="cards">
-        <div className="card">
-          <div className="card-label">Faturamento</div>
-          <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totFat)}</div>
-          <div className="card-sub">
-            {labelPeriodo}
-            {fatVar !== null && <span style={{ color: corDelta(fatVar), marginLeft: 6, fontSize: 11, fontWeight: 700 }}>{delta(fatVar)} vs mês ant.</span>}
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-label">Lucro Bruto</div>
-          <div className="card-value" style={{ color: corLucro(totLucBruto) }}>{fmt(totLucBruto)}</div>
-          <div className="card-sub">CMV: {fmt(totCMV)}</div>
-        </div>
-        <div className="card">
-          <div className="card-label">Lucro Líquido</div>
-          <div className="card-value" style={{ color: corLucro(totLucLiq) }}>{fmt(totLucLiq)}</div>
-          <div className="card-sub">
-            SG&A: {fmt(totSGA)}
-            {lucVar !== null && <span style={{ color: corDelta(lucVar), marginLeft: 6, fontSize: 11, fontWeight: 700 }}>{delta(lucVar)}</span>}
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-label">Margem Bruta</div>
-          <div className="card-value" style={{ color: corMargem(totMargem) }}>{fmtPct(totMargem)}</div>
-          <div className="card-sub">CMV%: {fmtPct(totCMVPct)}</div>
-        </div>
-        <div className="card">
-          <div className="card-label">Ticket Médio</div>
-          <div className="card-value" style={{ color: 'var(--accent)' }}>{totTicket !== null ? fmt(totTicket) : '—'}</div>
-          <div className="card-sub">{totUni} unidades vendidas</div>
-        </div>
-      </div>
-
-      {/* ── VISÃO ANUAL ── */}
+      {/* ── VISÃO ANUAL: Matriz ── */}
       {mesFiltro === '' && (
-        <>
-          <div className="rel-graficos-grid">
-            <div className="table-panel">
-              <div className="table-header"><h2>Faturamento × Lucro — {ano}</h2></div>
-              <div style={{ padding: '8px 16px 16px' }}>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={dadosAnuais} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <YAxis tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <Tooltip content={<TooltipBRL />} />
-                    <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text2)' }} />
-                    <Bar dataKey="Faturamento"  fill="#22c55e88" stroke="#22c55e" strokeWidth={1} radius={[3,3,0,0]} />
-                    <Bar dataKey="Lucro Bruto"  fill="#3b82f688" stroke="#3b82f6" strokeWidth={1} radius={[3,3,0,0]} />
-                    <Bar dataKey="Lucro Líq."   fill="#8b5cf688" stroke="#8b5cf6" strokeWidth={1} radius={[3,3,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="table-panel">
-              <div className="table-header"><h2>Ticket Médio por Mês</h2></div>
-              <div style={{ padding: '8px 16px 16px' }}>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={dadosTicket} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <YAxis tickFormatter={v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <Tooltip content={<TooltipBRL />} />
-                    <Bar dataKey="Ticket Médio" fill="#f59e0b88" stroke="#f59e0b" strokeWidth={1} radius={[3,3,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="table-panel">
-              <div className="table-header"><h2>CMV % sobre Receita</h2></div>
-              <div style={{ padding: '8px 16px 16px' }}>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={dadosCMVPct} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <YAxis tickFormatter={v => v + '%'} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
-                    <Tooltip content={<TooltipPct />} />
-                    <Bar dataKey="CMV %" fill="#ef444488" stroke="#ef4444" strokeWidth={1} radius={[3,3,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="table-panel">
-              <div className="table-header"><h2>Gastos por Categoria</h2></div>
-              <div style={{ padding: '8px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {dadosDoughnut.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <PieChart>
-                      <Pie data={dadosDoughnut} cx="50%" cy="50%" innerRadius={55} outerRadius={95} dataKey="value" paddingAngle={2}>
-                        {dadosDoughnut.map((_, i) => <Cell key={i} fill={CORES_GRAFICO[i % CORES_GRAFICO.length]} />)}
-                      </Pie>
-                      <Tooltip formatter={(v) => fmt(v)} contentStyle={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-                      <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text2)' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ color: 'var(--text2)', fontSize: 13, padding: 40 }}>Sem dados</div>
-                )}
-              </div>
-            </div>
+        <div className="table-panel">
+          <div className="table-header">
+            <h2>Relatório Anual — {ano}</h2>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>Clique em um mês para detalhar</span>
           </div>
-
-          <div className="table-panel">
-            <div className="table-header">
-              <h2>Evolução Mensal — {ano}</h2>
-              <span style={{ fontSize: 11, color: 'var(--text2)' }}>Clique em um mês para detalhar</span>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Mês</th>
-                    <th style={{ textAlign: 'right' }}>Faturamento</th>
-                    <th style={{ textAlign: 'right' }}>CMV</th>
-                    <th style={{ textAlign: 'right' }}>Lucro Bruto</th>
-                    <th style={{ textAlign: 'right' }}>Margem</th>
-                    <th style={{ textAlign: 'right' }}>Lucro Líq.</th>
-                    <th style={{ textAlign: 'right' }}>Ticket Médio</th>
-                    <th style={{ textAlign: 'right' }}>Unidades</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mv.map((m, i) => (
-                    <tr
-                      key={i}
-                      className={i === mesAtual && ano === anoAtual ? 'mes-atual' : ''}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="rel-matrix-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Métrica</th>
+                  {MESES.map((m, i) => (
+                    <th
+                      key={m}
+                      className={i === mesAtual && ano === anoAtual ? 'col-atual' : ''}
                       style={{ cursor: 'pointer' }}
                       onClick={() => setMesFiltro(String(i))}
-                    >
-                      <td style={{ fontWeight: 600 }}>{MESES_FULL[i]}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 600 }}>{m.fat > 0 ? fmt(m.fat) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--saida)' }}>{m.cmv > 0 ? fmt(m.cmv) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corLucro(m.lucBruto) }}>{m.fat > 0 ? fmt(m.lucBruto) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corMargem(m.margem) }}>{m.fat > 0 ? fmtPct(m.margem) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: corLucro(m.lucLiq) }}>{m.fat > 0 ? fmt(m.lucLiq) : '—'}</td>
-                      <td style={{ textAlign: 'right' }}>{m.ticket > 0 ? fmt(m.ticket) : '—'}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{m.uni > 0 ? m.uni : '—'}</td>
-                    </tr>
+                    >{m}</th>
                   ))}
-                  <tr className="total-row">
-                    <td style={{ fontWeight: 700 }}>TOTAL</td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(mv.reduce((a, m) => a + m.fat, 0))}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--saida)', fontWeight: 700 }}>{fmt(mv.reduce((a, m) => a + m.cmv, 0))}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: corLucro(mv.reduce((a, m) => a + m.lucBruto, 0)) }}>{fmt(mv.reduce((a, m) => a + m.lucBruto, 0))}</td>
-                    <td style={{ textAlign: 'right' }}>—</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: corLucro(mv.reduce((a, m) => a + m.lucLiq, 0)) }}>{fmt(mv.reduce((a, m) => a + m.lucLiq, 0))}</td>
-                    <td style={{ textAlign: 'right' }}>—</td>
-                    <td style={{ textAlign: 'right', color: 'var(--text2)', fontWeight: 700 }}>{mv.reduce((a, m) => a + m.uni, 0)}</td>
+                </tr>
+              </thead>
+              <tbody>
+                {matrizLinhas.map(({ label, fn, cor, bold }) => (
+                  <tr key={label}>
+                    <td className="metric-name-cell">
+                      <span className="metric-label-text">{label}</span>
+                    </td>
+                    {mv.map((m, i) => (
+                      <td
+                        key={i}
+                        className={`metric-val ${i === mesAtual && ano === anoAtual ? 'col-atual' : ''}`}
+                        style={{ color: cor(m, i), fontWeight: bold ? 700 : 600 }}
+                        onClick={() => setMesFiltro(String(i))}
+                      >
+                        {fn(m, i)}
+                      </td>
+                    ))}
                   </tr>
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── VISÃO MENSAL ── */}
-      {mesIdx !== null && (
-        <>
-          <div className="spark-grid">
-            <SparkMetrica
-              label="Faturamento"
-              valor={totFat}
-              sub={totUni + ' unidades'}
-              dados={mkSpark(mv.map(v => v.fat), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--entrada)"
-            />
-            <SparkMetrica
-              label="Lucro Líquido"
-              valor={totLucLiq}
-              sub={totFat > 0 ? `Margem: ${(totLucLiq/totFat*100).toFixed(1)}%` : null}
-              dados={mkSpark(mv.map(v => v.lucLiq), mesIdx)}
-              fmtFn={fmt}
-            />
-            <SparkMetrica
-              label="Ticket Médio"
-              valor={totTicket}
-              sub={totUni + ' vendas'}
-              dados={mkSpark(mv.map(v => v.ticket), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--accent)"
-            />
-            <SparkMetrica
-              label="Gastos Totais"
-              valor={totGastos}
-              sub={gastosVar !== null ? `${delta(gastosVar)} vs mês ant.` : null}
-              dados={mkSpark(mv.map(v => v.gastos), mesIdx)}
-              fmtFn={fmt}
-              cor="var(--saida)"
-            />
-            <SparkMetrica
-              label="CMV %"
-              valor={totCMVPct}
-              sub={`CMV: ${fmt(totCMV)}`}
-              dados={mkSpark(mv.map(v => v.cmvPct), mesIdx)}
-              fmtFn={v => v.toFixed(2) + '%'}
-              cor={totCMVPct !== null ? (totCMVPct <= 60 ? 'var(--entrada)' : totCMVPct <= 75 ? 'var(--warn)' : 'var(--saida)') : 'var(--text2)'}
-            />
-            <SparkMetrica
-              label="Margem Bruta"
-              valor={totMargem}
-              sub={`Lucro Bruto: ${fmt(totLucBruto)}`}
-              dados={mkSpark(mv.map(v => v.margem), mesIdx)}
-              fmtFn={v => v.toFixed(2) + '%'}
-              cor={corMargem(totMargem)}
-            />
-          </div>
+      {mesIdx !== null && d && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          <div className="table-panel resumo-exec">
-            <div className="table-header">
-              <h2>Resumo Executivo — {labelPeriodo}</h2>
-            </div>
-            <div className="resumo-body">
-              <div className="resumo-bloco">
-                <div className="resumo-bloco-title">Saúde Financeira</div>
-                <div className="health-score-wrap">
-                  <div className="health-score-bar-bg">
-                    <div className="health-score-bar-fill" style={{ width: `${healthScore}%`, background: healthColor }} />
+          {/* 1. VENDAS */}
+          <div className="table-panel">
+            <div className="table-header"><h2>Vendas — {labelPeriodo}</h2></div>
+            <div style={{ padding: '16px 20px' }}>
+
+              <div className="rel-big-nums">
+                <div className="rel-big-card">
+                  <div className="rel-big-label">Aparelhos Vendidos</div>
+                  <div className="rel-big-val" style={{ color: 'var(--accent)' }}>{d.uni > 0 ? d.uni : '—'}</div>
+                  {prev && prev.uni > 0 && (
+                    <div className="rel-big-sub">vs {MESES_FULL[prevIdx]}: {prev.uni}</div>
+                  )}
+                </div>
+                <div className="rel-big-card">
+                  <div className="rel-big-label">Lucro Médio / Aparelho</div>
+                  <div className="rel-big-val" style={{ color: d.uni > 0 ? (d.lucMedio >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' }}>
+                    {d.uni > 0 ? fmt(d.lucMedio) : '—'}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                    <span style={{ fontSize: 28, fontWeight: 900, color: healthColor }}>{healthScore}</span>
-                    <span className={`health-badge health-${healthLabel.toLowerCase()}`}>{healthLabel}</span>
+                  {dLucMed !== null && (
+                    <div className="rel-big-sub" style={{ color: varCor(dLucMed) }}>{varLabel(dLucMed)} vs mês ant.</div>
+                  )}
+                </div>
+                <div className="rel-big-card">
+                  <div className="rel-big-label">Lucro Acumulado no Ano</div>
+                  <div className="rel-big-val" style={{ color: lucAcumMes >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+                    {fmt(lucAcumMes)}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
-                    {[
-                      { label: 'Margem Liq.', val: scoreML, peso: '40%' },
-                      { label: 'Geração Caixa', val: scoreGC, peso: '30%' },
-                      { label: 'Crescimento', val: scoreCresc, peso: '20%' },
-                      { label: 'CMV Control', val: scoreCMV, peso: '10%' },
-                    ].map(({ label, val, peso }) => (
-                      <div key={label} style={{ fontSize: 11, color: 'var(--text2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                          <span>{label}</span><span style={{ color: 'var(--text)' }}>{Math.round(val)}/100 <span style={{ color: 'var(--text2)' }}>({peso})</span></span>
+                  <div className="rel-big-sub">Jan – {MESES_FULL[mesIdx]}</div>
+                </div>
+                <div className="rel-big-card">
+                  <div className="rel-big-label">Ticket Médio</div>
+                  <div className="rel-big-val">{d.uni > 0 ? fmt(d.ticket) : '—'}</div>
+                  {dTicket !== null && (
+                    <div className="rel-big-sub" style={{ color: varCor(dTicket) }}>{varLabel(dTicket)} vs mês ant.</div>
+                  )}
+                </div>
+              </div>
+
+              {recPorCat.length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <div className="rel-section-title">Receita por Categoria</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {recPorCat.map(({ key, fat, uni, pct }) => (
+                      <div key={key}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
+                          <span style={{ fontWeight: 600 }}>{key}</span>
+                          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text2)', fontSize: 12 }}>{uni} un.</span>
+                            <span style={{ color: 'var(--entrada)', fontWeight: 700 }}>{fmt(fat)}</span>
+                            <span style={{ fontWeight: 700, minWidth: 44, textAlign: 'right', color: pct > 50 ? 'var(--text)' : 'var(--text2)' }}>{pct.toFixed(1)}%</span>
+                          </div>
                         </div>
-                        <div style={{ height: 4, background: 'var(--border)', borderRadius: 2 }}>
-                          <div style={{ height: '100%', width: `${val}%`, background: val >= 70 ? '#22c55e' : val >= 40 ? '#f59e0b' : '#ef4444', borderRadius: 2, transition: 'width .3s' }} />
+                        <div style={{ height: 7, background: 'var(--border)', borderRadius: 4 }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--entrada)', borderRadius: 4, transition: 'width .3s' }} />
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
 
-              <div className="resumo-bloco">
-                <div className="resumo-bloco-title">vs. {prevMesIdx !== null ? MESES_FULL[prevMesIdx] : 'Mês Anterior'}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { label: 'Faturamento',   atual: totFat,    prev: prevDados?.fat,    var: fatVar },
-                    { label: 'Lucro Líquido', atual: totLucLiq, prev: prevDados?.lucLiq, var: lucVar },
-                    { label: 'Gastos',        atual: totGastos, prev: prevDados?.gastos, var: gastosVar },
-                    { label: 'CMV',           atual: totCMV,    prev: prevDados?.cmv },
-                  ].map(({ label, atual, prev, var: v }) => {
-                    const varCalc = v !== undefined ? v : (prev && prev > 0 ? (atual - prev) / prev * 100 : null);
-                    return (
-                      <div key={label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: 'var(--text2)' }}>{label}</span>
-                          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                            {prev !== undefined && <span style={{ color: 'var(--text2)', fontSize: 11 }}>{fmt(prev ?? 0)}</span>}
-                            <span style={{ fontWeight: 700 }}>{fmt(atual)}</span>
-                            {varCalc !== null && <span style={{ color: corDelta(label === 'Gastos' || label === 'CMV' ? -varCalc : varCalc), fontSize: 11, fontWeight: 700 }}>{delta(varCalc)}</span>}
-                          </div>
-                        </div>
-                        {prev !== undefined && prev > 0 && (
-                          <div style={{ height: 4, background: 'var(--border)', borderRadius: 2 }}>
-                            <div style={{ height: '100%', width: `${Math.min(100, atual / Math.max(atual, prev ?? 0) * 100)}%`, background: corDelta(label === 'Gastos' || label === 'CMV' ? -(varCalc ?? 0) : (varCalc ?? 0)), borderRadius: 2, transition: 'width .3s' }} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+          {/* 2. RECEITA */}
+          <div className="table-panel">
+            <div className="table-header"><h2>Receita — {labelPeriodo}</h2></div>
+            <div style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="rel-section-title" style={{ marginBottom: 4 }}>Faturamento Bruto</div>
+                  <div style={{ fontSize: 38, fontWeight: 900, color: 'var(--entrada)', lineHeight: 1 }}>{fmt(d.fat)}</div>
+                </div>
+                {prev && prev.fat > 0 && (
+                  <div style={{ padding: '12px 18px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 6 }}>vs {MESES_FULL[prevIdx]}</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: varCor(dFat) }}>{varLabel(dFat)}</div>
+                    <div style={{ fontSize: 12, color: varCor(dFat), marginTop: 2 }}>
+                      {fatDiff !== null && (fatDiff >= 0 ? '+' : '')}{fatDiff !== null ? fmt(fatDiff) : ''}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="rel-section-title" style={{ marginBottom: 8 }}>Evolução do Ano</div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={dadosBar} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="mes" tick={{ fill: 'var(--text2)', fontSize: 11 }} />
+                  <YAxis tickFormatter={v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v} tick={{ fill: 'var(--text2)', fontSize: 11 }} />
+                  <Tooltip content={<TooltipBRL />} />
+                  <Bar dataKey="Faturamento" radius={[3, 3, 0, 0]}>
+                    {dadosBar.map((_, i) => <Cell key={i} fill="#22c55e" fillOpacity={i === mesIdx ? 1 : 0.2} />)}
+                  </Bar>
+                  <Bar dataKey="Lucro Líq." radius={[3, 3, 0, 0]}>
+                    {dadosBar.map((_, i) => <Cell key={i} fill="#8b5cf6" fillOpacity={i === mesIdx ? 1 : 0.2} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 3. FLUXO DE CAIXA */}
+          <div className="table-panel">
+            <div className="table-header"><h2>Fluxo de Caixa — {labelPeriodo}</h2></div>
+            <div style={{ padding: '16px 20px' }}>
+              <div className="rel-big-nums" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="rel-big-card" style={{ borderLeft: '3px solid var(--entrada)' }}>
+                  <div className="rel-big-label">Entradas</div>
+                  <div className="rel-big-val" style={{ color: 'var(--entrada)' }}>{fmt(d.entCaixa)}</div>
+                </div>
+                <div className="rel-big-card" style={{ borderLeft: '3px solid var(--saida)' }}>
+                  <div className="rel-big-label">Saídas</div>
+                  <div className="rel-big-val" style={{ color: 'var(--saida)' }}>{fmt(d.saiCaixa)}</div>
+                </div>
+                <div className="rel-big-card" style={{ borderLeft: `3px solid ${d.caixaLiq >= 0 ? 'var(--entrada)' : 'var(--saida)'}` }}>
+                  <div className="rel-big-label">Saldo Final</div>
+                  <div className="rel-big-val" style={{ color: d.caixaLiq >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 900 }}>
+                    {fmt(d.caixaLiq)}
+                  </div>
                 </div>
               </div>
 
-              <div className="resumo-bloco">
-                <div className="resumo-bloco-title">Receita por Categoria</div>
-                {recPorCat.length > 0 ? (
+              {gastPorCat.length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <div className="rel-section-title">Onde Está Saindo o Dinheiro</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {recPorCat.map(([cat, val], i) => {
-                      const pct    = totFat > 0 ? (val / totFat * 100) : 0;
-                      const uniCat = filtrados.filter(l => l.tipo === 'Entrada' && l.categoria === cat && !l.isCMV).reduce((a, l) => a + (l.quantidade || 1), 0);
+                    {gastPorCat.map(([cat, val]) => {
+                      const pct    = d.saiCaixa > 0 ? val / d.saiCaixa * 100 : 0;
+                      const maxVal = gastPorCat[0][1] || 1;
                       return (
                         <div key={cat}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{cat}</span>
-                            <div style={{ display: 'flex', gap: 10 }}>
-                              <span style={{ color: 'var(--text2)', fontSize: 11 }}>{uniCat} un.</span>
-                              <span style={{ color: 'var(--entrada)', fontWeight: 700 }}>{fmt(val)}</span>
-                              <span style={{ color: 'var(--text2)', fontSize: 11 }}>{pct.toFixed(1)}%</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
+                            <span>{cat}</span>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                              <span style={{ color: 'var(--saida)', fontWeight: 700 }}>{fmt(val)}</span>
+                              <span style={{ color: 'var(--text2)', minWidth: 40, textAlign: 'right' }}>{pct.toFixed(1)}%</span>
                             </div>
                           </div>
-                          <div style={{ height: 5, background: 'var(--border)', borderRadius: 3 }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: CORES_GRAFICO[i % CORES_GRAFICO.length], borderRadius: 3, transition: 'width .3s' }} />
+                          <div style={{ height: 7, background: 'var(--border)', borderRadius: 4 }}>
+                            <div style={{ height: '100%', width: `${val / maxVal * 100}%`, background: 'var(--saida)', opacity: .65, borderRadius: 4 }} />
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                ) : (
-                  <div style={{ color: 'var(--text2)', fontSize: 13 }}>Nenhuma entrada no período</div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-              <div className="resumo-bloco">
-                <div className="resumo-bloco-title">Capital de Giro (NCG)</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--text2)' }}>A Receber</span>
-                    <span style={{ color: 'var(--entrada)', fontWeight: 700 }}>{fmt(ncgReceber)}</span>
+          {/* 4. LUCRO */}
+          <div className="table-panel">
+            <div className="table-header"><h2>Lucro — {labelPeriodo}</h2></div>
+            <div style={{ padding: '16px 20px' }}>
+              <div className="rel-big-nums" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="rel-big-card" style={{ borderLeft: '3px solid var(--saida)' }}>
+                  <div className="rel-big-label">Custo Total</div>
+                  <div className="rel-big-val" style={{ color: 'var(--saida)' }}>{fmt(d.cmvTotal + d.gastos)}</div>
+                  {dCusto !== null && (
+                    <div className="rel-big-sub" style={{ color: varCor(dCusto, true) }}>{varLabel(dCusto)} vs mês ant.</div>
+                  )}
+                </div>
+                <div className="rel-big-card" style={{ borderLeft: `3px solid ${d.lucLiq >= 0 ? 'var(--entrada)' : 'var(--saida)'}` }}>
+                  <div className="rel-big-label">Lucro Líquido</div>
+                  <div className="rel-big-val" style={{ color: d.lucLiq >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 900 }}>
+                    {fmt(d.lucLiq)}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--text2)' }}>A Pagar</span>
-                    <span style={{ color: 'var(--saida)', fontWeight: 700 }}>{fmt(ncgPagar)}</span>
+                  {dLucLiq !== null && (
+                    <div className="rel-big-sub" style={{ color: varCor(dLucLiq) }}>{varLabel(dLucLiq)} vs mês ant.</div>
+                  )}
+                </div>
+                <div className="rel-big-card" style={{ borderLeft: '3px solid var(--accent)' }}>
+                  <div className="rel-big-label">Margem Líquida</div>
+                  <div className="rel-big-val" style={{ color: 'var(--accent)' }}>
+                    {margemMes !== null ? fmtPct(margemMes) : '—'}
                   </div>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                    <span style={{ fontWeight: 700 }}>NCG</span>
-                    <span style={{ color: ncg >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 800, fontSize: 16 }}>{fmt(ncg)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--text2)' }}>Geração de Caixa</span>
-                    <span style={{ color: geracaoCaixa >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 700 }}>{fmt(geracaoCaixa)}</span>
-                  </div>
+                  {margemPrev !== null && (
+                    <div className="rel-big-sub">vs mês ant.: {fmtPct(margemPrev)}</div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {gastPorCat.length > 0 && (
-            <div className="table-panel">
-              <div className="table-header"><h2>Gastos por Categoria — {labelPeriodo}</h2></div>
-              <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {gastPorCat.map(([cat, val]) => (
-                  <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                      <span>{cat}</span>
-                      <span style={{ color: 'var(--saida)', fontWeight: 600 }}>{fmt(val)}</span>
-                    </div>
-                    <div style={{ height: 6, background: 'var(--border)', borderRadius: 3 }}>
-                      <div style={{ height: '100%', width: `${(val / (gastPorCat[0][1] || 1) * 100).toFixed(1)}%`, background: 'var(--saida)', borderRadius: 3, transition: 'width .3s' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {filtrados.length === 0 && (
         <div className="empty-state">
           <div className="icon">📊</div>
-          <div>Nenhum lançamento encontrado para {labelPeriodo}</div>
+          <div>Nenhum lançamento para {labelPeriodo}</div>
         </div>
       )}
     </div>
