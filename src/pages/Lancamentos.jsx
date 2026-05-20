@@ -1,16 +1,37 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { fmt, fmtData } from '../services/utils';
+import { API } from '../services/api';
+import { getCatsPorTipo, getSubcats } from '../services/constants';
+import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
 
+const formVazio = (l) => ({
+  data: l.data || hoje(),
+  tipo: l.tipo,
+  valor: l.valor,
+  descricao: l.descricao || '',
+  categoria: l.categoria || '',
+  subcategoria: l.subcategoria || '',
+  pagamento: l.pagamento || '',
+  status: l.status || 'Confirmado',
+  obs: l.obs || '',
+  quantidade: l.quantidade || '',
+});
+
 export default function Lancamentos() {
-  const { lancamentos } = useApp();
+  const { lancamentos, setLancamentos, clienteAtivo } = useApp();
 
   const [busca, setBusca]           = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroCat, setFiltroCat]   = useState('');
   const [filtroSub, setFiltroSub]   = useState('');
   const [filtroMes, setFiltroMes]   = useState('');
+
+  const [editando, setEditando]     = useState(null);
+  const [form, setForm]             = useState(null);
+  const [salvando, setSalvando]     = useState(false);
+  const [erroForm, setErroForm]     = useState('');
+  const [confirmando, setConfirmando] = useState(null);
 
   // Listas para filtros
   const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].filter(Boolean).sort(), [lancamentos]);
@@ -46,6 +67,59 @@ export default function Lancamentos() {
     return { entradas, saidas, saldo: entradas - saidas };
   }, [filtrados]);
 
+  const cats    = form ? getCatsPorTipo(form.tipo) : {};
+  const subcats = form ? getSubcats(form.categoria) : [];
+
+  function setField(campo, valor) {
+    setForm(f => {
+      const novo = { ...f, [campo]: valor };
+      if (campo === 'categoria') novo.subcategoria = '';
+      return novo;
+    });
+  }
+
+  function abrirEditar(l) {
+    setEditando(l);
+    setForm(formVazio(l));
+    setErroForm('');
+  }
+
+  function fecharModal() { setEditando(null); setForm(null); }
+
+  async function salvar() {
+    if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
+    if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
+    setSalvando(true); setErroForm('');
+    try {
+      const atualizado = await API.editarLancamento(editando.id, {
+        data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
+        categoria: form.categoria, subcategoria: form.subcategoria,
+        descricao: form.descricao, pagamento: form.pagamento,
+        status: form.status, obs: form.obs,
+        quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
+      });
+      setLancamentos(prev => prev.map(l => l.id === editando.id ? { ...l, ...atualizado } : l));
+      fecharModal();
+    } catch (err) {
+      setErroForm(err.message || 'Erro ao salvar');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function excluir(id) {
+    try {
+      await API.excluirLancamento(clienteAtivo.id, id);
+      setLancamentos(prev => {
+        const sem = prev.filter(l => l.id !== id);
+        const pais = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
+        const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
+        orfaos.forEach(o => API.excluirLancamento(clienteAtivo.id, o.id));
+        return sem.filter(l => !l.isCMV || pais.has(l.grupoId));
+      });
+    } catch (err) { console.error(err); }
+    setConfirmando(null);
+  }
 
   return (
     <div className="lancamentos-page">
@@ -99,7 +173,7 @@ export default function Lancamentos() {
                 <tr>
                   <th>ID</th><th>Data</th><th>Tipo</th><th>Categoria</th>
                   <th>Subcategoria</th><th>Descrição</th><th>Pagamento</th>
-                  <th>Status</th><th style={{ textAlign: 'right' }}>Valor</th>
+                  <th>Status</th><th style={{ textAlign: 'right' }}>Valor</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -128,6 +202,12 @@ export default function Lancamentos() {
                       <td style={{ textAlign: 'right', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '-' : ''}{fmt(l.valor)}
                       </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)}>✏️</button>
+                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(l)}>🗑</button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -137,6 +217,103 @@ export default function Lancamentos() {
         )}
       </div>
 
+      {/* Modal Editar */}
+      {editando && form && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <h3>Editar Lançamento #{String(editando.id).padStart(3,'0')}</h3>
+              <button className="modal-close" onClick={fecharModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="field">
+                  <label>Data</label>
+                  <input type="date" value={form.data} onChange={e => setField('data', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Valor (R$)</label>
+                  <input type="number" step="0.01" value={form.valor} onChange={e => setField('valor', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Categoria</label>
+                  <select value={form.categoria} onChange={e => setField('categoria', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {Object.entries(cats).map(([cat, subs]) =>
+                      subs === null
+                        ? <option key={cat} disabled style={{ fontSize: 11 }}>{cat}</option>
+                        : <option key={cat}>{cat}</option>
+                    )}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Subcategoria</label>
+                  <select value={form.subcategoria} onChange={e => setField('subcategoria', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {subcats.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="field span2">
+                  <label>Descrição</label>
+                  <input type="text" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Pagamento</label>
+                  <select value={form.pagamento} onChange={e => setField('pagamento', e.target.value)}>
+                    <option value="">—</option>
+                    <option>Dinheiro</option><option>Pix</option><option>Crédito</option>
+                    <option>Débito</option><option>Boleto</option><option>Transferência</option><option>Outro</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Status</label>
+                  <select value={form.status} onChange={e => setField('status', e.target.value)}>
+                    <option>Confirmado</option><option>Pendente</option>
+                  </select>
+                </div>
+                {form.tipo === 'Entrada' && (
+                  <div className="field">
+                    <label>Quantidade</label>
+                    <input type="number" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
+                  </div>
+                )}
+                <div className="field span2">
+                  <label>Observações</label>
+                  <input type="text" value={form.obs} onChange={e => setField('obs', e.target.value)} />
+                </div>
+              </div>
+              {erroForm && <div className="form-erro">{erroForm}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
+              <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
+                {salvando ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Exclusão */}
+      {confirmando && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmando(null)}>
+          <div className="modal-box modal-small">
+            <div className="modal-header">
+              <h3>Excluir Lançamento</h3>
+              <button className="modal-close" onClick={() => setConfirmando(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text2)', fontSize: 13 }}>
+                Excluir <strong style={{ color: 'var(--text)' }}>#{String(confirmando.id).padStart(3,'0')} — {confirmando.descricao}</strong> ({fmt(confirmando.valor)})?
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setConfirmando(null)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={() => excluir(confirmando.id)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
