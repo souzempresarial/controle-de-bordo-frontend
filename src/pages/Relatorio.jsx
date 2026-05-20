@@ -9,24 +9,26 @@ function calcMes(lancamentos, pfx) {
   const lm        = lancamentos.filter(l => l.data.startsWith(pfx));
   const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const cmvTotal  = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
-  const cmvVinc   = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId).reduce((a, l) => a + l.valor, 0);
   const sga       = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const naoOp     = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const gastos    = lm.filter(l => l.tipo === 'Saída' && GASTOS_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const lucBruto  = fat - cmvTotal;
   const lucLiq    = fat - cmvTotal - sga - naoOp;
 
-  const aps       = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV);
-  const fatAp     = aps.reduce((a, l) => a + l.valor, 0);
-  const uni       = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const ticket    = uni > 0 ? fatAp / uni : 0;
-  const lucMedio  = uni > 0 ? (fatAp - cmvVinc) / uni : 0;
+  const aps         = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV);
+  const fatAp       = aps.reduce((a, l) => a + l.valor, 0);
+  const uni         = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const ticket      = uni > 0 ? fatAp / uni : 0;
+  const apGrupoIds  = new Set(aps.filter(l => l.grupoId).map(l => l.grupoId));
+  const cmvAp       = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const lucMedio    = uni > 0 ? (fatAp - cmvAp) / uni : 0;
 
-  const accs      = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV);
-  const fatAcc    = accs.reduce((a, l) => a + l.valor, 0);
-  const uniAcc    = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const cmvAcc    = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.subcategoria === 'Acessórios').reduce((a, l) => a + l.valor, 0);
-  const lucAcc    = fatAcc - cmvAcc;
+  const accs        = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV);
+  const fatAcc      = accs.reduce((a, l) => a + l.valor, 0);
+  const uniAcc      = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const accGrupoIds = new Set(accs.filter(l => l.grupoId).map(l => l.grupoId));
+  const cmvAcc      = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && accGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const lucAcc      = fatAcc - cmvAcc;
   const lucMedioAcc = uniAcc > 0 ? lucAcc / uniAcc : 0;
 
   const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
