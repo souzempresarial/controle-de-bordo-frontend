@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { getCatsPorTipo, getSubcats } from '../services/constants';
+import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats } from '../services/constants';
 import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
 
-const formVazio = (l) => ({
+const formVazio = (l, cmv) => ({
   data: l.data || hoje(),
   tipo: l.tipo,
   valor: l.valor,
@@ -16,6 +16,10 @@ const formVazio = (l) => ({
   status: l.status || 'Confirmado',
   obs: l.obs || '',
   quantidade: l.quantidade || '',
+  valorRecebido: l.valorRecebido ?? '',
+  cmvValor: cmv ? cmv.valor : '',
+  cmvCat:   cmv ? (cmv.categoria || '') : '',
+  cmvSub:   cmv ? (cmv.subcategoria || '') : '',
 });
 
 export default function Lancamentos() {
@@ -27,13 +31,13 @@ export default function Lancamentos() {
   const [filtroSub, setFiltroSub]   = useState('');
   const [filtroMes, setFiltroMes]   = useState('');
 
-  const [editando, setEditando]     = useState(null);
-  const [form, setForm]             = useState(null);
-  const [salvando, setSalvando]     = useState(false);
-  const [erroForm, setErroForm]     = useState('');
-  const [confirmando, setConfirmando] = useState(null);
+  const [editando, setEditando]         = useState(null);
+  const [editandoCMV, setEditandoCMV]   = useState(null);
+  const [form, setForm]                 = useState(null);
+  const [salvando, setSalvando]         = useState(false);
+  const [erroForm, setErroForm]         = useState('');
+  const [confirmando, setConfirmando]   = useState(null);
 
-  // Listas para filtros
   const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].filter(Boolean).sort(), [lancamentos]);
   const todasSubs  = useMemo(() => {
     const base = filtroCat ? lancamentos.filter(l => l.categoria === filtroCat) : lancamentos;
@@ -67,24 +71,37 @@ export default function Lancamentos() {
     return { entradas, saidas, saldo: entradas - saidas };
   }, [filtrados]);
 
-  const cats    = form ? getCatsPorTipo(form.tipo) : {};
-  const subcats = form ? getSubcats(form.categoria) : [];
+  const cats     = form ? getCatsPorTipo(form.tipo) : {};
+  const subcats  = form ? getSubcats(form.categoria) : [];
+  const cmvCats  = CATEGORIAS_CMV;
+  const cmvSubs  = form ? getSubcats(form.cmvCat) : [];
+
+  const isEntrada = form?.tipo === 'Entrada';
+  const margemPreview = isEntrada && form?.valor && form?.cmvValor
+    ? {
+        lucro:  parseFloat(form.valor) - parseFloat(form.cmvValor),
+        margem: ((parseFloat(form.valor) - parseFloat(form.cmvValor)) / parseFloat(form.valor) * 100).toFixed(2),
+      }
+    : null;
 
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
       if (campo === 'categoria') novo.subcategoria = '';
+      if (campo === 'cmvCat')   novo.cmvSub = '';
       return novo;
     });
   }
 
   function abrirEditar(l) {
+    const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
     setEditando(l);
-    setForm(formVazio(l));
+    setEditandoCMV(cmv || null);
+    setForm(formVazio(l, cmv));
     setErroForm('');
   }
 
-  function fecharModal() { setEditando(null); setForm(null); }
+  function fecharModal() { setEditando(null); setEditandoCMV(null); setForm(null); }
 
   async function salvar() {
     if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
@@ -98,7 +115,26 @@ export default function Lancamentos() {
         status: form.status, obs: form.obs,
         quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
       });
-      setLancamentos(prev => prev.map(l => l.id === editando.id ? { ...l, ...atualizado } : l));
+
+      let atualizadoCMV = null;
+      if (editandoCMV && isEntrada && form.cmvValor) {
+        atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
+          data: form.data, tipo: 'Saída',
+          valor: parseFloat(form.cmvValor),
+          categoria: form.cmvCat || editandoCMV.categoria,
+          subcategoria: form.cmvSub || editandoCMV.subcategoria,
+          descricao: editandoCMV.descricao,
+          pagamento: form.pagamento,
+          status: form.status,
+          obs: editandoCMV.obs,
+        });
+      }
+
+      setLancamentos(prev => prev.map(l => {
+        if (l.id === editando.id) return { ...l, ...atualizado };
+        if (atualizadoCMV && l.id === editandoCMV.id) return { ...l, ...atualizadoCMV };
+        return l;
+      }));
       fecharModal();
     } catch (err) {
       setErroForm(err.message || 'Erro ao salvar');
@@ -232,7 +268,13 @@ export default function Lancamentos() {
                   <input type="date" value={form.data} onChange={e => setField('data', e.target.value)} />
                 </div>
                 <div className="field">
-                  <label>Valor (R$)</label>
+                  <label>Tipo</label>
+                  <select value={form.tipo} disabled>
+                    <option>Entrada</option><option>Saída</option><option>Transferência</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>{isEntrada ? 'Valor Venda (R$)' : 'Valor (R$)'}</label>
                   <input type="number" step="0.01" value={form.valor} onChange={e => setField('valor', e.target.value)} />
                 </div>
                 <div className="field">
@@ -241,7 +283,7 @@ export default function Lancamentos() {
                     <option value="">— selecione —</option>
                     {Object.entries(cats).map(([cat, subs]) =>
                       subs === null
-                        ? <option key={cat} disabled style={{ fontSize: 11 }}>{cat}</option>
+                        ? <option key={cat} disabled style={{ color: 'var(--text2)', fontSize: 11 }}>{cat}</option>
                         : <option key={cat}>{cat}</option>
                     )}
                   </select>
@@ -271,7 +313,7 @@ export default function Lancamentos() {
                     <option>Confirmado</option><option>Pendente</option>
                   </select>
                 </div>
-                {form.tipo === 'Entrada' && (
+                {isEntrada && (
                   <div className="field">
                     <label>Quantidade</label>
                     <input type="number" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
@@ -282,6 +324,41 @@ export default function Lancamentos() {
                   <input type="text" value={form.obs} onChange={e => setField('obs', e.target.value)} />
                 </div>
               </div>
+
+              {isEntrada && editandoCMV && (
+                <div className="cmv-section">
+                  <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Valor CMV (R$)</label>
+                      <input type="number" step="0.01" placeholder="0,00" value={form.cmvValor} onChange={e => setField('cmvValor', e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Tipo de Custo</label>
+                      <select value={form.cmvCat} onChange={e => setField('cmvCat', e.target.value)}>
+                        <option value="">— selecione —</option>
+                        {Object.keys(cmvCats).map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Subcategoria CMV</label>
+                      <select value={form.cmvSub} onChange={e => setField('cmvSub', e.target.value)}>
+                        <option value="">— selecione —</option>
+                        {cmvSubs.map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {margemPreview && (
+                    <div className="margem-preview">
+                      <span>Receita: <strong>{fmt(parseFloat(form.valor))}</strong></span>
+                      <span>CMV: <strong style={{ color: 'var(--saida)' }}>{fmt(parseFloat(form.cmvValor))}</strong></span>
+                      <span>Lucro: <strong style={{ color: margemPreview.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(margemPreview.lucro)}</strong></span>
+                      <span>Margem: <strong style={{ color: margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem}%</strong></span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {erroForm && <div className="form-erro">{erroForm}</div>}
             </div>
             <div className="modal-footer">
