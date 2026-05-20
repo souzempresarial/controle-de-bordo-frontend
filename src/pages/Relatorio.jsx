@@ -36,7 +36,7 @@ function calcMes(lancamentos, pfx) {
   const caixaLiq  = entCaixa - saiCaixa;
   const margemBruta = fat > 0 ? lucBruto / fat * 100 : 0;
 
-  return { fat, cmvTotal, cmvVinc, sga, naoOp, gastos, lucBruto, lucLiq,
+  return { fat, cmvTotal, sga, naoOp, gastos, lucBruto, lucLiq,
            uni, fatAp, ticket, lucMedio, uniAcc, fatAcc, cmvAcc, lucAcc, lucMedioAcc,
            entCaixa, saiCaixa, caixaLiq, margemBruta };
 }
