@@ -184,6 +184,15 @@ export default function Relatorio() {
       {mesIdx !== null && d && (
         <div className="rel-monthly">
 
+          {/* ── Header Resumo Executivo ── */}
+          <div className="rel-exec-header">
+            <div>
+              <div className="rel-exec-title">Resumo Executivo</div>
+              <div className="rel-exec-subtitle">MeuIphone</div>
+            </div>
+            <div className="rel-exec-period">{MESES_FULL[mesIdx]} — {ano}</div>
+          </div>
+
           {/* ===== 1. VENDAS ===== */}
           <div className="table-panel rel-pdf-section">
             <div className="rel-pdf-heading">Vendas<span className="rel-pdf-dot">.</span></div>
@@ -191,55 +200,74 @@ export default function Relatorio() {
 
             <div className="rel-vendas-layout">
               <div className="rel-vendas-stats">
-                <div className="rel-stat-group">
-                  <div className="rel-stat-line">Total de aparelhos vendidos: <strong>{d.uni > 0 ? d.uni : '—'}</strong></div>
-                  <div className="rel-stat-line">
-                    Lucro médio por aparelho:{' '}
-                    <strong style={{ color: d.uni > 0 ? (d.lucMedio >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' }}>
-                      {d.uni > 0 ? fmt(d.lucMedio) : '—'}
-                    </strong>
-                    {dLucMed !== null && (
-                      <span style={{ fontSize: 11, color: varCor(dLucMed), marginLeft: 6 }}>
-                        ({dLucMed >= 0 ? '+' : ''}{dLucMed.toFixed(1)}% vs {MESES[prevIdx]})
+
+                {/* Aparelhos */}
+                <div className="rel-kv-group">
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Total de aparelhos vendidos</span>
+                    <span className="rel-kv-val">{d.uni > 0 ? d.uni : '—'}</span>
+                  </div>
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Lucro médio por aparelho</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="rel-kv-val" style={{ color: d.uni > 0 ? (d.lucMedio >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' }}>
+                        {d.uni > 0 ? fmt(d.lucMedio) : '—'}
                       </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rel-stat-group">
-                  <div className="rel-stat-line">Total de acessórios vendidos: <strong>{d.uniAcc > 0 ? d.uniAcc : '—'}</strong></div>
-                  <div className="rel-stat-line">
-                    Lucro médio por acessório:{' '}
-                    <strong style={{ color: d.uniAcc > 0 ? (d.lucMedioAcc >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' }}>
-                      {d.uniAcc > 0 ? fmt(d.lucMedioAcc) : '—'}
-                    </strong>
-                  </div>
-                </div>
-
-                {(d.uni > 0 || d.uniAcc > 0) && (
-                  <div className="rel-stat-group">
-                    <div className="rel-stat-line">
-                      Lucro médio por aparelho e acessório:{' '}
-                      <strong style={{ color: 'var(--entrada)' }}>
-                        {fmt((d.lucMedio * d.uni + d.lucMedioAcc * d.uniAcc) / (d.uni + d.uniAcc || 1))}
-                      </strong>
+                      {dLucMed !== null && (
+                        <span className="rel-kv-delta" style={{ color: varCor(dLucMed), background: varCor(dLucMed) === 'var(--entrada)' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)' }}>
+                          {dLucMed >= 0 ? '+' : ''}{dLucMed.toFixed(1)}%
+                        </span>
+                      )}
                     </div>
-                    <div className="rel-stat-line">
-                      Lucro acumulado com acessório:{' '}
-                      <strong style={{ color: accLucAcum >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+                  </div>
+                </div>
+
+                {/* Acessórios */}
+                <div className="rel-kv-group">
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Total de acessórios vendidos</span>
+                    <span className="rel-kv-val">{d.uniAcc > 0 ? d.uniAcc : '—'}</span>
+                  </div>
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Lucro médio por acessório</span>
+                    <span className="rel-kv-val" style={{ color: d.uniAcc > 0 ? (d.lucMedioAcc >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)' }}>
+                      {d.uniAcc > 0 ? fmt(d.lucMedioAcc) : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Combinados */}
+                {(d.uni > 0 || d.uniAcc > 0) && (
+                  <div className="rel-kv-group">
+                    <div className="rel-kv-row">
+                      <span className="rel-kv-label">Lucro médio por aparelho e acessório</span>
+                      <span className="rel-kv-val" style={{ color: 'var(--entrada)' }}>
+                        {fmt((d.lucMedio * d.uni + d.lucMedioAcc * d.uniAcc) / (d.uni + d.uniAcc || 1))}
+                      </span>
+                    </div>
+                    <div className="rel-kv-row">
+                      <span className="rel-kv-label">Lucro acumulado com acessório</span>
+                      <span className="rel-kv-val" style={{ color: accLucAcum >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
                         {fmt(accLucAcum)}
-                      </strong>
+                      </span>
                     </div>
                   </div>
                 )}
 
-                <div className="rel-stat-group">
-                  <div className="rel-stat-line">Ticket médio de aparelhos:{' '}<strong>{d.uni > 0 ? fmt(d.ticket) : '—'}</strong></div>
-                  <div className="rel-stat-line">
-                    Lucro acumulado no ano:{' '}
-                    <strong style={{ color: lucAcumMes >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(lucAcumMes)}</strong>
+                {/* Totais */}
+                <div className="rel-kv-group">
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Ticket médio de aparelhos</span>
+                    <span className="rel-kv-val">{d.uni > 0 ? fmt(d.ticket) : '—'}</span>
+                  </div>
+                  <div className="rel-kv-row">
+                    <span className="rel-kv-label">Lucro acumulado no ano</span>
+                    <span className="rel-kv-val" style={{ color: lucAcumMes >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+                      {fmt(lucAcumMes)}
+                    </span>
                   </div>
                 </div>
+
               </div>
 
               <div className="rel-chart-container">
