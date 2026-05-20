@@ -7,222 +7,288 @@
   flex-wrap: wrap;
 }
 
-.mes-atual td { background: #22c55e08 !important; }
+/* ── Wrapper mensal ── */
+.rel-monthly {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
-.total-row td {
-  border-top: 2px solid var(--border) !important;
+/* ── Seção estilo PDF ── */
+.rel-pdf-section {
+  overflow: hidden;
+}
+
+.rel-pdf-heading {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  padding: 26px 28px 0;
+  color: var(--text);
+}
+
+.rel-pdf-dot {
+  color: var(--accent);
+}
+
+.rel-pdf-subheading {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2.5px;
+  padding: 8px 28px 22px;
+}
+
+/* ── Vendas ── */
+.rel-vendas-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 28px;
+  padding: 0 24px 28px;
+}
+
+.rel-vendas-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rel-stat-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rel-stat-line {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+
+.rel-stat-line strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.rel-chart-container { /* just a wrapper */ }
+
+.rel-chart-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.rel-chart-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+.rel-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+/* ── Receita ── */
+.rel-receita-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 28px;
+  padding: 0 24px 28px;
+  align-items: start;
+}
+
+.rel-receita-left { /* breakdown list */ }
+
+.rel-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rel-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.rel-breakdown-label {
+  color: var(--text2);
+}
+
+.rel-breakdown-pct {
+  font-weight: 700;
+  min-width: 58px;
+  text-align: right;
+}
+
+.rel-receita-center {
+  color: var(--text);
+}
+
+.rel-receita-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Fluxo de Caixa ── */
+.rel-caixa-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 32px;
+  padding: 0 24px 28px;
+  align-items: center;
+}
+
+.rel-caixa-left { display: flex; flex-direction: column; gap: 14px; }
+
+.rel-caixa-main {
+  border: 2px solid rgba(34, 197, 94, .4);
+  border-radius: 14px;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   background: var(--surface2);
 }
 
-/* Gráficos anuais — grid 2x2 */
-.rel-graficos-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-@media (max-width: 900px) {
-  .rel-graficos-grid { grid-template-columns: 1fr; }
+.rel-caixa-main-val {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
 }
 
-/* Sparklines */
-.spark-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-@media (max-width: 900px) {
-  .spark-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 540px) {
-  .spark-grid { grid-template-columns: 1fr; }
-}
-
-.spark-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.spark-chart {
-  padding: 12px 12px 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.spark-info {
-  padding: 10px 14px 12px;
-}
-
-.spark-label {
+.rel-caixa-main-label {
   font-size: 10px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 4px;
+  letter-spacing: 1.2px;
 }
 
-.spark-valor {
+.rel-caixa-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rel-caixa-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: var(--surface2);
+}
+
+.rel-caixa-card-label {
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.rel-caixa-card-val {
   font-size: 20px;
   font-weight: 800;
 }
 
-.spark-sub {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 3px;
+.rel-caixa-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Resumo Executivo */
-.resumo-exec .resumo-body {
+/* ── Lucro ── */
+.rel-lucro-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 22px;
+}
+
+.rel-lucro-prev-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-}
-@media (max-width: 900px) {
-  .resumo-exec .resumo-body { grid-template-columns: 1fr; }
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  opacity: 0.45;
 }
 
-.resumo-bloco {
-  padding: 20px 24px;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+.rel-lucro-prev-col {
+  text-align: center;
 }
-.resumo-bloco:nth-child(2n) { border-right: none; }
 
-.resumo-bloco-title {
-  font-size: 11px;
+.rel-lucro-prev-label {
+  font-size: 10px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 14px;
-}
-
-/* Health score */
-.health-score-bar-bg {
-  height: 10px;
-  background: var(--border);
-  border-radius: 5px;
-  overflow: hidden;
-}
-.health-score-bar-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width .5s ease;
-}
-
-.health-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.health-saudável  { background: #22c55e22; color: #22c55e; }
-.health-atenção   { background: #f59e0b22; color: #f59e0b; }
-.health-crítico   { background: #ef444422; color: #ef4444; }
-
-/* KPI strip abaixo do gráfico */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-@media (max-width: 1100px) {
-  .kpi-strip { grid-template-columns: repeat(4, 1fr); }
-}
-@media (max-width: 750px) {
-  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
-}
-
-.kpi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 18px 14px;
-  transition: box-shadow .15s;
-}
-.kpi-card:hover {
-  box-shadow: 0 4px 16px #0002;
-}
-
-.kpi-card-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .5px;
+  letter-spacing: 1px;
   margin-bottom: 6px;
 }
 
-.kpi-card-value {
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-.kpi-card-footer {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-/* Big number cards — visão mensal */
-.rel-big-nums {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-@media (max-width: 900px) {
-  .rel-big-nums { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 540px) {
-  .rel-big-nums { grid-template-columns: 1fr; }
-}
-
-.rel-big-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px 14px;
-}
-
-.rel-big-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 8px;
-}
-
-.rel-big-val {
+.rel-lucro-prev-val {
   font-size: 22px;
-  font-weight: 800;
-  line-height: 1.1;
+  font-weight: 700;
 }
 
-.rel-big-sub {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 5px;
+.rel-lucro-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.rel-section-title {
+.rel-lucro-card {
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rel-lucro-card-label {
   font-size: 10px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 12px;
+  letter-spacing: 1px;
 }
 
-/* Matrix table (planilha style) */
+.rel-lucro-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.rel-lucro-card-val {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .rel-vendas-layout     { grid-template-columns: 1fr; }
+  .rel-receita-layout    { grid-template-columns: 1fr; }
+  .rel-caixa-layout      { grid-template-columns: 1fr; }
+  .rel-lucro-prev-row    { grid-template-columns: 1fr; gap: 8px; }
+  .rel-lucro-cards       { grid-template-columns: 1fr; }
+  .rel-pdf-heading       { font-size: 28px; }
+}
+
+/* ── Matrix table (mantido para uso futuro) ── */
 .rel-matrix-table {
   width: 100%;
   border-collapse: collapse;
@@ -242,9 +308,6 @@
 .rel-matrix-table thead th.col-atual {
   color: var(--accent);
   border-bottom: 2px solid var(--accent);
-}
-.rel-matrix-table thead th.col-total {
-  border-left: 1px solid var(--border);
 }
 .metric-name-cell {
   padding: 7px 14px;
@@ -272,13 +335,3 @@
 }
 .metric-val:hover { background: var(--surface2); }
 .metric-val.col-atual { background: #3b82f610; }
-.metric-val.col-sel   { background: #3b82f620; outline: 1px solid #3b82f644; }
-.metric-total {
-  padding: 7px 14px;
-  text-align: right;
-  font-weight: 700;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border);
-  border-left: 1px solid var(--border);
-  background: var(--surface2);
-}
