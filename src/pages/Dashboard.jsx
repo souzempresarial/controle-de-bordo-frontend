@@ -83,14 +83,18 @@ export default function Dashboard() {
   const cmvPct      = fat > 0 ? (cmvMes / fat * 100) : null;
   const roi         = cmvMes > 0 ? (lucroBruto / cmvMes * 100) : null;
 
-  // Para lucro por aparelho, usa só CMV vinculado a vendas (com grupo_id), excluindo brindes avulsos
-  const cmvVinculado     = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId).reduce((a, l) => a + l.valor, 0);
-  const cmvVinculadoPrev = lprev.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId).reduce((a, l) => a + l.valor, 0);
+  const fatAp         = aparelhos.reduce((a, l) => a + l.valor, 0);
+  const apGrupoIds    = new Set(aparelhos.filter(l => l.grupoId).map(l => l.grupoId));
+  const cmvAp         = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
 
-  const aparelhosPrev = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Aparelhos');
-  const unidadesPrev  = aparelhosPrev.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const lucPorAp      = unidades > 0 ? (fat - cmvVinculado) / unidades : 0;
-  const lucPorApPrev  = unidadesPrev > 0 ? (fatPrev - cmvVinculadoPrev) / unidadesPrev : 0;
+  const aparelhosPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Aparelhos');
+  const unidadesPrev   = aparelhosPrev.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const fatApPrev      = aparelhosPrev.reduce((a, l) => a + l.valor, 0);
+  const apGrupoIdsPrev = new Set(aparelhosPrev.filter(l => l.grupoId).map(l => l.grupoId));
+  const cmvApPrev      = lprev.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIdsPrev.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+
+  const lucPorAp      = unidades > 0 ? (fatAp - cmvAp) / unidades : 0;
+  const lucPorApPrev  = unidadesPrev > 0 ? (fatApPrev - cmvApPrev) / unidadesPrev : 0;
   const lucPorApDelta = lucPorApPrev > 0 ? ((lucPorAp - lucPorApPrev) / lucPorApPrev * 100) : null;
 
   const corMar = margemBruta === null ? 'var(--text2)' : margemBruta >= 30 ? 'var(--entrada)' : margemBruta >= 15 ? 'var(--warn)' : 'var(--saida)';
