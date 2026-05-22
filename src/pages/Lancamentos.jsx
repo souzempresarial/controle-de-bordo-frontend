@@ -38,6 +38,19 @@ export default function Lancamentos() {
   const [erroForm, setErroForm]         = useState('');
   const [confirmando, setConfirmando]   = useState(null);
 
+  const [sortCol, setSortCol] = useState('data');
+  const [sortDir, setSortDir] = useState('desc');
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  }
+
+  function sortIcon(col) {
+    if (sortCol !== col) return ' ↕';
+    return sortDir === 'asc' ? ' ↑' : ' ↓';
+  }
+
   const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].filter(Boolean).sort(), [lancamentos]);
   const todasSubs  = useMemo(() => {
     const base = filtroCat ? lancamentos.filter(l => l.categoria === filtroCat) : lancamentos;
@@ -64,6 +77,18 @@ export default function Lancamentos() {
     }
     return lista;
   }, [semCMV, filtroTipo, filtroCat, filtroSub, filtroMes, busca]);
+
+  const filtradosOrdenados = useMemo(() => {
+    return [...filtrados].sort((a, b) => {
+      let va = a[sortCol] ?? '';
+      let vb = b[sortCol] ?? '';
+      if (sortCol === 'valor') { va = parseFloat(va); vb = parseFloat(vb); }
+      else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtrados, sortCol, sortDir]);
 
   const totaisFiltro = useMemo(() => {
     const entradas = filtrados.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valor), 0);
@@ -207,13 +232,20 @@ export default function Lancamentos() {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th><th>Data</th><th>Tipo</th><th>Categoria</th>
-                  <th>Subcategoria</th><th>Descrição</th><th>Pagamento</th>
-                  <th>Status</th><th style={{ textAlign: 'right' }}>Valor</th><th></th>
+                  <th>ID</th>
+                  {[['data','Data'],['tipo','Tipo'],['categoria','Categoria'],['subcategoria','Subcategoria'],['descricao','Descrição'],['pagamento','Pagamento'],['status','Status']].map(([col, label]) => (
+                    <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                      {label}{sortIcon(col)}
+                    </th>
+                  ))}
+                  <th style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => toggleSort('valor')}>
+                    Valor{sortIcon('valor')}
+                  </th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtrados.map(l => {
+                {filtradosOrdenados.map(l => {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
                   return (
                     <tr key={l.id}>
