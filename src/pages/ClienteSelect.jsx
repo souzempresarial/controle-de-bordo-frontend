@@ -175,7 +175,7 @@ export default function ClienteSelect({ onLogout }) {
       <div className="clientes-box">
         <div className="clientes-header">
           <div className="clientes-logo">📊</div>
-          <h1>Controle de Bordo 2.0</h1>
+          <h1>Controle de Bordo</h1>
           <p>Gerencie clientes e usuários do sistema</p>
         </div>
 

@@ -69,7 +69,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <div className="login-footer">
-          SOUZ Empresarial · Controle de Bordo 2.0
+          SOUZ Empresarial · Controle de Bordo
         </div>
       </div>
     </div>
