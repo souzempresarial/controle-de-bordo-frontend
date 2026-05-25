@@ -90,7 +90,7 @@ function fmtDateBR(iso) {
 }
 
 export default function Relatorio() {
-  const { lancamentos } = useApp();
+  const { lancamentos, clienteAtivo } = useApp();
 
   const [dataInicio, setDataInicio] = useState(`${hoje().slice(0, 7)}-01`);
   const [dataFim, setDataFim]       = useState(hoje());
@@ -157,7 +157,7 @@ export default function Relatorio() {
           <div className="rel-exec-header">
             <div>
               <div className="rel-exec-title">Resumo Executivo</div>
-              <div className="rel-exec-subtitle">MeuIphone</div>
+              <div className="rel-exec-subtitle">{clienteAtivo?.nome}</div>
             </div>
             <div className="rel-exec-period">{labelPeriodo}</div>
           </div>
