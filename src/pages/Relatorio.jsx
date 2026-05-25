@@ -92,8 +92,15 @@ function fmtDateBR(iso) {
 export default function Relatorio() {
   const { lancamentos, clienteAtivo } = useApp();
 
-  const [dataInicio, setDataInicio] = useState(`${hoje().slice(0, 7)}-01`);
-  const [dataFim, setDataFim]       = useState(hoje());
+  const [dataInicio, setDataInicio] = useState(
+    () => localStorage.getItem('rel_dataInicio') || `${hoje().slice(0, 7)}-01`
+  );
+  const [dataFim, setDataFim] = useState(
+    () => localStorage.getItem('rel_dataFim') || hoje()
+  );
+
+  function atualizarInicio(v) { setDataInicio(v); localStorage.setItem('rel_dataInicio', v); }
+  function atualizarFim(v)    { setDataFim(v);    localStorage.setItem('rel_dataFim', v); }
 
   const anoGrafico = dataFim.slice(0, 4);
 
@@ -145,9 +152,9 @@ export default function Relatorio() {
       {/* ── Filtros ── */}
       <div className="rel-filtros">
         <span className="period-label">Período</span>
-        <input type="date" className="period-select" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+        <input type="date" className="period-select" value={dataInicio} onChange={e => atualizarInicio(e.target.value)} />
         <span style={{ color: 'var(--text2)', fontSize: 13 }}>até</span>
-        <input type="date" className="period-select" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+        <input type="date" className="period-select" value={dataFim} onChange={e => atualizarFim(e.target.value)} />
       </div>
 
       {d.fat > 0 && (
