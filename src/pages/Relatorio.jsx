@@ -242,7 +242,7 @@ export default function Relatorio() {
                     <div className="rel-kv-row">
                       <span className="rel-kv-label">Lucro médio por aparelho e acessório</span>
                       <span className="rel-kv-val" style={{ color: 'var(--entrada)' }}>
-                        {fmt((d.lucMedio * d.uni + d.lucMedioAcc * d.uniAcc) / (d.uni + d.uniAcc || 1))}
+                        {d.uni > 0 ? fmt((d.lucMedio * d.uni + d.lucAcc) / d.uni) : '—'}
                       </span>
                     </div>
                     <div className="rel-kv-row">
