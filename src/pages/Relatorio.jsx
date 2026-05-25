@@ -102,6 +102,8 @@ export default function Relatorio() {
   function atualizarInicio(v) { setDataInicio(v); localStorage.setItem('rel_dataInicio', v); }
   function atualizarFim(v)    { setDataFim(v);    localStorage.setItem('rel_dataFim', v); }
 
+  const [verLancamentos, setVerLancamentos] = useState(false);
+
   const anoGrafico = dataFim.slice(0, 4);
 
   const mv = useMemo(() =>
@@ -155,7 +157,60 @@ export default function Relatorio() {
         <input type="date" className="period-select" value={dataInicio} onChange={e => atualizarInicio(e.target.value)} />
         <span style={{ color: 'var(--text2)', fontSize: 13 }}>até</span>
         <input type="date" className="period-select" value={dataFim} onChange={e => atualizarFim(e.target.value)} />
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => setVerLancamentos(v => !v)}
+        >
+          {verLancamentos ? 'Ocultar lançamentos ▲' : 'Ver lançamentos ▼'}
+        </button>
       </div>
+
+      {verLancamentos && (
+        <div className="table-panel" style={{ marginBottom: 8 }}>
+          <div style={{ padding: '14px 20px 6px', fontWeight: 700, fontSize: 13, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+            Lançamentos do período — {labelPeriodo}
+          </div>
+          {filtrados.filter(l => !(l.isCMV && l.grupoId)).length === 0 ? (
+            <div className="empty-state" style={{ padding: '20px 0' }}>Nenhum lançamento neste período</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Categoria</th>
+                    <th>Descrição</th>
+                    <th>Pagamento</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtrados
+                    .filter(l => !(l.isCMV && l.grupoId))
+                    .sort((a, b) => a.data < b.data ? 1 : -1)
+                    .map(l => (
+                      <tr key={l.id}>
+                        <td style={{ whiteSpace: 'nowrap' }}>{l.data.split('-').reverse().join('/')}</td>
+                        <td><span className={`tipo-badge tipo-${l.tipo}`}>{l.tipo}</span></td>
+                        <td>{l.categoria}</td>
+                        <td style={{ color: 'var(--text2)' }}>{l.descricao || '—'}</td>
+                        <td style={{ color: 'var(--text2)' }}>{l.pagamento || '—'}</td>
+                        <td style={{ fontSize: 11, color: l.status === 'Pendente' ? 'var(--warn)' : 'var(--text2)' }}>{l.status}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)' }}>
+                          {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '-' : ''}{fmt(l.valor)}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {d.fat > 0 && (
         <div className="rel-monthly">
