@@ -141,25 +141,58 @@ export default function Lancamentos() {
         quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
       });
 
+      const vrRaw         = parseFloat(form.valorRecebido);
+      const valorBruto    = parseFloat(form.valor);
+      const isCartao      = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
+      const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
+
+      let grupoId = editando.grupoId || null;
       let atualizadoCMV = null;
-      if (editandoCMV && isEntrada && form.cmvValor) {
-        atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
-          data: form.data, tipo: 'Saída',
-          valor: parseFloat(form.cmvValor),
-          categoria: form.cmvCat || editandoCMV.categoria,
-          subcategoria: form.cmvSub || editandoCMV.subcategoria,
-          descricao: editandoCMV.descricao,
-          pagamento: form.pagamento,
-          status: form.status,
-          obs: editandoCMV.obs,
-        });
+      let novoCMV = null;
+
+      if (isEntrada && form.cmvValor && parseFloat(form.cmvValor) > 0) {
+        if (editandoCMV) {
+          atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
+            data: form.data, tipo: 'Saída',
+            valor: parseFloat(form.cmvValor),
+            categoria: form.cmvCat || editandoCMV.categoria,
+            subcategoria: form.cmvSub || editandoCMV.subcategoria,
+            descricao: editandoCMV.descricao,
+            pagamento: form.pagamento, status: form.status,
+            obs: editandoCMV.obs,
+          });
+        } else {
+          grupoId = grupoId || ('g' + Date.now());
+          novoCMV = await API.criarLancamento(clienteAtivo.id, {
+            tipo: 'Saída', valor: parseFloat(form.cmvValor), data: form.data,
+            categoria: form.cmvCat, subcategoria: form.cmvSub,
+            descricao: 'CMV — ' + form.descricao,
+            pagamento: form.pagamento, status: form.status,
+            obs: 'CMV vinculado ao #' + String(editando.id).padStart(3, '0'),
+            grupo_id: grupoId, is_cmv: true,
+          });
+        }
       }
 
-      setLancamentos(prev => prev.map(l => {
-        if (l.id === editando.id) return { ...l, ...atualizado };
-        if (atualizadoCMV && l.id === editandoCMV.id) return { ...l, ...atualizadoCMV };
-        return l;
-      }));
+      await API.editarLancamento(editando.id, {
+        data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
+        categoria: form.categoria, subcategoria: form.subcategoria,
+        descricao: form.descricao, pagamento: form.pagamento,
+        status: form.status, obs: form.obs,
+        quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
+        valor_recebido: valorRecebido,
+        grupo_id: grupoId,
+      });
+
+      setLancamentos(prev => {
+        let lista = prev.map(l => {
+          if (l.id === editando.id) return { ...l, ...atualizado, grupoId, valorRecebido };
+          if (atualizadoCMV && l.id === editandoCMV.id) return { ...l, ...atualizadoCMV };
+          return l;
+        });
+        if (novoCMV) lista = [novoCMV, ...lista];
+        return lista;
+      });
       fecharModal();
     } catch (err) {
       setErroForm(err.message || 'Erro ao salvar');
@@ -307,8 +340,14 @@ export default function Lancamentos() {
                 </div>
                 <div className="field">
                   <label>{isEntrada ? 'Valor Venda (R$)' : 'Valor (R$)'}</label>
-                  <input type="number" step="0.01" value={form.valor} onChange={e => setField('valor', e.target.value)} />
+                  <input type="number" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setField('valor', e.target.value)} />
                 </div>
+                {isEntrada && (
+                  <div className="field">
+                    <label>Valor Recebido (R$)</label>
+                    <input type="number" step="0.01" placeholder="deixe vazio se total" value={form.valorRecebido} onChange={e => setField('valorRecebido', e.target.value)} />
+                  </div>
+                )}
                 <div className="field">
                   <label>Categoria</label>
                   <select value={form.categoria} onChange={e => setField('categoria', e.target.value)}>
@@ -357,7 +396,7 @@ export default function Lancamentos() {
                 </div>
               </div>
 
-              {isEntrada && editandoCMV && (
+              {isEntrada && (
                 <div className="cmv-section">
                   <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
                   <div className="form-grid">
