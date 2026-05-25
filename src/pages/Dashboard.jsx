@@ -40,6 +40,7 @@ export default function Dashboard() {
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId]   = useState(null);
+  const [editandoCMV, setEditandoCMV] = useState(null);
   const [form, setForm]               = useState(formVazio);
   const [salvando, setSalvando]       = useState(false);
   const [erroForm, setErroForm]       = useState('');
@@ -145,7 +146,9 @@ export default function Dashboard() {
   }
 
   function abrirEditar(l) {
+    const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
     setEditandoId(l.id);
+    setEditandoCMV(cmv || null);
     setForm({
       data: l.data || hoje(),
       tipo: l.tipo,
@@ -158,13 +161,15 @@ export default function Dashboard() {
       obs: l.obs || '',
       quantidade: l.quantidade || '',
       valorRecebido: l.valorRecebido ?? '',
-      cmvValor: '', cmvCat: '', cmvSub: '',
+      cmvValor: cmv ? cmv.valor : '',
+      cmvCat:   cmv ? (cmv.categoria || '') : '',
+      cmvSub:   cmv ? (cmv.subcategoria || '') : '',
     });
     setErroForm('');
     setModalAberto(true);
   }
 
-  function fecharModal() { setModalAberto(false); setEditandoId(null); }
+  function fecharModal() { setModalAberto(false); setEditandoId(null); setEditandoCMV(null); }
 
   async function salvar() {
     if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
@@ -174,14 +179,57 @@ export default function Dashboard() {
     setErroForm('');
     try {
       if (editandoId) {
+        const editando     = lancamentos.find(l => l.id === editandoId);
+        const vrRaw        = parseFloat(form.valorRecebido);
+        const valorBruto   = parseFloat(form.valor);
+        const isCartao     = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
+        const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
+        const isEnt        = form.tipo === 'Entrada';
+
+        let grupoId    = editando?.grupoId || null;
+        let atualizadoCMV = null;
+        let novoCMV    = null;
+
+        if (isEnt && form.cmvValor && parseFloat(form.cmvValor) > 0) {
+          if (form.cmvCat === '' && !editandoCMV) { setErroForm('Selecione o tipo de custo do CMV'); setSalvando(false); return; }
+          if (editandoCMV) {
+            atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
+              data: form.data, tipo: 'Saída', valor: parseFloat(form.cmvValor),
+              categoria: form.cmvCat || editandoCMV.categoria,
+              subcategoria: form.cmvSub || editandoCMV.subcategoria,
+              descricao: editandoCMV.descricao, pagamento: form.pagamento,
+              status: form.status, obs: editandoCMV.obs,
+            });
+          } else {
+            grupoId = grupoId || ('g' + Date.now());
+            novoCMV = await API.criarLancamento(clienteAtivo.id, {
+              tipo: 'Saída', valor: parseFloat(form.cmvValor), data: form.data,
+              categoria: form.cmvCat, subcategoria: form.cmvSub,
+              descricao: 'CMV — ' + form.descricao, pagamento: form.pagamento,
+              status: form.status, obs: 'CMV vinculado ao #' + String(editandoId).padStart(3, '0'),
+              grupo_id: grupoId, is_cmv: true,
+            });
+          }
+        }
+
         const atualizado = await API.editarLancamento(editandoId, {
-          data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
+          data: form.data, tipo: form.tipo, valor: valorBruto,
           categoria: form.categoria, subcategoria: form.subcategoria,
           descricao: form.descricao, pagamento: form.pagamento,
           status: form.status, obs: form.obs,
-          quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
+          quantidade: isEnt ? (parseInt(form.quantidade) || null) : null,
+          valor_recebido: valorRecebido, grupo_id: grupoId,
         });
-        setLancamentos(prev => prev.map(l => l.id === editandoId ? { ...l, ...atualizado } : l));
+
+        setLancamentos(prev => {
+          let lista = prev.map(l => {
+            if (l.id === editandoId) return { ...l, ...atualizado, grupoId, valorRecebido };
+            if (atualizadoCMV && l.id === editandoCMV.id) return { ...l, ...atualizadoCMV };
+            return l;
+          });
+          if (novoCMV) lista = [novoCMV, ...lista];
+          return lista;
+        });
       } else {
         const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
         if (cmvValor > 0 && !form.cmvCat) { setErroForm('Selecione o tipo de custo do CMV'); setSalvando(false); return; }
@@ -427,7 +475,7 @@ export default function Dashboard() {
                   <label>{isEntrada ? 'Valor Venda (R$)' : 'Valor (R$)'}</label>
                   <input type="number" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setField('valor', e.target.value)} />
                 </div>
-                {isEntrada && !editandoId && (
+                {isEntrada && (
                   <div className="field">
                     <label>Valor Recebido (R$)</label>
                     <input type="number" step="0.01" placeholder="deixe vazio se total" value={form.valorRecebido} onChange={e => setField('valorRecebido', e.target.value)} />
@@ -481,7 +529,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {isEntrada && !editandoId && (
+              {isEntrada && (
                 <div className="cmv-section">
                   <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
                   <div className="form-grid">
