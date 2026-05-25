@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CMVCATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV } from '../services/constants';
 import { fmt, fmtPct, fmtData, hoje } from '../services/utils';
 import './Dashboard.css';
 
@@ -69,13 +69,17 @@ export default function Dashboard() {
   const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const cmvPrev  = lprev.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+  const deducoes     = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const recLiq       = fat - deducoes;
+  const deducoesPrev = lprev.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const recLiqPrev   = fatPrev - deducoesPrev;
   const gastos     = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
   const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
 
-  const margBruta     = fat > 0     ? ((fat - cmvMes) / fat * 100) : 0;
-  const margBrutaPrev = fatPrev > 0 ? ((fatPrev - cmvPrev) / fatPrev * 100) : 0;
+  const margBruta     = fat > 0     ? ((recLiq - cmvMes) / fat * 100) : 0;
+  const margBrutaPrev = fatPrev > 0 ? ((recLiqPrev - cmvPrev) / fatPrev * 100) : 0;
 
-  const lucroBruto  = fat - cmvMes;
+  const lucroBruto  = recLiq - cmvMes;
   const margemBruta = fat > 0 ? (lucroBruto / fat * 100) : null;
   const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV);
   const aparelhos   = vendas.filter(l => l.categoria === 'Aparelhos');

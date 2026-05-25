@@ -40,10 +40,11 @@ export const CATEGORIAS_TRANSF = {
 };
 
 // Constantes de classificação financeira — usadas em Dashboard, Relatorio, Financeiro e Layout
-export const CMVCATS    = ['Custos Variáveis Diretos'];
-export const SGA_CATS   = ['Deduções das Vendas','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
-export const NAOOP_CATS = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
-export const GASTOS_CATS = [...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
+export const CMVCATS       = ['Custos Variáveis Diretos'];
+export const DEDUCOES_CATS = ['Deduções das Vendas'];
+export const SGA_CATS      = ['Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
+export const NAOOP_CATS    = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
+export const GASTOS_CATS   = [...DEDUCOES_CATS, ...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
 
 export function getCatsPorTipo(tipo) {
   if (tipo === 'Entrada') return CATEGORIAS_ENTRADA;
