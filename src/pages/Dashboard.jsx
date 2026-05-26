@@ -15,7 +15,7 @@ function mesAnterior(mes) {
 function calcularTotais(lista) {
   let entradas = 0, saidas = 0;
   lista
-    .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'))
+    .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente')
     .forEach(l => {
       if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? l.valor;
       else if (l.tipo === 'Saída') saidas += l.valor;
@@ -65,8 +65,8 @@ export default function Dashboard() {
 
   const tm       = calcularTotais(lm);
   const tp       = calcularTotais(lprev);
-  const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
+  const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const cmvPrev  = lprev.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const deducoes     = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   const lucroBruto  = recLiq - cmvMes;
   const margemBruta = fat > 0 ? (lucroBruto / fat * 100) : null;
-  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV);
+  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente');
   const aparelhos   = vendas.filter(l => l.categoria === 'Aparelhos');
   const unidades    = aparelhos.reduce((a, l) => a + (l.quantidade || 1), 0);
   const ticket      = vendas.length > 0 ? fat / vendas.reduce((a, l) => a + (l.quantidade || 1), 0) : null;
@@ -93,7 +93,7 @@ export default function Dashboard() {
   const cmvAp         = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
   const dedAp         = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
 
-  const aparelhosPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Aparelhos');
+  const aparelhosPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente' && l.categoria === 'Aparelhos');
   const unidadesPrev   = aparelhosPrev.reduce((a, l) => a + (l.quantidade || 1), 0);
   const fatApPrev      = aparelhosPrev.reduce((a, l) => a + l.valor, 0);
   const apGrupoIdsPrev = new Set(aparelhosPrev.filter(l => l.grupoId).map(l => l.grupoId));

@@ -7,7 +7,7 @@ import './Relatorio.css';
 
 function calcPeriodo(lancamentos, inicio, fim) {
   const lm        = lancamentos.filter(l => l.data >= inicio && l.data <= fim);
-  const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
+  const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const recLiq    = fat - deducoes;
   const cmvTotal  = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
@@ -17,7 +17,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lucBruto  = recLiq - cmvTotal;
   const lucLiq    = recLiq - cmvTotal - sga - naoOp;
 
-  const aps         = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV);
+  const aps         = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV && l.status !== 'Pendente');
   const fatAp       = aps.reduce((a, l) => a + l.valor, 0);
   const uni         = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
   const ticket      = uni > 0 ? fatAp / uni : 0;
@@ -26,7 +26,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const dedAp       = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
   const lucMedio    = uni > 0 ? (fatAp - cmvAp - dedAp) / uni : 0;
 
-  const accs        = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV);
+  const accs        = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV && l.status !== 'Pendente');
   const fatAcc      = accs.reduce((a, l) => a + l.valor, 0);
   const uniAcc      = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
   const accGrupoIds = new Set(accs.filter(l => l.grupoId).map(l => l.grupoId));
@@ -35,7 +35,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lucAcc      = fatAcc - cmvAcc - dedAcc;
   const lucMedioAcc = uniAcc > 0 ? lucAcc / uniAcc : 0;
 
-  const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria)).reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
+  const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
   const saiCaixa  = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const caixaLiq  = entCaixa - saiCaixa;
   const margemBruta = fat > 0 ? lucBruto / fat * 100 : 0;
