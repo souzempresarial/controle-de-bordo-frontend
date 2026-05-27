@@ -1,4 +1,4 @@
-const API_URL = 'https://controle-de-bordo-backend.onrender.com';
+const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
 
 function normalizarLancamento(l) {
   return {
