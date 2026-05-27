@@ -284,6 +284,15 @@ export default function Dashboard() {
         }
 
         setLancamentos(prev => [...novosLans, ...prev]);
+        setForm(f => ({
+          ...formVazio(),
+          data: f.data,
+          tipo: f.tipo,
+          pagamento: f.pagamento,
+          status: f.status,
+        }));
+        setErroForm('');
+        return;
       }
       fecharModal();
     } catch (err) {
