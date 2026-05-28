@@ -30,22 +30,22 @@
   user-select: none;
 }
 .brand-souz {
-  font-size: 30px;
+  font-size: 42px;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 }
 .brand-divider {
-  font-size: 24px;
+  font-size: 34px;
   font-weight: 300;
   color: #22c55e;
   opacity: 0.8;
 }
 .brand-finance {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 400;
   color: #ffffff;
-  letter-spacing: 5px;
+  letter-spacing: 6px;
   opacity: 0.85;
 }
 
