@@ -23,9 +23,8 @@
 }
 
 .login-logo-img {
-  width: 200px;
+  width: 220px;
   margin-bottom: 16px;
-  filter: brightness(0) invert(1);
 }
 
 .login-header p {

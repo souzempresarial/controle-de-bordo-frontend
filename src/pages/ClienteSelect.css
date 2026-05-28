@@ -20,7 +20,6 @@
 .clientes-logo-img {
   width: 220px;
   margin-bottom: 20px;
-  filter: brightness(0) invert(1);
 }
 
 .clientes-header h1 {
