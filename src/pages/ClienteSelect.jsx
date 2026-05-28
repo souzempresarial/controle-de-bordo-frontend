@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { useTheme } from '../hooks/useTheme';
 import './ClienteSelect.css';
 
 const CORES = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
@@ -46,6 +47,7 @@ export default function ClienteSelect({ onLogout }) {
 
   const { entrarCliente } = useApp();
   const navigate          = useNavigate();
+  const { tema, toggleTema } = useTheme();
 
   useEffect(() => { carregarClientes(); }, []);
 
@@ -172,6 +174,9 @@ export default function ClienteSelect({ onLogout }) {
 
   return (
     <div className="clientes-screen">
+      <button className="clientes-tema-btn" onClick={toggleTema} title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
+        {tema === 'dark' ? '☀️' : '🌙'}
+      </button>
       <div className="clientes-box">
         <div className="clientes-header">
           <img src="/logo.png" alt="SOUZ Finance" className="clientes-logo" />

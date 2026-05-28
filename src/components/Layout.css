@@ -8,9 +8,9 @@
 }
 
 [data-theme="light"] {
-  --bg: #f0f5f0; --surface: #ffffff; --surface2: #f5f9f5; --border: #d4e8d4;
+  --bg: #f0f5f0; --surface: #ffffff; --surface2: #eef4ee; --border: #c8dfc8;
   --accent: #16a34a; --accent-hover: #15803d; --danger: #dc2626; --warn: #d97706;
-  --text: #1a2e1a; --text2: #4a6e5a;
+  --text: #0d1f0d; --text2: #2d4a35;
   --entrada: #16a34a; --saida: #dc2626; --transferencia: #d97706;
   --topbar-bg: linear-gradient(90deg, #1a3d1a 0%, #2a5a2a 100%);
 }
@@ -23,6 +23,11 @@ body {
   font-size: 14px;
   min-height: 100vh;
 }
+
+[data-theme="light"] .btn-topbar { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.25); }
+[data-theme="light"] .btn-topbar:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+[data-theme="light"] .topbar-usuario { color: rgba(255,255,255,0.7); }
+[data-theme="light"] .cliente-chip { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); }
 
 /* ── APP LAYOUT ── */
 .app {
@@ -48,32 +53,32 @@ body {
 .brand-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: 'Montserrat', sans-serif;
   user-select: none;
 }
 .brand-souz {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 .brand-divider {
-  font-size: 18px;
-  font-weight: 300;
-  color: #22c55e;
-  opacity: 0.8;
+  width: 1px;
+  height: 26px;
+  background: rgba(255,255,255,0.35);
+  display: block;
 }
 .brand-finance {
   font-size: 10px;
-  font-weight: 400;
+  font-weight: 300;
   color: #ffffff;
-  letter-spacing: 4px;
-  opacity: 0.85;
+  letter-spacing: 7px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  margin-top: 2px;
 }
-.brand-logo--sm .brand-souz { font-size: 16px; }
-.brand-logo--sm .brand-divider { font-size: 14px; }
-.brand-logo--sm .brand-finance { font-size: 9px; letter-spacing: 3px; }
 .topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 32px; }
 .topbar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 .topbar-divider { width: 1px; height: 28px; background: var(--border); }

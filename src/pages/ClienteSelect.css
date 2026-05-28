@@ -1,4 +1,5 @@
 .clientes-screen {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6,6 +7,20 @@
   padding: 32px;
   background: radial-gradient(ellipse at 60% 0%, #071a0e 0%, #050805 60%);
 }
+
+.clientes-tema-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.clientes-tema-btn:hover { background: rgba(255,255,255,0.14); }
 
 .clientes-box {
   width: 100%;
@@ -230,5 +245,11 @@
 [data-theme="light"] .usuarios-painel { background: #f5f9f5; border-color: #d4e8d4; }
 [data-theme="light"] .usuario-row { background: #ffffff; border-color: #d4e8d4; }
 [data-theme="light"] .btn-sair { color: #4a6e5a; border-color: #d4e8d4; }
-[data-theme="light"] .btn-sair:hover { border-color: #4a6e5a; color: #1a2e1a; }
-[data-theme="light"] .clientes-header p { color: #4a6e5a; }
+[data-theme="light"] .btn-sair:hover { border-color: #2d4a35; color: #0d1f0d; }
+[data-theme="light"] .clientes-header p { color: #2d4a35; }
+[data-theme="light"] .cliente-info .nome { color: #0d1f0d; }
+[data-theme="light"] .cliente-info .meta { color: #2d4a35; }
+[data-theme="light"] .usuario-info .nome { color: #0d1f0d; }
+[data-theme="light"] .usuario-info .meta { color: #2d4a35; }
+[data-theme="light"] .clientes-tema-btn { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .clientes-tema-btn:hover { background: rgba(0,0,0,0.1); }
