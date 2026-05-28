@@ -7,6 +7,14 @@
   --topbar-bg: linear-gradient(90deg, #000000 0%, #0a0f0a 100%);
 }
 
+[data-theme="light"] {
+  --bg: #f0f5f0; --surface: #ffffff; --surface2: #f5f9f5; --border: #d4e8d4;
+  --accent: #16a34a; --accent-hover: #15803d; --danger: #dc2626; --warn: #d97706;
+  --text: #1a2e1a; --text2: #4a6e5a;
+  --entrada: #16a34a; --saida: #dc2626; --transferencia: #d97706;
+  --topbar-bg: linear-gradient(90deg, #1a3d1a 0%, #2a5a2a 100%);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background: var(--bg);

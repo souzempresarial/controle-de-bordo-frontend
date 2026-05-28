@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Login from './pages/Login';
@@ -30,6 +30,11 @@ function PrivateLayout({ usuario, onLogout, children }) {
 
 export default function App() {
   const [usuario, setUsuario] = useState(getUsuarioInicial);
+
+  useEffect(() => {
+    const tema = localStorage.getItem('cb_tema') || 'dark';
+    document.documentElement.dataset.theme = tema;
+  }, []);
 
   function handleLogin(dados) {
     setUsuario(dados);

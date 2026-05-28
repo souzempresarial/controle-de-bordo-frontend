@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { API } from '../services/api';
+import { useTheme } from '../hooks/useTheme';
 import './Login.css';
 
 export default function Login({ onLogin }) {
@@ -7,6 +8,7 @@ export default function Login({ onLogin }) {
   const [senha, setSenha]     = useState('');
   const [erro, setErro]       = useState('');
   const [loading, setLoading] = useState(false);
+  const { tema, toggleTema }  = useTheme();
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -33,6 +35,9 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-container">
+      <button className="login-tema-btn" onClick={toggleTema} title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
+        {tema === 'dark' ? '☀️' : '🌙'}
+      </button>
       <div className="login-card">
         <div className="login-header">
           <img src="/logo.png" alt="SOUZ Finance" className="login-logo" />

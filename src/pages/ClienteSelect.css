@@ -17,8 +17,11 @@
   margin-bottom: 32px;
 }
 
-.clientes-header .login-logo-wrap {
-  margin-bottom: 20px;
+.clientes-logo {
+  width: 340px;
+  display: block;
+  margin: -55px auto -30px;
+  transform: translateX(-10px);
 }
 
 .clientes-header h1 {
@@ -216,3 +219,16 @@
   transition: all .15s;
 }
 .btn-sair:hover { border-color: #527060; color: #f0f8f2; }
+
+[data-theme="light"] .clientes-screen {
+  background: radial-gradient(ellipse at 60% 0%, #dcfce7 0%, #f0fdf4 60%);
+}
+[data-theme="light"] .clientes-logo { filter: brightness(0); }
+[data-theme="light"] .cliente-card { background: #ffffff; }
+[data-theme="light"] .cliente-card:hover { background: #f5f9f5; }
+[data-theme="light"] .cliente-card-wrapper { border-color: #d4e8d4; }
+[data-theme="light"] .usuarios-painel { background: #f5f9f5; border-color: #d4e8d4; }
+[data-theme="light"] .usuario-row { background: #ffffff; border-color: #d4e8d4; }
+[data-theme="light"] .btn-sair { color: #4a6e5a; border-color: #d4e8d4; }
+[data-theme="light"] .btn-sair:hover { border-color: #4a6e5a; color: #1a2e1a; }
+[data-theme="light"] .clientes-header p { color: #4a6e5a; }

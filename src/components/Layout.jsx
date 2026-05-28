@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useTheme } from '../hooks/useTheme';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
   const { clienteAtivo, sairCliente } = useApp();
   const navigate = useNavigate();
+  const { tema, toggleTema } = useTheme();
 
   const papel = localStorage.getItem('cb_papel');
   const isAdmin = papel === 'admin';
@@ -35,6 +37,9 @@ export default function Layout({ children, usuario, onLogout }) {
             <div className="cliente-chip">{clienteAtivo.nome}</div>
           )}
           <span className="topbar-usuario">{usuario?.nome}</span>
+          <button onClick={toggleTema} className="btn-topbar btn-tema" title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
+            {tema === 'dark' ? '☀️' : '🌙'}
+          </button>
           <button onClick={handleLogout} className="btn-topbar">Sair</button>
         </div>
       </header>
