@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CMVCATS, DEDUCOES_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
 import { fmt, fmtPct, fmtData, hoje } from '../services/utils';
 import './Dashboard.css';
 
@@ -137,9 +137,10 @@ export default function Dashboard() {
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
-      if (campo === 'tipo')     { novo.categoria = ''; novo.subcategoria = ''; novo.cmvValor = ''; novo.cmvCat = ''; novo.cmvSub = ''; }
-      if (campo === 'categoria') { novo.subcategoria = ''; }
-      if (campo === 'cmvCat')   { novo.cmvSub = ''; }
+      if (campo === 'tipo')        { novo.categoria = ''; novo.subcategoria = ''; novo.cmvValor = ''; novo.cmvCat = 'Custos Variáveis Diretos'; novo.cmvSub = ''; }
+      if (campo === 'categoria')   { novo.subcategoria = ''; novo.cmvSub = getCmvSubAuto(valor, ''); }
+      if (campo === 'subcategoria'){ novo.cmvSub = getCmvSubAuto(f.categoria, valor); }
+      if (campo === 'cmvCat')      { novo.cmvSub = ''; }
       return novo;
     });
   }

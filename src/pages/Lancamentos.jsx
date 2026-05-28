@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats } from '../services/constants';
+import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../services/constants';
 import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
 
@@ -112,8 +112,9 @@ export default function Lancamentos() {
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
-      if (campo === 'categoria') novo.subcategoria = '';
-      if (campo === 'cmvCat')   novo.cmvSub = '';
+      if (campo === 'categoria')   { novo.subcategoria = ''; novo.cmvSub = getCmvSubAuto(valor, ''); }
+      if (campo === 'subcategoria'){ novo.cmvSub = getCmvSubAuto(f.categoria, valor); }
+      if (campo === 'cmvCat')      { novo.cmvSub = ''; }
       return novo;
     });
   }

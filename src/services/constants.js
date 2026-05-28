@@ -52,6 +52,21 @@ export function getCatsPorTipo(tipo) {
   return CATEGORIAS_SAIDA;
 }
 
+export function getCmvSubAuto(categoria, subcategoria) {
+  if (categoria === 'Acessórios')          return 'Acessórios';
+  if (categoria === 'Assistência Técnica') return 'Assistência Técnica';
+  if (categoria === 'Outros Produtos')     return 'Outros';
+  if (categoria === 'Aparelhos') {
+    const map = {
+      'iPhone': 'Aparelhos iPhone', 'Android': 'Aparelhos Android',
+      'Apple Watch': 'Apple Watch',  'AirPods': 'AirPods',
+      'Mac': 'MacBook',              'iPad': 'iPad',
+    };
+    return map[subcategoria] || (subcategoria ? 'Outros' : '');
+  }
+  return '';
+}
+
 export function getSubcats(cat) {
   const todas = [CATEGORIAS_ENTRADA, CATEGORIAS_SAIDA, CATEGORIAS_TRANSF, CATEGORIAS_CMV];
   for (const grupo of todas) {
