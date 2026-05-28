@@ -50,6 +50,11 @@ body {
   height: 56px;
 }
 .topbar-left { display: flex; align-items: center; min-width: 200px; }
+.topbar-logo {
+  height: 38px;
+  width: auto;
+  mix-blend-mode: screen;
+}
 .brand-logo {
   display: flex;
   align-items: center;
