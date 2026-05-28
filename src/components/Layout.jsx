@@ -23,10 +23,8 @@ export default function Layout({ children, usuario, onLogout }) {
     <div className="app">
       <header className="topbar">
         <div className="topbar-left">
-          <div className="brand-logo brand-logo--sm">
-            <span className="brand-souz">SOUZ</span>
-            <span className="brand-divider">|</span>
-            <span className="brand-finance">FINANCE</span>
+          <div className="topbar-logo-wrap">
+            <img src="/logo.png" alt="SOUZ Finance" className="topbar-logo-img" />
           </div>
         </div>
 
