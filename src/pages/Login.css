@@ -17,19 +17,36 @@
   margin-bottom: 40px;
 }
 
-.login-logo-wrap {
-  width: 280px;
-  height: 80px;
-  overflow: hidden;
-  border-radius: 12px;
-  margin: 0 auto 20px;
+.login-header .brand-logo {
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
-.login-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 45%;
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Montserrat', sans-serif;
+  user-select: none;
+}
+.brand-souz {
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
+}
+.brand-divider {
+  font-size: 24px;
+  font-weight: 300;
+  color: #22c55e;
+  opacity: 0.8;
+}
+.brand-finance {
+  font-size: 14px;
+  font-weight: 400;
+  color: #ffffff;
+  letter-spacing: 5px;
+  opacity: 0.85;
 }
 
 .login-header p {

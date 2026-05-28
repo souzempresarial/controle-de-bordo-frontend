@@ -37,18 +37,35 @@ body {
   height: 56px;
 }
 .topbar-left { display: flex; align-items: center; min-width: 200px; }
-.topbar-logo-wrap {
-  width: 160px;
-  height: 40px;
-  overflow: hidden;
-  border-radius: 6px;
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Montserrat', sans-serif;
+  user-select: none;
 }
-.topbar-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 45%;
+.brand-souz {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
 }
+.brand-divider {
+  font-size: 18px;
+  font-weight: 300;
+  color: #22c55e;
+  opacity: 0.8;
+}
+.brand-finance {
+  font-size: 10px;
+  font-weight: 400;
+  color: #ffffff;
+  letter-spacing: 4px;
+  opacity: 0.85;
+}
+.brand-logo--sm .brand-souz { font-size: 16px; }
+.brand-logo--sm .brand-divider { font-size: 14px; }
+.brand-logo--sm .brand-finance { font-size: 9px; letter-spacing: 3px; }
 .topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 32px; }
 .topbar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 .topbar-divider { width: 1px; height: 28px; background: var(--border); }
