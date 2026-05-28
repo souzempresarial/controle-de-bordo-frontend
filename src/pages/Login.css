@@ -25,6 +25,9 @@
 .login-logo-img {
   width: 220px;
   margin-bottom: 16px;
+  background: #0d2b1a;
+  border-radius: 16px;
+  padding: 16px 24px;
 }
 
 .login-header p {
