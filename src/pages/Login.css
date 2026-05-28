@@ -22,10 +22,9 @@
   margin-bottom: 28px;
 }
 
-.login-logo-img {
-  width: 260px;
-  margin-bottom: 16px;
-  border-radius: 16px;
+.login-header .brand-logo {
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .login-header p {

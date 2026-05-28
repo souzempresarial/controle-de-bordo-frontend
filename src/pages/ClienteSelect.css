@@ -17,10 +17,9 @@
   margin-bottom: 32px;
 }
 
-.clientes-logo-img {
-  width: 260px;
+.clientes-header .brand-logo {
+  justify-content: center;
   margin-bottom: 20px;
-  border-radius: 16px;
 }
 
 .clientes-header h1 {
