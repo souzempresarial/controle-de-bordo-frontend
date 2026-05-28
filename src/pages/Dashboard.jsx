@@ -26,7 +26,7 @@ function calcularTotais(lista) {
 const formVazio = () => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
   subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
-  valorRecebido: '', cmvValor: '', cmvCat: '', cmvSub: '',
+  valorRecebido: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
 });
 
 export default function Dashboard() {
@@ -197,7 +197,6 @@ export default function Dashboard() {
         let novoCMV    = null;
 
         if (isEnt && form.cmvValor && parseFloat(form.cmvValor) > 0) {
-          if (form.cmvCat === '' && !editandoCMV) { setErroForm('Selecione o tipo de custo do CMV'); setSalvando(false); return; }
           if (editandoCMV) {
             atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
               data: form.data, tipo: 'Saída', valor: parseFloat(form.cmvValor),
@@ -238,7 +237,6 @@ export default function Dashboard() {
         });
       } else {
         const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
-        if (cmvValor > 0 && !form.cmvCat) { setErroForm('Selecione o tipo de custo do CMV'); setSalvando(false); return; }
 
         const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
         const vrRaw         = parseFloat(form.valorRecebido);
@@ -551,13 +549,6 @@ export default function Dashboard() {
                     <div className="field">
                       <label>Valor CMV (R$)</label>
                       <input type="number" step="0.01" placeholder="0,00" value={form.cmvValor} onChange={e => setField('cmvValor', e.target.value)} />
-                    </div>
-                    <div className="field">
-                      <label>Tipo de Custo</label>
-                      <select value={form.cmvCat} onChange={e => setField('cmvCat', e.target.value)}>
-                        <option value="">— selecione —</option>
-                        {Object.keys(cmvCats).map(c => <option key={c}>{c}</option>)}
-                      </select>
                     </div>
                     <div className="field">
                       <label>Subcategoria CMV</label>

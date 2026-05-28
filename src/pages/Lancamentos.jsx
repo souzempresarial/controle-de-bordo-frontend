@@ -18,7 +18,7 @@ const formVazio = (l, cmv) => ({
   quantidade: l.quantidade || '',
   valorRecebido: l.valorRecebido ?? '',
   cmvValor: cmv ? cmv.valor : '',
-  cmvCat:   cmv ? (cmv.categoria || '') : '',
+  cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
 });
 
@@ -403,13 +403,6 @@ export default function Lancamentos() {
                     <div className="field">
                       <label>Valor CMV (R$)</label>
                       <input type="number" step="0.01" placeholder="0,00" value={form.cmvValor} onChange={e => setField('cmvValor', e.target.value)} />
-                    </div>
-                    <div className="field">
-                      <label>Tipo de Custo</label>
-                      <select value={form.cmvCat} onChange={e => setField('cmvCat', e.target.value)}>
-                        <option value="">— selecione —</option>
-                        {Object.keys(cmvCats).map(c => <option key={c}>{c}</option>)}
-                      </select>
                     </div>
                     <div className="field">
                       <label>Subcategoria CMV</label>
