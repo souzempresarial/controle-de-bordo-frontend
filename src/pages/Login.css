@@ -25,7 +25,6 @@
 .login-logo-img {
   width: 220px;
   margin-bottom: 16px;
-  filter: brightness(0) invert(1) contrast(2);
 }
 
 .login-header p {
