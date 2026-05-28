@@ -17,17 +17,10 @@
   margin-bottom: 32px;
 }
 
-.clientes-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: #22c55e22;
-  border: 1px solid #22c55e44;
+.clientes-logo-img {
+  width: 220px;
   margin-bottom: 20px;
-  font-size: 28px;
+  filter: brightness(0) invert(1);
 }
 
 .clientes-header h1 {

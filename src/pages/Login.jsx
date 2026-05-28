@@ -35,8 +35,7 @@ export default function Login({ onLogin }) {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-logo">📊</div>
-          <h1>Controle de Bordo</h1>
+          <img src="/logo.png" alt="SOUZ Finance" className="login-logo-img" />
           <p>Faça login para acessar sua conta</p>
         </div>
 
@@ -69,7 +68,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <div className="login-footer">
-          SOUZ Empresarial · Controle de Bordo
+          SOUZ Empresarial
         </div>
       </div>
     </div>

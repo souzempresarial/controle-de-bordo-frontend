@@ -174,8 +174,7 @@ export default function ClienteSelect({ onLogout }) {
     <div className="clientes-screen">
       <div className="clientes-box">
         <div className="clientes-header">
-          <div className="clientes-logo">📊</div>
-          <h1>Controle de Bordo</h1>
+          <img src="/logo.png" alt="SOUZ Finance" className="clientes-logo-img" />
           <p>Gerencie clientes e usuários do sistema</p>
         </div>
 
