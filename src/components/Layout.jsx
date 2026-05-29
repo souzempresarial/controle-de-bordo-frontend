@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
@@ -7,12 +8,16 @@ export default function Layout({ children, usuario, onLogout }) {
   const { clienteAtivo, sairCliente } = useApp();
   const navigate = useNavigate();
   const { tema, toggleTema } = useTheme();
+  const [sidebarAberta, setSidebarAberta] = useState(false);
 
   const papel = localStorage.getItem('cb_papel');
   const isAdmin = papel === 'admin';
 
+  function fecharSidebar() { setSidebarAberta(false); }
+
   function handleVoltarClientes() {
     sairCliente();
+    fecharSidebar();
     navigate('/clientes');
   }
 
@@ -25,6 +30,9 @@ export default function Layout({ children, usuario, onLogout }) {
     <div className="app">
       <header className="topbar">
         <div className="topbar-left">
+          <button className="hamburger" onClick={() => setSidebarAberta(true)} aria-label="Abrir menu">
+            <span /><span /><span />
+          </button>
           <img src="/logo-horizontal.png" alt="SOUZ Finance" className="topbar-logo" />
         </div>
 
@@ -40,24 +48,27 @@ export default function Layout({ children, usuario, onLogout }) {
         </div>
       </header>
 
-      <nav className="sidebar">
+      {sidebarAberta && <div className="sidebar-overlay" onClick={fecharSidebar} />}
+
+      <nav className={`sidebar${sidebarAberta ? ' sidebar--aberta' : ''}`}>
+        <button className="sidebar-fechar" onClick={fecharSidebar}>✕</button>
         <span className="nav-section">Menu</span>
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/dashboard" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📊</span> Início
         </NavLink>
-        <NavLink to="/lancamentos" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/lancamentos" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📋</span> Lançamentos
         </NavLink>
-        <NavLink to="/relatorio" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/relatorio" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📈</span> Relatório
         </NavLink>
-        <NavLink to="/contas" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/contas" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">🔄</span> Gestão de Contas
         </NavLink>
-        <NavLink to="/financeiro" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/financeiro" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">💹</span> Financeiro
         </NavLink>
-        <NavLink to="/exportar" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <NavLink to="/exportar" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📥</span> Exportar
         </NavLink>
 
