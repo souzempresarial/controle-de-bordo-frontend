@@ -219,7 +219,7 @@ export default function Relatorio() {
           <div className="rel-exec-header">
             <div>
               <div className="rel-exec-title">Resumo Executivo</div>
-              <div className="rel-exec-subtitle">{clienteAtivo?.nome}</div>
+              <div className="rel-exec-subtitle">{clienteAtivo?.obs || clienteAtivo?.nome}</div>
             </div>
             <div className="rel-exec-period">{labelPeriodo}</div>
           </div>
