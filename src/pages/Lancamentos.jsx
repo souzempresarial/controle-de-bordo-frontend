@@ -36,7 +36,9 @@ export default function Lancamentos() {
   const [form, setForm]                 = useState(null);
   const [salvando, setSalvando]         = useState(false);
   const [erroForm, setErroForm]         = useState('');
-  const [confirmando, setConfirmando]   = useState(null);
+  const [confirmando, setConfirmando]         = useState(null);
+  const [confirmandoTodos, setConfirmandoTodos] = useState(false);
+  const [apagandoTodos, setApagandoTodos]       = useState(false);
 
   const [sortCol, setSortCol] = useState('data');
   const [sortDir, setSortDir] = useState('desc');
@@ -202,6 +204,26 @@ export default function Lancamentos() {
     }
   }
 
+  async function excluirTodos() {
+    setApagandoTodos(true);
+    try {
+      for (const l of filtrados) {
+        await API.excluirLancamento(clienteAtivo.id, l.id);
+        const cmvPar = lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV && l.grupoId);
+        if (cmvPar) await API.excluirLancamento(clienteAtivo.id, cmvPar.id);
+      }
+      const idsRemover = new Set([
+        ...filtrados.map(l => l.id),
+        ...filtrados.filter(l => l.grupoId).flatMap(l =>
+          lancamentos.filter(x => x.grupoId === l.grupoId && x.isCMV).map(x => x.id)
+        ),
+      ]);
+      setLancamentos(prev => prev.filter(l => !idsRemover.has(l.id)));
+    } catch (err) { console.error(err); }
+    setApagandoTodos(false);
+    setConfirmandoTodos(false);
+  }
+
   async function excluir(id) {
     try {
       await API.excluirLancamento(clienteAtivo.id, id);
@@ -253,6 +275,13 @@ export default function Lancamentos() {
                 Saldo: {fmt(totaisFiltro.saldo)}
               </span>
             )}
+            <button
+              className="btn btn-sm"
+              style={{ marginLeft: 'auto', background: '#f03e3e22', color: '#f03e3e', border: '1px solid #f03e3e44' }}
+              onClick={() => setConfirmandoTodos(true)}
+            >
+              🗑 Apagar {filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}
+            </button>
           </div>
         )}
 
@@ -452,6 +481,31 @@ export default function Lancamentos() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setConfirmando(null)}>Cancelar</button>
               <button className="btn btn-danger" onClick={() => excluir(confirmando.id)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmandoTodos && (
+        <div className="modal-overlay" onClick={() => !apagandoTodos && setConfirmandoTodos(false)}>
+          <div className="modal-box modal-small" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Apagar lançamentos filtrados</h3>
+              <button className="modal-close" onClick={() => !apagandoTodos && setConfirmandoTodos(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 14, color: 'var(--text)' }}>
+                Você está prestes a apagar <strong style={{ color: '#f03e3e' }}>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</strong> com os filtros atuais.
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--text2)' }}>
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setConfirmandoTodos(false)} disabled={apagandoTodos}>Cancelar</button>
+              <button className="btn-danger" onClick={excluirTodos} disabled={apagandoTodos}>
+                {apagandoTodos ? 'Apagando...' : `Apagar ${filtrados.length}`}
+              </button>
             </div>
           </div>
         </div>
