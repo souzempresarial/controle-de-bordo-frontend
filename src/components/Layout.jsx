@@ -60,7 +60,7 @@ export default function Layout({ children, usuario, onLogout }) {
           <span className="nav-icon">📋</span> Lançamentos
         </NavLink>
         <NavLink to="/relatorio" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
-          <span className="nav-icon">📈</span> Relatório
+          <span className="nav-icon">📈</span> Resumo Executivo
         </NavLink>
         <NavLink to="/contas" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">🔄</span> Gestão de Contas
