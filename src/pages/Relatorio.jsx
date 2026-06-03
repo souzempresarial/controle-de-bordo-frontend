@@ -261,10 +261,15 @@ export default function Relatorio() {
 
           {/* ── Header Resumo Executivo ── */}
           <div className="rel-exec-header">
+            <img src="/logo-horizontal.png" alt="SOUZ Finance" className="rel-exec-logo" />
             <div className="rel-exec-label">Resumo Executivo</div>
+            <div className="rel-exec-divider" />
             <div className="rel-exec-title">{clienteAtivo?.obs || clienteAtivo?.nome}</div>
             <div className="rel-exec-period">{labelPeriodo}</div>
-            <div className="rel-exec-scroll">↓</div>
+            <div className="rel-exec-footer">
+              <div className="rel-exec-footer-brand">Preparado por SOUZ Finance</div>
+              <div className="rel-exec-scroll">↓</div>
+            </div>
           </div>
 
           {/* ===== 1. VENDAS ===== */}
