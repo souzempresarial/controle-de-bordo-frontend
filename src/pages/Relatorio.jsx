@@ -35,14 +35,53 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lucAcc      = fatAcc - cmvAcc - dedAcc;
   const lucMedioAcc = uniAcc > 0 ? lucAcc / uniAcc : 0;
 
-  const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
-  const saiCaixa  = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const caixaLiq  = entCaixa - saiCaixa;
+  const entCaixa    = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
+  const saiCaixa    = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const caixaLiq    = entCaixa - saiCaixa;
   const margemBruta = fat > 0 ? lucBruto / fat * 100 : 0;
+
+  const cvIndiretos = lm.filter(l => l.tipo === 'Saída' && l.categoria === 'Custos Variáveis Indiretos' && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const custoFixos  = lm.filter(l => l.tipo === 'Saída' && ['Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'].includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
 
   return { fat, cmvTotal, sga, naoOp, gastos, lucBruto, lucLiq,
            uni, fatAp, ticket, lucMedio, uniAcc, fatAcc, cmvAcc, lucAcc, lucMedioAcc,
-           entCaixa, saiCaixa, caixaLiq, margemBruta };
+           entCaixa, saiCaixa, caixaLiq, margemBruta, cvIndiretos, custoFixos };
+}
+
+function calcScore(d, prevFat) {
+  if (d.fat === 0) return { total: 0, cor: '#527060', pilares: [] };
+
+  const mc_pct = (d.fat - d.cmvTotal - d.cvIndiretos) / d.fat * 100;
+  const mc_pts = mc_pct > 30 ? 2 : mc_pct >= 20 ? 1 : 0;
+
+  const ml_pct = d.lucLiq / d.fat * 100;
+  const ml_pts = ml_pct > 10 ? 2 : ml_pct >= 5 ? 1 : 0;
+
+  const imc    = d.fat > 0 ? (d.fat - d.cmvTotal - d.cvIndiretos) / d.fat : 0;
+  const pe     = imc > 0 ? d.custoFixos / imc : d.fat;
+  const ms_pct = (d.fat - pe) / d.fat * 100;
+  const ms_pts = ms_pct > 20 ? 2 : ms_pct >= 10 ? 1 : 0;
+
+  const fc_pct = d.caixaLiq / d.fat * 100;
+  const fc_pts = d.caixaLiq > 0 ? 2 : fc_pct >= -10 ? 1 : 0;
+
+  const cresc_pct = prevFat > 0 ? (d.fat - prevFat) / prevFat * 100 : 0;
+  const cresc_pts = cresc_pct > 5 ? 2 : cresc_pct >= -5 ? 1 : 0;
+
+  const pts  = mc_pts + ml_pts + ms_pts + fc_pts + cresc_pts;
+  const total = pts / 10 * 100;
+  const cor   = total >= 70 ? '#22c55e' : total >= 40 ? '#f59e0b' : '#f03e3e';
+
+  return {
+    total, cor, pts,
+    pilares: [
+      { label: 'Margem de Contribuição', valor: mc_pct.toFixed(1) + '%', pts: mc_pts },
+      { label: 'Margem Líquida',         valor: ml_pct.toFixed(1) + '%', pts: ml_pts },
+      { label: 'Margem de Segurança',    valor: ms_pct.toFixed(1) + '%', pts: ms_pts },
+      { label: 'Fluxo de Caixa',         valor: fc_pct.toFixed(1) + '%', pts: fc_pts },
+      { label: 'Crescimento da Receita', valor: (prevFat > 0 ? (cresc_pct > 0 ? '+' : '') + cresc_pct.toFixed(1) + '%' : '—'), pts: cresc_pts },
+    ],
+  };
 }
 
 function TooltipBRL({ active, payload, label }) {
@@ -103,6 +142,7 @@ export default function Relatorio() {
   function atualizarFim(v)    { setDataFim(v);    localStorage.setItem('rel_dataFim', v); }
 
   const [verLancamentos, setVerLancamentos] = useState(false);
+  const [revelar, setRevelar]               = useState(false);
 
   const anoGrafico = dataFim.slice(0, 4);
 
@@ -126,6 +166,10 @@ export default function Relatorio() {
 
   const margemMes  = d.fat > 0 ? d.lucLiq / d.fat * 100 : null;
   const custoAtual = d.cmvTotal + d.gastos;
+
+  const mesAtual   = parseInt(dataFim.slice(5, 7)) - 1;
+  const prevFat    = mesAtual > 0 ? mv[mesAtual - 1].fat : 0;
+  const score      = calcScore(d, prevFat);
 
   const recBreakdown = useMemo(() => {
     const vendas = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV);
@@ -217,11 +261,10 @@ export default function Relatorio() {
 
           {/* ── Header Resumo Executivo ── */}
           <div className="rel-exec-header">
-            <div>
-              <div className="rel-exec-title">Resumo Executivo</div>
-              <div className="rel-exec-subtitle">{clienteAtivo?.obs || clienteAtivo?.nome}</div>
-            </div>
+            <div className="rel-exec-label">Resumo Executivo</div>
+            <div className="rel-exec-title">{clienteAtivo?.obs || clienteAtivo?.nome}</div>
             <div className="rel-exec-period">{labelPeriodo}</div>
+            <div className="rel-exec-scroll">↓</div>
           </div>
 
           {/* ===== 1. VENDAS ===== */}
@@ -377,12 +420,7 @@ export default function Relatorio() {
                 </div>
               </div>
               <div className="rel-caixa-right">
-                <Gauge
-                  pct={Math.max(0, d.margemBruta)}
-                  color="#22c55e"
-                  label="Nível de Saúde Financeira"
-                  size={150}
-                />
+                <Gauge pct={score.total} color={score.cor} label="Saúde Financeira" size={150} />
               </div>
             </div>
           </div>
