@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, DEDUCOES_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
-import { fmt, fmtPct, fmtData, hoje } from '../services/utils';
+import { fmt, fmtPct, fmtData, hoje, MESES } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
@@ -120,6 +120,21 @@ export default function Dashboard() {
     if (sortCol !== col) return ' ↕';
     return sortDir === 'asc' ? ' ↑' : ' ↓';
   }
+
+  const resumoProdutos = useMemo(() => {
+    const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente');
+    const map = {};
+    entradas.forEach(l => {
+      const key = l.subcategoria || l.categoria || 'Outro';
+      if (!map[key]) map[key] = { produto: key, unidades: 0, faturamento: 0, lucro: 0 };
+      map[key].unidades    += (l.quantidade || 1);
+      map[key].faturamento += l.valor;
+      const cmvL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && (x.isCMV || CMVCATS.includes(x.categoria))).reduce((a, x) => a + x.valor, 0) : 0;
+      const dedL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && x.tipo === 'Saída' && DEDUCOES_CATS.includes(x.categoria)).reduce((a, x) => a + x.valor, 0) : 0;
+      map[key].lucro += l.valor - cmvL - dedL;
+    });
+    return Object.values(map).filter(p => p.faturamento > 0).sort((a, b) => b.faturamento - a.faturamento);
+  }, [lm]);
 
   const semCMV = useMemo(() => {
     const lista = lm.filter(l => !(l.isCMV && l.grupoId)).slice(0, 50);
@@ -390,6 +405,38 @@ export default function Dashboard() {
         })}
       </div>
 
+
+      {/* Resumo de Produtos */}
+      {resumoProdutos.length > 0 && (
+        <div className="table-panel">
+          <div className="table-header">
+            <h2>Resumo de Produtos</h2>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th style={{ textAlign: 'right' }}>Unidades</th>
+                <th style={{ textAlign: 'right' }}>Faturamento</th>
+                <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumoProdutos.map(p => (
+                <tr key={p.produto}>
+                  <td style={{ fontWeight: 600 }}>{p.produto}</td>
+                  <td style={{ textAlign: 'right' }}>{p.unidades}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
+                  <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Botão novo lançamento */}
       <div>
