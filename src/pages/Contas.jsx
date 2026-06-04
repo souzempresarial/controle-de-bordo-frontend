@@ -169,6 +169,19 @@ export default function Contas() {
     setQuitando(null);
   }
 
+  async function adiar(c) {
+    try {
+      const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
+      d.setMonth(d.getMonth() + 1);
+      const novaData = d.toISOString().split('T')[0];
+      await API.editarConta(clienteAtivo.id, c.id, { ...c, vencimento: novaData });
+      setContas(prev => prev.map(x => x.id === c.id ? { ...x, vencimento: novaData } : x));
+      showToast('Conta adiada para ' + fmtData(novaData));
+    } catch (err) {
+      showToast(err.message || 'Erro ao adiar', 'erro');
+    }
+  }
+
   function agrupar(lista) {
     const now = new Date(); now.setHours(0, 0, 0, 0);
     const grupos = { vencidas: [], semana: [], quinzena: [], depois: [] };
@@ -209,6 +222,9 @@ export default function Contas() {
                 <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                   <button className="btn btn-primary btn-sm" onClick={() => quitar(c)} disabled={quitando === c.id}>
                     {quitando === c.id ? '...' : 'Quitar'}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => adiar(c)} title="Adiar para o próximo mês">
+                    Adiar
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)}>✏️</button>
                   <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(c)}>🗑</button>
