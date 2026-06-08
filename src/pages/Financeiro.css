@@ -22,6 +22,7 @@
 .dre-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .dre-table tr:hover td { background: var(--surface2); }
 
+
 .row-big td   { font-weight: 700; background: var(--surface2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); font-size: 12px; }
 .row-med td   { font-weight: 600; }
 .row-pct td   { font-style: italic; }

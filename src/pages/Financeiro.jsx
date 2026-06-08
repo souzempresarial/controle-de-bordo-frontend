@@ -53,7 +53,9 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
+  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
   const [ano, setAno]               = useState(anoAtual);
+  const [mesFiltro, setMesFiltro]   = useState(mesAtual);
   const [expandedRows, setExpanded] = useState(new Set());
 
   function toggleExpand(cat) {
@@ -96,6 +98,12 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
   const tCmv      = S('cmvTotal'), tResFin     = S('resFin');
   const tLair     = S('lair');
 
+  const cm = mv[mesFiltro] || {};
+  const cRecBruta   = cm.recBruta   || 0;
+  const cLucroBruto = cm.lucroBruto || 0;
+  const cEbitda     = cm.ebitda     || 0;
+  const cLucroLiq   = cm.lucroLiq   || 0;
+
   const d  = (v) => v === 0 ? <span style={{ color: 'var(--text2)' }}>—</span>
     : <span style={{ color: v >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{v < 0 ? `(${fmt(-v)})` : fmt(v)}</span>;
   const dn = (v) => v === 0 ? <span style={{ color: 'var(--text2)' }}>—</span>
@@ -123,9 +131,9 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
   };
 
   const RowExp = ({ label, cat, vals, tot, neg = false, tipo = 'Saída' }) => {
-    const subs   = getSubcats(cat);
+    const subs    = getSubcats(cat);
     const hasSubs = subs.length > 0;
-    const isExp  = expandedRows.has(cat);
+    const isExp   = expandedRows.has(cat);
     if (!vals.some(v => v !== 0) && tot === 0) return null;
     const fn = neg ? dn : d;
 
@@ -199,28 +207,33 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
           <div className="card">
-            <div className="card-label">Receita Bruta {ano}</div>
-            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(tRecBruta)}</div>
+            <div className="card-label">Receita Bruta — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(cRecBruta)}</div>
           </div>
           <div className="card">
-            <div className="card-label">Lucro Bruto</div>
-            <div className="card-value" style={{ color: tLucroBruto >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tLucroBruto)}</div>
-            <div className="card-sub">{tRecBruta > 0 ? fmtPct(tLucroBruto / tRecBruta * 100) : '—'}</div>
+            <div className="card-label">Lucro Bruto — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: cLucroBruto >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cLucroBruto)}</div>
+            <div className="card-sub">{cRecBruta > 0 ? fmtPct(cLucroBruto / cRecBruta * 100) : '—'}</div>
           </div>
           <div className="card">
-            <div className="card-label">EBITDA</div>
-            <div className="card-value" style={{ color: tEbitda >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tEbitda)}</div>
-            <div className="card-sub">{tRecBruta > 0 ? fmtPct(tEbitda / tRecBruta * 100) : '—'}</div>
+            <div className="card-label">EBITDA — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: cEbitda >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cEbitda)}</div>
+            <div className="card-sub">{cRecBruta > 0 ? fmtPct(cEbitda / cRecBruta * 100) : '—'}</div>
           </div>
           <div className="card">
-            <div className="card-label">Lucro Líquido</div>
-            <div className="card-value" style={{ color: tLucroLiq >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(tLucroLiq)}</div>
-            <div className="card-sub">{tRecBruta > 0 ? fmtPct(tLucroLiq / tRecBruta * 100) : '—'}</div>
+            <div className="card-label">Lucro Líquido — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: cLucroLiq >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cLucroLiq)}</div>
+            <div className="card-sub">{cRecBruta > 0 ? fmtPct(cLucroLiq / cRecBruta * 100) : '—'}</div>
           </div>
         </div>
-        <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setExpanded(new Set()); }}>
-          {anos.map(a => <option key={a}>{a}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
+            {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setExpanded(new Set()); }}>
+            {anos.map(a => <option key={a}>{a}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="table-panel">
@@ -301,7 +314,9 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
+  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
   const [ano, setAno]         = useState(anoAtual);
+  const [mesFiltro, setMes]   = useState(mesAtual);
   const [saldoInicial, setSI] = useState(0);
   const [saldoMes, setSIMes]  = useState(0);
   const [modalSI, setModalSI] = useState(false);
@@ -372,22 +387,25 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
             </div>
           )}
           <div className="card">
-            <div className="card-label">Entradas DFC {ano}</div>
-            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totEnt)}</div>
+            <div className="card-label">Entradas DFC — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(mv[mesFiltro]?.ent || 0)}</div>
           </div>
           <div className="card">
-            <div className="card-label">Saídas DFC {ano}</div>
-            <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(totSai)}</div>
+            <div className="card-label">Saídas DFC — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(mv[mesFiltro]?.sai || 0)}</div>
           </div>
           <div className="card">
-            <div className="card-label">Saldo Final {ano}</div>
-            <div className="card-value" style={{ color: (saldoInicial + totSaldo) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-              {fmt(saldoInicial + totSaldo)}
+            <div className="card-label">Saldo Final — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: (saldoAcum[mesFiltro] ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+              {fmt(saldoAcum[mesFiltro] ?? 0)}
             </div>
-            <div className="card-sub">Inicial + período</div>
+            <div className="card-sub">Acumulado até {MESES[mesFiltro]}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <select className="period-select" value={mesFiltro} onChange={e => setMes(Number(e.target.value))}>
+            {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
           <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
             {anos.map(a => <option key={a}>{a}</option>)}
           </select>
@@ -423,12 +441,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
                 {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.saldo)}</td>)}
                 <td style={{ textAlign: 'right' }}>{d(totSaldo)}</td>
               </tr>
-              <tr className="row-big">
-                <td>SALDO ACUMULADO</td>
-                {saldoAcum.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{d(v)}</td>)}
-                <td style={{ textAlign: 'right' }}>—</td>
-              </tr>
-
               {DFC_GRUPOS.map(({ sep, grupos }) => (
                 <>
                   <tr key={sep} className="row-sep">
