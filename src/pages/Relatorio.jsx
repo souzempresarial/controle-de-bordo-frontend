@@ -17,7 +17,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lucBruto  = recLiq - cmvTotal;
   const lucLiq    = recLiq - cmvTotal - sga - naoOp;
 
-  const aps         = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV && l.status !== 'Pendente');
+  const aps         = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && l.subcategoria === 'iPhone' && !l.isCMV && l.status !== 'Pendente');
   const fatAp       = aps.reduce((a, l) => a + l.valor, 0);
   const uni         = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
   const ticket      = uni > 0 ? fatAp / uni : 0;
