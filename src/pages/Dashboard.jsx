@@ -60,8 +60,15 @@ export default function Dashboard() {
     return [...set].sort().reverse();
   }, [lancamentos]);
 
+  const diaAtual  = parseInt(hoje().slice(8, 10));
+  const eMesAtual = periodo === mesAtual;
+
   const lm    = useMemo(() => lancamentos.filter(l => l.data.startsWith(periodo)), [lancamentos, periodo]);
-  const lprev = useMemo(() => lancamentos.filter(l => l.data.startsWith(prevMes)), [lancamentos, prevMes]);
+  const lprev = useMemo(() => lancamentos.filter(l => {
+    if (!l.data.startsWith(prevMes)) return false;
+    if (eMesAtual) return parseInt(l.data.slice(8, 10)) <= diaAtual;
+    return true;
+  }), [lancamentos, prevMes, eMesAtual, diaAtual]);
 
   const tm       = calcularTotais(lm);
   const tp       = calcularTotais(lprev);
@@ -383,7 +390,8 @@ export default function Dashboard() {
             label: 'Aparelhos Vendidos',
             value: String(unidades),
             cor: '#3b82f6',
-            sub: `Ticket médio: ${unidades > 0 ? fmt(fat / unidades) : '—'}`,
+            sub: unidadesPrev > 0 ? `Mês anterior: ${unidadesPrev} un.` : 'Sem dados anteriores',
+            delta: unidadesPrev > 0 ? ((unidades - unidadesPrev) / unidadesPrev * 100) : null,
           },
         ].map(({ label, value, cor, sub, delta, deltaInverso }) => {
           const deltaOk = delta !== null && delta !== undefined;
