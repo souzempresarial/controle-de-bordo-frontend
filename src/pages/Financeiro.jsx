@@ -215,11 +215,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
             <div className="card-value" style={{ color: cLucroBruto >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cLucroBruto)}</div>
             <div className="card-sub">{cRecBruta > 0 ? fmtPct(cLucroBruto / cRecBruta * 100) : '—'}</div>
           </div>
-          <div className="card">
-            <div className="card-label">EBITDA — {MESES[mesFiltro]}</div>
-            <div className="card-value" style={{ color: cEbitda >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cEbitda)}</div>
-            <div className="card-sub">{cRecBruta > 0 ? fmtPct(cEbitda / cRecBruta * 100) : '—'}</div>
-          </div>
+
           <div className="card">
             <div className="card-label">Lucro Líquido — {MESES[mesFiltro]}</div>
             <div className="card-value" style={{ color: cLucroLiq >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(cLucroLiq)}</div>
@@ -396,10 +392,9 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
           </div>
           <div className="card">
             <div className="card-label">Saldo Final — {MESES[mesFiltro]}</div>
-            <div className="card-value" style={{ color: (saldoAcum[mesFiltro] ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-              {fmt(saldoAcum[mesFiltro] ?? 0)}
+            <div className="card-value" style={{ color: (mv[mesFiltro]?.saldo ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+              {fmt(mv[mesFiltro]?.saldo ?? 0)}
             </div>
-            <div className="card-sub">Acumulado até {MESES[mesFiltro]}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
