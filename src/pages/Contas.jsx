@@ -51,10 +51,16 @@ export default function Contas() {
     return [...set].sort().reverse();
   }, [contas]);
 
-  const pendP    = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente'  && String(c.vencimento).slice(0, 7) === periodo);
+  const now       = new Date(); now.setHours(0,0,0,0);
+  const pendP     = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
   const quitadasP = contas.filter(c => c.tipo === 'pagar' && c.status === 'quitado' && String(c.vencimento).slice(0, 7) === periodo);
-  const totP     = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
-  const totQuit  = quitadasP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const vencidasP = pendP.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') < now);
+  const aPagarP   = pendP.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') >= now);
+  const totP      = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totQuit   = quitadasP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totVenc   = vencidasP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totAPagar = aPagarP.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totGeral  = totP + totQuit;
 
   const cats    = getCatsPorTipo('Saída');
   const subcats = getSubcats(form.categoria);
@@ -278,16 +284,30 @@ export default function Contas() {
       </div>
 
       {/* Resumo */}
-      <div className="cards">
-        <div className="card">
-          <div className="card-label">A Pagar</div>
-          <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(totP)}</div>
-          <div className="card-sub">{pendP.length} pendente{pendP.length !== 1 ? 's' : ''}</div>
+      <div className="contas-kpis">
+        <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
+          <div className="contas-kpi-icon">📋</div>
+          <div className="contas-kpi-label">Total do Mês</div>
+          <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totGeral)}</div>
+          <div className="contas-kpi-sub">{pendP.length + quitadasP.length} conta{(pendP.length + quitadasP.length) !== 1 ? 's' : ''}</div>
         </div>
-        <div className="card">
-          <div className="card-label">Pago</div>
-          <div className="card-value" style={{ color: 'var(--text2)' }}>{fmt(totQuit)}</div>
-          <div className="card-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
+          <div className="contas-kpi-icon">⚠️</div>
+          <div className="contas-kpi-label">Vencidas</div>
+          <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVenc)}</div>
+          <div className="contas-kpi-sub">{vencidasP.length} conta{vencidasP.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
+          <div className="contas-kpi-icon">🕐</div>
+          <div className="contas-kpi-label">A Pagar</div>
+          <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totP)}</div>
+          <div className="contas-kpi-sub">{pendP.length} conta{pendP.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+          <div className="contas-kpi-icon">✅</div>
+          <div className="contas-kpi-label">Pagas</div>
+          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuit)}</div>
+          <div className="contas-kpi-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
         </div>
       </div>
 

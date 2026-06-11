@@ -1,5 +1,58 @@
 .contas-page { display: flex; flex-direction: column; gap: 18px; }
 
+/* ── KPI cards ── */
+.contas-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.contas-kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--kpi-cor);
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: box-shadow .15s;
+}
+
+.contas-kpi:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+
+.contas-kpi-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.contas-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+}
+
+.contas-kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.contas-kpi-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+@media (max-width: 700px) {
+  .contas-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
 .recorrente-badge {
   margin-left: 6px;
   font-size: 10px;
