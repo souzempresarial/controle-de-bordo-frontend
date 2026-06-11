@@ -300,8 +300,8 @@ export default function Contas() {
         <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
           <div className="contas-kpi-icon">🕐</div>
           <div className="contas-kpi-label">A Pagar</div>
-          <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totP)}</div>
-          <div className="contas-kpi-sub">{pendP.length} conta{pendP.length !== 1 ? 's' : ''}</div>
+          <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totAPagar)}</div>
+          <div className="contas-kpi-sub">{aPagarP.length} conta{aPagarP.length !== 1 ? 's' : ''}</div>
         </div>
         <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
           <div className="contas-kpi-icon">✅</div>
