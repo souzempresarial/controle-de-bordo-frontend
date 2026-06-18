@@ -26,7 +26,7 @@ function calcularTotais(lista) {
 const formVazio = () => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
   subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
-  valorRecebido: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
+  deducao: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
 });
 
 export default function Dashboard() {
@@ -189,7 +189,7 @@ export default function Dashboard() {
       status: l.status,
       obs: l.obs || '',
       quantidade: l.quantidade || '',
-      valorRecebido: l.valorRecebido ?? '',
+      deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
       cmvValor: cmv ? cmv.valor : '',
       cmvCat:   cmv ? (cmv.categoria || '') : '',
       cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -209,10 +209,10 @@ export default function Dashboard() {
     try {
       if (editandoId) {
         const editando     = lancamentos.find(l => l.id === editandoId);
-        const vrRaw        = parseFloat(form.valorRecebido);
-        const valorBruto   = parseFloat(form.valor);
-        const isCartao     = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
-        const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
+        const valorBruto    = parseFloat(form.valor);
+        const deducaoRaw    = parseFloat(form.deducao);
+        const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
+        const valorRecebido = deducao !== null ? valorBruto - deducao : null;
         const isEnt        = form.tipo === 'Entrada';
 
         let grupoId    = editando?.grupoId || null;
@@ -262,12 +262,11 @@ export default function Dashboard() {
         const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
 
         const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
-        const vrRaw         = parseFloat(form.valorRecebido);
         const valorBruto    = parseFloat(form.valor);
-        const isCartao      = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
-        const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
-        const taxaCartao    = isCartao && valorRecebido !== null ? valorBruto - valorRecebido : 0;
-        const grupoId       = (cmvValor > 0 || taxaCartao > 0) ? ('g' + Date.now()) : null;
+        const deducaoRaw    = parseFloat(form.deducao);
+        const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
+        const valorRecebido = deducao !== null ? valorBruto - deducao : null;
+        const grupoId       = (cmvValor > 0 || deducao !== null) ? ('g' + Date.now()) : null;
 
         const isCmvDireto = CMVCATS.includes(form.categoria);
         const novo = await API.criarLancamento(clienteAtivo.id, {
@@ -293,16 +292,6 @@ export default function Dashboard() {
           novosLans = [cmv, ...novosLans];
         }
 
-        if (taxaCartao > 0) {
-          const taxa = await API.criarLancamento(clienteAtivo.id, {
-            tipo: 'Saída', valor: taxaCartao, data: form.data,
-            categoria: 'Deduções das Vendas', subcategoria: 'Taxas de Maquininha',
-            descricao: 'Taxa ' + form.pagamento + ' — ' + form.descricao,
-            pagamento: form.pagamento, status: 'Confirmado',
-            grupo_id: grupoId,
-          });
-          novosLans = [taxa, ...novosLans];
-        }
 
         setLancamentos(prev => [...novosLans, ...prev]);
         setForm(f => ({
@@ -546,8 +535,8 @@ export default function Dashboard() {
                 </div>
                 {isEntrada && (
                   <div className="field">
-                    <label>Valor Recebido (R$)</label>
-                    <input type="number" step="0.01" placeholder="deixe vazio se total" value={form.valorRecebido} onChange={e => setField('valorRecebido', e.target.value)} />
+                    <label>Dedução (R$)</label>
+                    <input type="number" step="0.01" placeholder="taxa, desconto... (deixe vazio se não houver)" value={form.deducao} onChange={e => setField('deducao', e.target.value)} />
                   </div>
                 )}
                 <div className="field">

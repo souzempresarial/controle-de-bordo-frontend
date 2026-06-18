@@ -16,7 +16,7 @@ const formVazio = (l, cmv) => ({
   status: l.status || 'Confirmado',
   obs: l.obs || '',
   quantidade: l.quantidade || '',
-  valorRecebido: l.valorRecebido ?? '',
+  deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -144,10 +144,10 @@ export default function Lancamentos() {
         quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
       });
 
-      const vrRaw         = parseFloat(form.valorRecebido);
       const valorBruto    = parseFloat(form.valor);
-      const isCartao      = form.pagamento === 'Crédito' || form.pagamento === 'Débito';
-      const valorRecebido = (!isNaN(vrRaw) && vrRaw < valorBruto) ? vrRaw : null;
+      const deducaoRaw    = parseFloat(form.deducao);
+      const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
+      const valorRecebido = deducao !== null ? valorBruto - deducao : null;
 
       let grupoId = editando.grupoId || null;
       let atualizadoCMV = null;
@@ -374,8 +374,8 @@ export default function Lancamentos() {
                 </div>
                 {isEntrada && (
                   <div className="field">
-                    <label>Valor Recebido (R$)</label>
-                    <input type="number" step="0.01" placeholder="deixe vazio se total" value={form.valorRecebido} onChange={e => setField('valorRecebido', e.target.value)} />
+                    <label>Dedução (R$)</label>
+                    <input type="number" step="0.01" placeholder="taxa, desconto... (deixe vazio se não houver)" value={form.deducao} onChange={e => setField('deducao', e.target.value)} />
                   </div>
                 )}
                 <div className="field">

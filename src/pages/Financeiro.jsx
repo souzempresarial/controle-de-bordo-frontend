@@ -15,7 +15,8 @@ function calcDREMes(lancamentos, pfx) {
   const subscricao  = ent('Aparelhos') + ent('Acessórios') + ent('Assistência Técnica') + ent('Outros Produtos');
   const recNaoOp    = ent('Receitas Não-Operacionais');
   const recBruta    = subscricao + recNaoOp;
-  const deducoes    = sai('Deduções das Vendas');
+  const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
+  const deducoes    = sai('Deduções das Vendas') + deducoesDiretas;
   const recLiquida  = recBruta - deducoes;
   const cmvInd      = sai('Custos Variáveis Indiretos');
   const cmvDir      = qua('Custos Variáveis Diretos');
