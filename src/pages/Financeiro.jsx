@@ -536,19 +536,23 @@ function Balanco({ lancamentos }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
+  const mesAtual = hoje().slice(5, 7);
   const [ano, setAno] = useState(anoAtual);
+  const [mes, setMes] = useState(mesAtual);
+
+  const periodo = `${ano}-${mes}`;
 
   const dados = useMemo(() => {
-    const lancAteAno = lancamentos.filter(l => l.data.slice(0, 4) <= ano);
+    const lancAteAno = lancamentos.filter(l => l.data.slice(0, 7) <= periodo);
     const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
     const entDFC     = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
     const dedInline  = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
     const saiDFC     = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
     const caixa      = entDFC - saiDFC;
 
-    const totalAReceber = lancamentos.filter(l =>
-      l.tipo === 'Entrada' && l.valorRecebido !== undefined && l.valorRecebido !== null && l.valorRecebido < l.valor
-    ).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
+    const totalAReceber = lancAteAno.filter(l =>
+      l.tipo === 'Entrada' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria)
+    ).reduce((a,l) => a + l.valor, 0);
 
     const totalFornecPago = lancAteAno.filter(l =>
       l.tipo === 'Saída' && l.categoria === 'Fornecedores (Estoque)' && l.status === 'Confirmado'
@@ -566,7 +570,7 @@ function Balanco({ lancamentos }) {
     const endividamento    = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
 
     return { caixa, totalAReceber, estoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
-  }, [lancamentos, ano]);
+  }, [lancamentos, periodo]);
 
   const { caixa, totalAReceber, estoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
 
@@ -616,16 +620,21 @@ function Balanco({ lancamentos }) {
             <div className="card-sub">Passivo / Ativo</div>
           </div>
         </div>
-        <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
-          {anos.map(a => <option key={a}>{a}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
+            {MESES.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          </select>
+          <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
+            {anos.map(a => <option key={a}>{a}</option>)}
+          </select>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         <div className="table-panel" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>ATIVO</h3>
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>Acumulado até {ano}</span>
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>Acumulado até {MESES[parseInt(mes) - 1]}/{ano}</span>
           </div>
           <Grupo label="Ativo Circulante" />
           <Linha label="Caixa e Equivalentes" val={Math.max(0, caixa)} indent />
