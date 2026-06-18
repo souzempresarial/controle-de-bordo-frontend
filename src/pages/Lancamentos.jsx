@@ -123,7 +123,7 @@ export default function Lancamentos() {
   }
 
   function abrirEditar(l) {
-    const cmv = l.grupoId
+    const cmv = l.tipo !== 'Entrada' ? null : l.grupoId
       ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
       : lancamentos.find(x =>
           x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
