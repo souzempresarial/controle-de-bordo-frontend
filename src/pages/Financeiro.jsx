@@ -332,15 +332,17 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
     [lancamentos]
   );
 
-  const valDFC = (l) => l.tipo === 'Entrada' ? (l.valorRecebido ?? l.valor) : l.valor;
-
   const mv = useMemo(() =>
     MESES.map((_, i) => {
-      const pfx = `${ano}-${String(i + 1).padStart(2, '0')}`;
-      const lm  = lancDFC.filter(l => l.data.startsWith(pfx));
-      const ent = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + valDFC(l), 0);
-      const sai = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + valDFC(l), 0);
-      const catVal = (cat) => lm.filter(l => l.categoria === cat).reduce((a,l) => a + valDFC(l), 0);
+      const pfx       = `${ano}-${String(i + 1).padStart(2, '0')}`;
+      const lm        = lancDFC.filter(l => l.data.startsWith(pfx));
+      const ent       = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+      const dedInline = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
+      const sai       = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
+      const catVal    = (cat) => {
+        const base = lm.filter(l => l.categoria === cat).reduce((a,l) => a + l.valor, 0);
+        return cat === 'Deduções das Vendas' ? base + dedInline : base;
+      };
       const subVal = (cat, sub) => lancamentos.filter(l => l.data.startsWith(pfx) && l.categoria === cat && l.subcategoria === sub).reduce((a,l) => a + l.valor, 0);
       return { ent, sai, saldo: ent - sai, catVal, subVal };
     }),
@@ -539,9 +541,9 @@ function Balanco({ lancamentos }) {
   const dados = useMemo(() => {
     const lancAteAno = lancamentos.filter(l => l.data.slice(0, 4) <= ano);
     const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
-    const valDFC     = l => l.tipo === 'Entrada' ? (l.valorRecebido ?? l.valor) : l.valor;
-    const entDFC     = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + valDFC(l), 0);
-    const saiDFC     = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0);
+    const entDFC     = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+    const dedInline  = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
+    const saiDFC     = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
     const caixa      = entDFC - saiDFC;
 
     const totalAReceber = lancamentos.filter(l =>
