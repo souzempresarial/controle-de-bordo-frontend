@@ -123,7 +123,9 @@ export default function Lancamentos() {
   }
 
   function abrirEditar(l) {
-    const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
+    const cmv = l.grupoId
+      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
+      : null;
     setEditando(l);
     setEditandoCMV(cmv || null);
     setForm(formVazio(l, cmv));
@@ -137,18 +139,11 @@ export default function Lancamentos() {
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
     setSalvando(true); setErroForm('');
     try {
-      const atualizado = await API.editarLancamento(editando.id, {
-        data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
-        categoria: form.categoria, subcategoria: form.subcategoria,
-        descricao: form.descricao, pagamento: form.pagamento,
-        status: form.status, obs: form.obs,
-        quantidade: form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null,
-      });
-
       const valorBruto    = parseFloat(form.valor);
       const deducaoRaw    = parseFloat(form.deducao);
       const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
       const valorRecebido = deducao !== null ? valorBruto - deducao : null;
+      const upgradeVal    = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
 
       let grupoId = editando.grupoId || null;
       let atualizadoCMV = null;
@@ -164,6 +159,7 @@ export default function Lancamentos() {
             descricao: editandoCMV.descricao,
             pagamento: form.pagamento, status: form.status,
             obs: editandoCMV.obs,
+            grupo_id: grupoId, is_cmv: true,
           });
         } else {
           grupoId = grupoId || ('g' + Date.now());
@@ -178,9 +174,8 @@ export default function Lancamentos() {
         }
       }
 
-      const upgradeVal = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
-      await API.editarLancamento(editando.id, {
-        data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
+      const atualizado = await API.editarLancamento(editando.id, {
+        data: form.data, tipo: form.tipo, valor: valorBruto,
         categoria: form.categoria, subcategoria: form.subcategoria,
         descricao: form.descricao, pagamento: form.pagamento,
         status: form.status, obs: form.obs,
