@@ -17,6 +17,8 @@ const formVazio = (l, cmv) => ({
   obs: l.obs || '',
   quantidade: l.quantidade || '',
   deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
+  isUpgrade: l.valorUpgrade != null && l.valorUpgrade > 0,
+  valorUpgrade: l.valorUpgrade != null && l.valorUpgrade > 0 ? String(l.valorUpgrade) : '',
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -114,9 +116,10 @@ export default function Lancamentos() {
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
-      if (campo === 'categoria')   { novo.subcategoria = ''; novo.cmvSub = getCmvSubAuto(valor, ''); }
+      if (campo === 'categoria')   { novo.subcategoria = ''; novo.cmvSub = getCmvSubAuto(valor, ''); if (valor !== 'Aparelhos') { novo.isUpgrade = false; novo.valorUpgrade = ''; } }
       if (campo === 'subcategoria'){ novo.cmvSub = getCmvSubAuto(f.categoria, valor); }
       if (campo === 'cmvCat')      { novo.cmvSub = ''; }
+      if (campo === 'isUpgrade' && !valor) { novo.valorUpgrade = ''; }
       return novo;
     });
   }
@@ -177,6 +180,7 @@ export default function Lancamentos() {
         }
       }
 
+      const upgradeVal = form.isUpgrade && parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
       await API.editarLancamento(editando.id, {
         data: form.data, tipo: form.tipo, valor: parseFloat(form.valor),
         categoria: form.categoria, subcategoria: form.subcategoria,
@@ -185,11 +189,12 @@ export default function Lancamentos() {
         quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
         valor_recebido: valorRecebido,
         grupo_id: grupoId,
+        valor_upgrade: upgradeVal,
       });
 
       setLancamentos(prev => {
         let lista = prev.map(l => {
-          if (l.id === editando.id) return { ...l, ...atualizado, grupoId, valorRecebido };
+          if (l.id === editando.id) return { ...l, ...atualizado, grupoId, valorRecebido, valorUpgrade: upgradeVal };
           if (atualizadoCMV && l.id === editandoCMV.id) return { ...l, ...atualizadoCMV };
           return l;
         });
@@ -418,6 +423,18 @@ export default function Lancamentos() {
                   <div className="field">
                     <label>Quantidade</label>
                     <input type="number" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
+                  </div>
+                )}
+                {isEntrada && form.categoria === 'Aparelhos' && (
+                  <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" id="chk-upgrade-lan" checked={form.isUpgrade} onChange={e => setField('isUpgrade', e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                    <label htmlFor="chk-upgrade-lan" style={{ cursor: 'pointer', margin: 0 }}>Venda com Upgrade?</label>
+                  </div>
+                )}
+                {isEntrada && form.isUpgrade && (
+                  <div className="field">
+                    <label>Valor do aparelho recebido (R$)</label>
+                    <input type="number" step="0.01" placeholder="ex: 1500,00" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
                   </div>
                 )}
                 <div className="field span2">

@@ -299,6 +299,7 @@ const DFC_GRUPOS = [
       { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'] },
       { label: 'SAÍDAS NÃO-OPERACIONAIS', cats: ['Saídas Não-Operacionais','Dívidas / Empréstimos'] },
       { label: 'INVESTIMENTOS', cats: ['Investimentos'] },
+      { label: 'PERMUTA / UPGRADE', cats: ['Permuta - Upgrade'] },
     ],
   },
 ];
@@ -336,10 +337,12 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
     MESES.map((_, i) => {
       const pfx       = `${ano}-${String(i + 1).padStart(2, '0')}`;
       const lm        = lancDFC.filter(l => l.data.startsWith(pfx));
-      const ent       = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
-      const dedInline = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
-      const sai       = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
+      const ent          = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+      const dedInline    = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
+      const upgradeInline = lm.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
+      const sai          = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline + upgradeInline;
       const catVal    = (cat) => {
+        if (cat === 'Permuta - Upgrade') return upgradeInline;
         const base = lm.filter(l => l.categoria === cat).reduce((a,l) => a + l.valor, 0);
         return cat === 'Deduções das Vendas' ? base + dedInline : base;
       };
@@ -545,10 +548,11 @@ function Balanco({ lancamentos }) {
   const dados = useMemo(() => {
     const lancAteAno = lancamentos.filter(l => l.data.slice(0, 7) <= periodo);
     const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
-    const entDFC     = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
-    const dedInline  = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
-    const saiDFC     = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
-    const caixa      = entDFC - saiDFC;
+    const entDFC        = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+    const dedInline     = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
+    const upgradeInline = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
+    const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline + upgradeInline;
+    const caixa         = entDFC - saiDFC;
 
     const totalAReceber = lancAteAno.filter(l =>
       l.tipo === 'Entrada' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria)
@@ -558,9 +562,10 @@ function Balanco({ lancamentos }) {
       l.tipo === 'Saída' && l.categoria === 'Fornecedores (Estoque)' && l.status === 'Confirmado'
     ).reduce((a,l) => a + l.valor, 0);
 
-    const totalCMVRec = lancAteAno.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a,l) => a + l.valor, 0);
-    const estoque     = Math.max(0, totalFornecPago - totalCMVRec);
-    const totalAtivo  = Math.max(0, caixa) + totalAReceber + estoque;
+    const totalCMVRec    = lancAteAno.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a,l) => a + l.valor, 0);
+    const estoque        = Math.max(0, totalFornecPago - totalCMVRec);
+    const upgradeEstoque = lancAteAno.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
+    const totalAtivo     = Math.max(0, caixa) + totalAReceber + estoque + upgradeEstoque;
 
     const aPagar           = lancamentos.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
     const totalFornecPagar = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
@@ -569,10 +574,10 @@ function Balanco({ lancamentos }) {
     const pl               = totalAtivo - totalPassivo;
     const endividamento    = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
 
-    return { caixa, totalAReceber, estoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
+    return { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
   }, [lancamentos, periodo]);
 
-  const { caixa, totalAReceber, estoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
+  const { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
 
   const Linha = ({ label, val, indent = false, neg = false }) => {
     const cor = val === 0 ? 'var(--text2)' : neg ? 'var(--saida)' : val > 0 ? 'var(--entrada)' : 'var(--saida)';
@@ -643,6 +648,7 @@ function Balanco({ lancamentos }) {
           <div style={{ fontSize: 11, color: 'var(--text2)', paddingLeft: 16, paddingBottom: 6 }}>
             Fornecedores pagos {fmt(totalFornecPago)} − CMV reconhecido {fmt(totalCMVRec)}
           </div>
+          {upgradeEstoque > 0 && <Linha label="Controle de Upgrade" val={upgradeEstoque} indent />}
           {caixa < 0 && <div style={{ fontSize: 11, color: 'var(--warn)', paddingLeft: 16, paddingBottom: 6 }}>⚠ Saldo de caixa negativo: {fmt(caixa)}</div>}
           <LinhaTotal label="TOTAL ATIVO" val={totalAtivo} final />
         </div>
@@ -666,7 +672,7 @@ function Balanco({ lancamentos }) {
         <div className="table-panel" style={{ padding: '16px 20px', marginTop: 0 }}>
           <h3 style={{ marginTop: 0, marginBottom: 16 }}>Composição do Ativo</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[['Caixa', Math.max(0, caixa), '#22c55e'], ['A Receber', totalAReceber, '#f59e0b'], ['Estoque', estoque, '#16a34a']].map(([label, val, cor]) => {
+            {[['Caixa', Math.max(0, caixa), '#22c55e'], ['A Receber', totalAReceber, '#f59e0b'], ['Estoque', estoque, '#16a34a'], ['Upgrade', upgradeEstoque, '#8b5cf6']].filter(([, val]) => val > 0).map(([label, val, cor]) => {
               const pct = totalAtivo > 0 ? (val / totalAtivo * 100) : 0;
               return (
                 <div key={label}>

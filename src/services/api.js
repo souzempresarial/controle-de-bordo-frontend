@@ -7,6 +7,7 @@ function normalizarLancamento(l) {
     isCMV:         l.is_cmv || false,
     grupoId:       l.grupo_id || null,
     valorRecebido: l.valor_recebido != null ? parseFloat(l.valor_recebido) : null,
+    valorUpgrade:  l.valor_upgrade  != null ? parseFloat(l.valor_upgrade)  : null,
     valor:         parseFloat(l.valor),
   };
 }
