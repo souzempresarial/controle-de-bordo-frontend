@@ -125,7 +125,10 @@ export default function Lancamentos() {
   function abrirEditar(l) {
     const cmv = l.grupoId
       ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
-      : null;
+      : lancamentos.find(x =>
+          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
+          (x.isCMV || (x.descricao || '').startsWith('CMV'))
+        );
     setEditando(l);
     setEditandoCMV(cmv || null);
     setForm(formVazio(l, cmv));
@@ -151,6 +154,7 @@ export default function Lancamentos() {
 
       if (isEntrada && form.cmvValor && parseFloat(form.cmvValor) > 0) {
         if (editandoCMV) {
+          grupoId = editando.grupoId || editandoCMV.grupoId || ('g' + Date.now());
           atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
             data: form.data, tipo: 'Saída',
             valor: parseFloat(form.cmvValor),

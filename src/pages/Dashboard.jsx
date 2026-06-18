@@ -176,7 +176,12 @@ export default function Dashboard() {
   }
 
   function abrirEditar(l) {
-    const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída')) : null;
+    const cmv = l.grupoId
+      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
+      : lancamentos.find(x =>
+          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
+          (x.isCMV || (x.descricao || '').startsWith('CMV'))
+        );
     setEditandoId(l.id);
     setEditandoCMV(cmv || null);
     setForm({
@@ -476,7 +481,12 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {semCMV.map(l => {
-                  const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída')) : null;
+                  const cmv = l.grupoId
+      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
+      : lancamentos.find(x =>
+          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
+          (x.isCMV || (x.descricao || '').startsWith('CMV'))
+        );
                   return (
                     <tr key={l.id}>
                       <td style={{ whiteSpace: 'nowrap' }}>{fmtData(l.data)}</td>
