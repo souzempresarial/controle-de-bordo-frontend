@@ -27,7 +27,7 @@ const formVazio = () => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
   subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
   deducao: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
-  valorUpgrade: '',
+  valorUpgrade: '', qtdUpgrade: '',
 });
 
 export default function Dashboard() {
@@ -197,6 +197,7 @@ export default function Dashboard() {
       quantidade: l.quantidade || '',
       deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
       valorUpgrade: l.valorUpgrade != null && l.valorUpgrade > 0 ? String(l.valorUpgrade) : '',
+      qtdUpgrade:   l.qtdUpgrade   != null && l.qtdUpgrade   > 0 ? String(l.qtdUpgrade)   : '',
       cmvValor: cmv ? cmv.valor : '',
       cmvCat:   cmv ? (cmv.categoria || '') : '',
       cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -248,6 +249,7 @@ export default function Dashboard() {
         }
 
         const upgradeVal = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
+        const qtdUpgradeVal = upgradeVal && parseInt(form.qtdUpgrade) > 0 ? parseInt(form.qtdUpgrade) : null;
         const atualizado = await API.editarLancamento(editandoId, {
           data: form.data, tipo: form.tipo, valor: valorBruto,
           categoria: form.categoria, subcategoria: form.subcategoria,
@@ -255,7 +257,7 @@ export default function Dashboard() {
           status: form.status, obs: form.obs,
           quantidade: isEnt ? (parseInt(form.quantidade) || null) : null,
           valor_recebido: valorRecebido, grupo_id: grupoId,
-          valor_upgrade: upgradeVal,
+          valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
         });
 
         setLancamentos(prev => {
@@ -278,6 +280,7 @@ export default function Dashboard() {
         const grupoId       = (cmvValor > 0 || deducao !== null) ? ('g' + Date.now()) : null;
 
         const upgradeVal  = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
+        const qtdUpgradeVal = upgradeVal && parseInt(form.qtdUpgrade) > 0 ? parseInt(form.qtdUpgrade) : null;
         const isCmvDireto = CMVCATS.includes(form.categoria);
         const novo = await API.criarLancamento(clienteAtivo.id, {
           tipo: form.tipo, valor: valorBruto, data: form.data,
@@ -286,7 +289,7 @@ export default function Dashboard() {
           status: form.status, obs: form.obs,
           quantidade, valor_recebido: valorRecebido, grupo_id: grupoId,
           is_cmv: isCmvDireto || undefined,
-          valor_upgrade: upgradeVal,
+          valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
         });
 
         let novosLans = [novo];
@@ -595,6 +598,12 @@ export default function Dashboard() {
                   <div className="field">
                     <label>Valor do Upgrade (R$)</label>
                     <input type="number" step="0.01" placeholder="Deixe vazio se não houver upgrade" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
+                  </div>
+                )}
+                {isEntrada && form.valorUpgrade > 0 && (
+                  <div className="field">
+                    <label>Qtd. de Upgrades</label>
+                    <input type="number" min="1" placeholder="1" value={form.qtdUpgrade} onChange={e => setField('qtdUpgrade', e.target.value)} />
                   </div>
                 )}
                 <div className="field span2">

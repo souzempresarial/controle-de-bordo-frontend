@@ -8,6 +8,7 @@ function normalizarLancamento(l) {
     grupoId:       l.grupo_id || null,
     valorRecebido: l.valor_recebido != null ? parseFloat(l.valor_recebido) : null,
     valorUpgrade:  l.valor_upgrade  != null ? parseFloat(l.valor_upgrade)  : null,
+    qtdUpgrade:    l.qtd_upgrade    != null ? parseInt(l.qtd_upgrade)      : null,
     valor:         parseFloat(l.valor),
   };
 }

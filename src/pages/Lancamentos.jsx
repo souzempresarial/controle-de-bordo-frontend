@@ -18,6 +18,7 @@ const formVazio = (l, cmv) => ({
   quantidade: l.quantidade || '',
   deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
   valorUpgrade: l.valorUpgrade != null && l.valorUpgrade > 0 ? String(l.valorUpgrade) : '',
+  qtdUpgrade:   l.qtdUpgrade   != null && l.qtdUpgrade   > 0 ? String(l.qtdUpgrade)   : '',
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -147,6 +148,7 @@ export default function Lancamentos() {
       const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
       const valorRecebido = deducao !== null ? valorBruto - deducao : null;
       const upgradeVal    = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
+      const qtdUpgradeVal = upgradeVal && parseInt(form.qtdUpgrade) > 0 ? parseInt(form.qtdUpgrade) : null;
 
       let grupoId = editando.grupoId || null;
       let atualizadoCMV = null;
@@ -186,7 +188,7 @@ export default function Lancamentos() {
         quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
         valor_recebido: valorRecebido,
         grupo_id: grupoId,
-        valor_upgrade: upgradeVal,
+        valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
       });
 
       setLancamentos(prev => {
@@ -420,6 +422,12 @@ export default function Lancamentos() {
                   <div className="field">
                     <label>Valor do Upgrade (R$)</label>
                     <input type="number" step="0.01" placeholder="Deixe vazio se não houver upgrade" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
+                  </div>
+                )}
+                {isEntrada && form.valorUpgrade > 0 && (
+                  <div className="field">
+                    <label>Qtd. de Upgrades</label>
+                    <input type="number" min="1" placeholder="1" value={form.qtdUpgrade} onChange={e => setField('qtdUpgrade', e.target.value)} />
                   </div>
                 )}
                 <div className="field span2">

@@ -693,6 +693,100 @@ function Balanco({ lancamentos }) {
   );
 }
 
+// ── CONTROLE DE UPGRADE ───────────────────────────────────────────────────────
+function ControleUpgrade({ lancamentos }) {
+  const anoAtual = hoje().slice(0, 4);
+  const mesAtual = hoje().slice(5, 7);
+  const anos = useMemo(() => {
+    const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
+    set.add(anoAtual);
+    return [...set].sort().reverse();
+  }, [lancamentos, anoAtual]);
+
+  const [ano, setAno] = useState(anoAtual);
+  const [mes, setMes] = useState('');
+
+  const upgrades = useMemo(() => {
+    return lancamentos
+      .filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0 && l.data.startsWith(ano) && (mes === '' || l.data.startsWith(`${ano}-${mes}`)))
+      .sort((a, b) => b.data.localeCompare(a.data));
+  }, [lancamentos, ano, mes]);
+
+  const totalQtd = upgrades.reduce((a, l) => a + (l.qtdUpgrade || l.quantidade || 1), 0);
+  const totalVal = upgrades.reduce((a, l) => a + l.valorUpgrade, 0);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="cards" style={{ flex: 1, minWidth: 0 }}>
+          <div className="card">
+            <div className="card-label">Quantidade de Upgrades</div>
+            <div className="card-value" style={{ color: 'var(--accent)' }}>{totalQtd} und</div>
+            <div className="card-sub">aparelhos recebidos no período</div>
+          </div>
+          <div className="card">
+            <div className="card-label">Total Upgrades (R$)</div>
+            <div className="card-value" style={{ color: '#8b5cf6' }}>{fmt(totalVal)}</div>
+            <div className="card-sub">valor em estoque dos aparelhos</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
+            <option value="">Todos os meses</option>
+            {MESES.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          </select>
+          <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
+            {anos.map(a => <option key={a}>{a}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="table-panel">
+        {upgrades.length === 0 ? (
+          <div className="empty-state">
+            <div className="icon">📦</div>
+            <div>Nenhum upgrade registrado no período</div>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Modelo</th>
+                  <th>Descrição</th>
+                  <th style={{ textAlign: 'right' }}>Valor da Venda</th>
+                  <th style={{ textAlign: 'right' }}>Valor do Upgrade</th>
+                  <th style={{ textAlign: 'right' }}>Pago em Dinheiro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upgrades.map(l => (
+                  <tr key={l.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{l.data.split('-').reverse().join('/')}</td>
+                    <td style={{ fontWeight: 600 }}>{l.subcategoria || l.categoria || '—'}</td>
+                    <td style={{ color: 'var(--text2)' }}>{l.descricao || '—'}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(l.valor)}</td>
+                    <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l.valorUpgrade)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(l.valor - l.valorUpgrade)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 700 }}>
+                  <td colSpan={4} style={{ paddingTop: 8, color: 'var(--text2)' }}>TOTAL — {totalQtd} aparelho{totalQtd !== 1 ? 's' : ''}</td>
+                  <td style={{ textAlign: 'right', paddingTop: 8, color: '#8b5cf6' }}>{fmt(totalVal)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── PROJEÇÃO ──────────────────────────────────────────────────────────────────
 function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
   const hj     = hoje();
@@ -828,14 +922,16 @@ export default function Financeiro() {
       <div className="abas">
         <button className={`aba-btn ${aba === 'dre'    ? 'active' : ''}`} onClick={() => setAba('dre')}>DRE</button>
         <button className={`aba-btn ${aba === 'fluxo'  ? 'active' : ''}`} onClick={() => setAba('fluxo')}>Fluxo de Caixa</button>
-        <button className={`aba-btn ${aba === 'balanco'? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
-        <button className={`aba-btn ${aba === 'proj'   ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
+        <button className={`aba-btn ${aba === 'balanco' ? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
+        <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Controle de Upgrade</button>
+        <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
       </div>
 
       {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
       {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} />}
-      {aba === 'balanco' && <Balanco lancamentos={lancamentos} />}
-      {aba === 'proj'    && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
+      {aba === 'balanco'  && <Balanco lancamentos={lancamentos} />}
+      {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} />}
+      {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
     </div>
   );
 }
