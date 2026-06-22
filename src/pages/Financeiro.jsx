@@ -291,6 +291,7 @@ const DFC_GRUPOS = [
     grupos: [
       { label: 'RECEITAS OPERACIONAIS',     cats: ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos'] },
       { label: 'RECEITAS NÃO-OPERACIONAIS', cats: ['Receitas Não-Operacionais'] },
+      { label: '(-) PERMUTA / UPGRADE',     cats: ['Permuta - Upgrade'] },
     ],
   },
   {
@@ -299,7 +300,6 @@ const DFC_GRUPOS = [
       { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'] },
       { label: 'SAÍDAS NÃO-OPERACIONAIS', cats: ['Saídas Não-Operacionais','Dívidas / Empréstimos'] },
       { label: 'INVESTIMENTOS', cats: ['Investimentos'] },
-      { label: 'PERMUTA / UPGRADE', cats: ['Permuta - Upgrade'] },
     ],
   },
 ];
@@ -337,12 +337,13 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
     MESES.map((_, i) => {
       const pfx       = `${ano}-${String(i + 1).padStart(2, '0')}`;
       const lm        = lancDFC.filter(l => l.data.startsWith(pfx));
-      const ent          = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+      const entBruto     = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
       const dedInline    = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
       const upgradeInline = lm.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
-      const sai          = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline + upgradeInline;
+      const ent          = entBruto - upgradeInline;
+      const sai          = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
       const catVal    = (cat) => {
-        if (cat === 'Permuta - Upgrade') return upgradeInline;
+        if (cat === 'Permuta - Upgrade') return -upgradeInline;
         const base = lm.filter(l => l.categoria === cat).reduce((a,l) => a + l.valor, 0);
         return cat === 'Deduções das Vendas' ? base + dedInline : base;
       };
@@ -548,10 +549,11 @@ function Balanco({ lancamentos }) {
   const dados = useMemo(() => {
     const lancAteAno = lancamentos.filter(l => l.data.slice(0, 7) <= periodo);
     const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
-    const entDFC        = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
+    const entDFCBruto   = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
     const dedInline     = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
     const upgradeInline = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
-    const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline + upgradeInline;
+    const entDFC        = entDFCBruto - upgradeInline;
+    const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
     const caixa         = entDFC - saiDFC;
 
     const totalAReceber = lancAteAno.filter(l =>
