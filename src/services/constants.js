@@ -16,7 +16,7 @@ export const CATEGORIAS_SAIDA = {
   '— Deduções das Vendas —': null,
   'Deduções das Vendas':   ['Taxas de Maquininha','Estornos','Descontos','Outro'],
   '— Custos Variáveis —': null,
-  'Custos Variáveis Indiretos':['Comissões do Vendedor','Motoboy','Freelancers','Horas Extras de Colaboradores','Outro'],
+  'Custos Variáveis Indiretos':['Comissões do Vendedor','Bônus de Indicação','Motoboy','Freelancers','Horas Extras de Colaboradores','Outro'],
   '— Despesas SG&A —': null,
   'Despesas com Ocupação': ['Luz','Operadora Celular','Internet','Água','Aluguel / Condomínio / IPTU','Segurança','Seguro do Imóvel','Outro'],
   'Despesas com Pessoal':  ['Vales - Transporte & Refeição','13º & Férias','INSS & FGTS','Adiantamento','Folha de Pagamento','Pró-Labore / PLR','Outro'],
