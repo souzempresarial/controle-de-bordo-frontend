@@ -709,13 +709,18 @@ function ControleUpgrade({ lancamentos }) {
   const [mes, setMes] = useState('');
 
   const upgrades = useMemo(() => {
-    return lancamentos
-      .filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0 && l.data.startsWith(ano) && (mes === '' || l.data.startsWith(`${ano}-${mes}`)))
-      .sort((a, b) => b.data.localeCompare(a.data));
+    const periodo = (l) => l.data.startsWith(ano) && (mes === '' || l.data.startsWith(`${ano}-${mes}`));
+    const novos = lancamentos
+      .filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0 && periodo(l))
+      .map(l => ({ ...l, _valorUpgrade: l.valorUpgrade, _qtd: l.qtdUpgrade || l.quantidade || 1, _origem: 'novo' }));
+    const antigos = lancamentos
+      .filter(l => l.tipo === 'Saída' && l.categoria === 'Fornecedores (Estoque)' && l.subcategoria === 'Aparelhos (Upgrade)' && periodo(l))
+      .map(l => ({ ...l, _valorUpgrade: l.valor, _qtd: l.quantidade || 1, _origem: 'antigo' }));
+    return [...novos, ...antigos].sort((a, b) => b.data.localeCompare(a.data));
   }, [lancamentos, ano, mes]);
 
-  const totalQtd = upgrades.reduce((a, l) => a + (l.qtdUpgrade || l.quantidade || 1), 0);
-  const totalVal = upgrades.reduce((a, l) => a + l.valorUpgrade, 0);
+  const totalQtd = upgrades.reduce((a, l) => a + l._qtd, 0);
+  const totalVal = upgrades.reduce((a, l) => a + l._valorUpgrade, 0);
 
   return (
     <div>
@@ -757,26 +762,28 @@ function ControleUpgrade({ lancamentos }) {
                   <th>Data</th>
                   <th>Modelo</th>
                   <th>Descrição</th>
-                  <th style={{ textAlign: 'right' }}>Valor da Venda</th>
                   <th style={{ textAlign: 'right' }}>Valor do Upgrade</th>
-                  <th style={{ textAlign: 'right' }}>Pago em Dinheiro</th>
+                  <th>Tipo</th>
                 </tr>
               </thead>
               <tbody>
                 {upgrades.map(l => (
-                  <tr key={l.id}>
+                  <tr key={`${l._origem}-${l.id}`}>
                     <td style={{ whiteSpace: 'nowrap' }}>{l.data.split('-').reverse().join('/')}</td>
-                    <td style={{ fontWeight: 600 }}>{l.subcategoria || l.categoria || '—'}</td>
+                    <td style={{ fontWeight: 600 }}>{l._origem === 'novo' ? (l.subcategoria || l.categoria || '—') : (l.subcategoria || '—')}</td>
                     <td style={{ color: 'var(--text2)' }}>{l.descricao || '—'}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(l.valor)}</td>
-                    <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l.valorUpgrade)}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(l.valor - l.valorUpgrade)}</td>
+                    <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l._valorUpgrade)}</td>
+                    <td>
+                      <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: l._origem === 'novo' ? '#8b5cf622' : '#f59e0b22', color: l._origem === 'novo' ? '#8b5cf6' : '#f59e0b', fontWeight: 600 }}>
+                        {l._origem === 'novo' ? 'Novo' : 'Anterior'}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 700 }}>
-                  <td colSpan={4} style={{ paddingTop: 8, color: 'var(--text2)' }}>TOTAL — {totalQtd} aparelho{totalQtd !== 1 ? 's' : ''}</td>
+                  <td colSpan={3} style={{ paddingTop: 8, color: 'var(--text2)' }}>TOTAL — {totalQtd} aparelho{totalQtd !== 1 ? 's' : ''}</td>
                   <td style={{ textAlign: 'right', paddingTop: 8, color: '#8b5cf6' }}>{fmt(totalVal)}</td>
                   <td />
                 </tr>
