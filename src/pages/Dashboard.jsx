@@ -431,6 +431,7 @@ export default function Dashboard() {
                 <th style={{ textAlign: 'right' }}>Unidades</th>
                 <th style={{ textAlign: 'right' }}>Faturamento</th>
                 <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                <th style={{ textAlign: 'right' }}>Lucro Médio</th>
                 <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
               </tr>
             </thead>
@@ -441,6 +442,10 @@ export default function Dashboard() {
                   <td style={{ textAlign: 'right' }}>{p.unidades}</td>
                   <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
                   <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro / p.unidades)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
+                  </td>
                   <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
                 </tr>
               ))}
