@@ -20,7 +20,14 @@ function vencInfo(venc) {
 const formVazio = () => ({
   tipo: 'pagar', descricao: '', valor: '', vencimento: '', categoria: '',
   subcategoria: '', recorrente: false, periodicidade: 'mensal',
+  parcelas: '', taxaJuros: '', primeiraParcela: '',
 });
+
+function calcPMT(pv, n, iMensal) {
+  if (pv <= 0 || n <= 0) return 0;
+  if (iMensal === 0) return pv / n;
+  return pv * (iMensal * Math.pow(1 + iMensal, n)) / (Math.pow(1 + iMensal, n) - 1);
+}
 
 export default function Contas() {
   const { contas, setContas, lancamentos, setLancamentos, clienteAtivo } = useApp();
@@ -30,10 +37,11 @@ export default function Contas() {
   const [form, setForm]               = useState(formVazio());
   const [salvando, setSalvando]       = useState(false);
   const [erroForm, setErroForm]       = useState('');
-  const [confirmando, setConfirmando] = useState(null);
-  const [quitando, setQuitando]         = useState(null);
-  const [toast, setToast]               = useState(null);
-  const [verQuitadas, setVerQuitadas]   = useState(false);
+  const [confirmando, setConfirmando]       = useState(null);
+  const [confirmandoBulk, setConfirmandoBulk] = useState(null);
+  const [quitando, setQuitando]             = useState(null);
+  const [toast, setToast]             = useState(null);
+  const [verQuitadas, setVerQuitadas] = useState(false);
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(mesAtual.slice(5, 7));
   const [ano, setAno] = useState(mesAtual.slice(0, 4));
@@ -65,18 +73,26 @@ export default function Contas() {
   const cats    = getCatsPorTipo('Saída');
   const subcats = getSubcats(form.categoria);
 
+  const isEmprestimo = form.categoria === 'Dívidas / Empréstimos';
+  const valorParcela = isEmprestimo
+    ? calcPMT(parseFloat(form.valor) || 0, parseInt(form.parcelas) || 0, (parseFloat(form.taxaJuros) || 0) / 100)
+    : 0;
+
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
       if (campo === 'tipo') { novo.categoria = ''; novo.subcategoria = ''; }
-      if (campo === 'categoria') { novo.subcategoria = ''; }
+      if (campo === 'categoria') {
+        novo.subcategoria = '';
+        novo.parcelas = ''; novo.taxaJuros = ''; novo.primeiraParcela = '';
+      }
       return novo;
     });
   }
 
   function abrirNovo() {
     setEditandoId(null);
-    setForm(formVazio('receber'));
+    setForm(formVazio());
     setErroForm('');
     setModalAberto(true);
   }
@@ -88,6 +104,7 @@ export default function Contas() {
       vencimento: c.vencimento || '', categoria: c.categoria || '',
       subcategoria: c.subcategoria || '',
       recorrente: !!c.recorrente, periodicidade: c.periodicidade || 'mensal',
+      parcelas: '', taxaJuros: '', primeiraParcela: '',
     });
     setErroForm('');
     setModalAberto(true);
@@ -98,8 +115,53 @@ export default function Contas() {
   async function salvar() {
     if (!form.descricao.trim()) { setErroForm('Informe a descrição'); return; }
     if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe um valor válido'); return; }
-    if (!form.vencimento) { setErroForm('Informe o vencimento'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
+
+    // Modo empréstimo: cria N parcelas
+    if (isEmprestimo && !editandoId) {
+      const n = parseInt(form.parcelas);
+      if (!n || n < 1) { setErroForm('Informe o número de parcelas'); return; }
+      if (!form.primeiraParcela) { setErroForm('Informe a data da 1ª parcela'); return; }
+      if (valorParcela <= 0) { setErroForm('Valor ou parcelas inválidos'); return; }
+
+      setSalvando(true); setErroForm('');
+      try {
+        const firstDate = new Date(form.primeiraParcela + 'T00:00:00');
+        const iMensal = (parseFloat(form.taxaJuros) || 0) / 100;
+        const novas = [];
+        let saldo = parseFloat(form.valor);
+        for (let idx = 0; idx < n; idx++) {
+          const d = new Date(firstDate);
+          d.setMonth(d.getMonth() + idx);
+          const juros = iMensal > 0 ? saldo * iMensal : 0;
+          const principal = valorParcela - juros;
+          saldo -= principal;
+          const nova = await API.criarConta(clienteAtivo.id, {
+            tipo: 'pagar',
+            descricao: `${form.descricao.trim()} — Parcela ${idx + 1}/${n}`,
+            valor: parseFloat(valorParcela.toFixed(2)),
+            vencimento: d.toISOString().split('T')[0],
+            categoria: form.categoria,
+            subcategoria: form.subcategoria,
+            recorrente: false,
+            status: 'pendente',
+            valor_juros: iMensal > 0 ? parseFloat(juros.toFixed(2)) : null,
+          });
+          novas.push(nova);
+        }
+        setContas(prev => [...prev, ...novas]);
+        showToast(`${n} parcelas criadas com sucesso`);
+        fecharModal();
+      } catch (err) {
+        setErroForm(err.message || 'Erro ao salvar');
+      } finally {
+        setSalvando(false);
+      }
+      return;
+    }
+
+    // Modo normal
+    if (!form.vencimento) { setErroForm('Informe o vencimento'); return; }
 
     const dados = {
       tipo: form.tipo, descricao: form.descricao.trim(), valor: parseFloat(form.valor),
@@ -128,6 +190,17 @@ export default function Contas() {
     }
   }
 
+  async function excluirBulk(categoria) {
+    try {
+      const { deletados } = await API.excluirContasBulk(clienteAtivo.id, categoria);
+      setContas(prev => prev.filter(c => !(c.status === 'pendente' && (!categoria || c.categoria === categoria))));
+      showToast(`${deletados} conta${deletados !== 1 ? 's' : ''} excluída${deletados !== 1 ? 's' : ''}`);
+    } catch (err) {
+      showToast('Erro ao excluir', 'erro');
+    }
+    setConfirmandoBulk(null);
+  }
+
   async function excluir(id) {
     try {
       await API.excluirConta(clienteAtivo.id, id);
@@ -146,12 +219,28 @@ export default function Contas() {
       await API.editarConta(clienteAtivo.id, c.id, { ...c, status: 'quitado' });
       setContas(prev => prev.map(x => x.id === c.id ? { ...x, status: 'quitado' } : x));
 
-      const novoLanc = await API.criarLancamento(clienteAtivo.id, {
-        tipo: tipoLanc, descricao: c.descricao, valor: c.valor,
-        data: hoje(), categoria: c.categoria || (tipoLanc === 'Saída' ? 'Despesas Variáveis' : 'Outras Receitas'),
-        subcategoria: c.subcategoria || '', status: 'Confirmado',
-      });
-      setLancamentos(prev => [novoLanc, ...prev]);
+      const valorJuros = parseFloat(c.valor_juros) || 0;
+      if (tipoLanc === 'Saída' && valorJuros > 0) {
+        const principal = parseFloat(c.valor) - valorJuros;
+        const [lancPrincipal, lancJuros] = await Promise.all([
+          API.criarLancamento(clienteAtivo.id, {
+            tipo: 'Saída', descricao: c.descricao, valor: parseFloat(principal.toFixed(2)),
+            data: hoje(), categoria: c.categoria, subcategoria: 'Amortização', status: 'Confirmado',
+          }),
+          API.criarLancamento(clienteAtivo.id, {
+            tipo: 'Saída', descricao: c.descricao + ' (Juros)', valor: parseFloat(valorJuros.toFixed(2)),
+            data: hoje(), categoria: c.categoria, subcategoria: 'Juros', status: 'Confirmado',
+          }),
+        ]);
+        setLancamentos(prev => [lancPrincipal, lancJuros, ...prev]);
+      } else {
+        const novoLanc = await API.criarLancamento(clienteAtivo.id, {
+          tipo: tipoLanc, descricao: c.descricao, valor: c.valor,
+          data: hoje(), categoria: c.categoria || (tipoLanc === 'Saída' ? 'Despesas Variáveis' : 'Outras Receitas'),
+          subcategoria: c.subcategoria || '', status: 'Confirmado',
+        });
+        setLancamentos(prev => [novoLanc, ...prev]);
+      }
 
       if (c.recorrente && c.periodicidade && c.vencimento) {
         const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
@@ -194,10 +283,10 @@ export default function Contas() {
     lista.forEach(c => {
       const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
       const diff = Math.round((d - now) / 86400000);
-      if (diff < 0)       grupos.vencidas.push(c);
-      else if (diff <= 7) grupos.semana.push(c);
+      if (diff < 0)        grupos.vencidas.push(c);
+      else if (diff <= 7)  grupos.semana.push(c);
       else if (diff <= 15) grupos.quinzena.push(c);
-      else                grupos.depois.push(c);
+      else                 grupos.depois.push(c);
     });
     return grupos;
   }
@@ -268,7 +357,6 @@ export default function Contas() {
 
   return (
     <div className="contas-page">
-      {/* Filtro de período */}
       <div className="period-row">
         <span className="period-label">Período</span>
         <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
@@ -283,7 +371,6 @@ export default function Contas() {
         </select>
       </div>
 
-      {/* Resumo */}
       <div className="contas-kpis">
         <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
           <div className="contas-kpi-icon">📋</div>
@@ -311,17 +398,21 @@ export default function Contas() {
         </div>
       </div>
 
-      {/* Botão */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta</button>
         {quitadasP.length > 0 && (
           <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadas(v => !v)}>
             {verQuitadas ? 'Ocultar pagas' : `Ver pagas (${quitadasP.length})`}
           </button>
         )}
+        {contas.filter(c => c.status === 'pendente').length > 1 && (
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }}
+            onClick={() => setConfirmandoBulk('todas')}>
+            🗑 Excluir todas pendentes ({contas.filter(c => c.status === 'pendente').length})
+          </button>
+        )}
       </div>
 
-      {/* Contas a Pagar */}
       <div className="table-panel">
         <div className="table-header">
           <h2 style={{ color: 'var(--saida)' }}>Contas a Pagar</h2>
@@ -330,7 +421,6 @@ export default function Contas() {
         <TabelaContas lista={pendP} tipoLabel="pagar" />
       </div>
 
-      {/* Histórico de quitadas */}
       {verQuitadas && quitadasP.length > 0 && (
         <div className="table-panel">
           <div className="table-header">
@@ -365,7 +455,7 @@ export default function Contas() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
           <div className="modal-box">
             <div className="modal-header">
-              <h3>{editandoId ? 'Editar Conta' : 'Nova Conta a Pagar'}</h3>
+              <h3>{editandoId ? 'Editar Conta' : isEmprestimo ? 'Novo Empréstimo' : 'Nova Conta a Pagar'}</h3>
               <button className="modal-close" onClick={fecharModal}>✕</button>
             </div>
             <div className="modal-body">
@@ -374,14 +464,20 @@ export default function Contas() {
                   <label>Descrição</label>
                   <input type="text" placeholder="Descrição da conta" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
                 </div>
+
                 <div className="field">
-                  <label>Valor (R$)</label>
+                  <label>{isEmprestimo && !editandoId ? 'Valor do Empréstimo (R$)' : 'Valor (R$)'}</label>
                   <input type="number" step="0.01" placeholder="0,00" value={form.valor} onChange={e => setField('valor', e.target.value)} />
                 </div>
-                <div className="field">
-                  <label>Vencimento</label>
-                  <input type="date" value={form.vencimento} onChange={e => setField('vencimento', e.target.value)} />
-                </div>
+
+                {/* Vencimento só aparece no modo normal ou edição */}
+                {(!isEmprestimo || editandoId) && (
+                  <div className="field">
+                    <label>Vencimento</label>
+                    <input type="date" value={form.vencimento} onChange={e => setField('vencimento', e.target.value)} />
+                  </div>
+                )}
+
                 <div className="field">
                   <label>Categoria</label>
                   <select value={form.categoria} onChange={e => setField('categoria', e.target.value)}>
@@ -393,6 +489,7 @@ export default function Contas() {
                     )}
                   </select>
                 </div>
+
                 <div className="field">
                   <label>Subcategoria</label>
                   <select value={form.subcategoria} onChange={e => setField('subcategoria', e.target.value)}>
@@ -400,7 +497,39 @@ export default function Contas() {
                     {subcats.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
-                {form.tipo === 'pagar' && (
+
+                {/* Campos extras para empréstimo (somente criação) */}
+                {isEmprestimo && !editandoId && (
+                  <>
+                    <div className="field">
+                      <label>Nº de Parcelas</label>
+                      <input type="number" min="1" step="1" placeholder="Ex: 24" value={form.parcelas} onChange={e => setField('parcelas', e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Juros (% a.m.)</label>
+                      <input type="number" min="0" step="0.01" placeholder="0,00" value={form.taxaJuros} onChange={e => setField('taxaJuros', e.target.value)} />
+                    </div>
+                    <div className="field span2">
+                      <label>Data da 1ª Parcela</label>
+                      <input type="date" value={form.primeiraParcela} onChange={e => setField('primeiraParcela', e.target.value)} />
+                    </div>
+                    {valorParcela > 0 && (
+                      <div className="field span2" style={{ background: 'var(--surface)', borderRadius: 8, padding: '12px 14px', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>Valor da parcela (tabela Price)</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--entrada)' }}>{fmt(valorParcela)}</div>
+                        {parseInt(form.parcelas) > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
+                            Total a pagar: {fmt(valorParcela * parseInt(form.parcelas))}
+                            {parseFloat(form.taxaJuros) > 0 && ` · Juros: ${fmt(valorParcela * parseInt(form.parcelas) - parseFloat(form.valor))}`}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Recorrência só no modo normal */}
+                {!isEmprestimo && form.tipo === 'pagar' && (
                   <>
                     <div className="field span2" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <input type="checkbox" id="recorrente" checked={form.recorrente} onChange={e => setField('recorrente', e.target.checked)} />
@@ -424,7 +553,13 @@ export default function Contas() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
               <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
-                {salvando ? 'Salvando...' : editandoId ? 'Salvar' : 'Adicionar'}
+                {salvando
+                  ? 'Salvando...'
+                  : editandoId
+                    ? 'Salvar'
+                    : isEmprestimo
+                      ? `Gerar ${parseInt(form.parcelas) || 0} parcelas`
+                      : 'Adicionar'}
               </button>
             </div>
           </div>
@@ -451,7 +586,27 @@ export default function Contas() {
           </div>
         </div>
       )}
-      {/* Toast */}
+
+      {confirmandoBulk && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmandoBulk(null)}>
+          <div className="modal-box modal-small">
+            <div className="modal-header">
+              <h3>Excluir em massa</h3>
+              <button className="modal-close" onClick={() => setConfirmandoBulk(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text2)', fontSize: 13 }}>
+                Excluir <strong style={{ color: 'var(--danger)' }}>todas as {contas.filter(c => c.status === 'pendente').length} contas pendentes</strong>? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setConfirmandoBulk(null)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={() => excluirBulk(null)}>Excluir todas</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className={`toast toast-${toast.tipo}`}>{toast.msg}</div>
       )}

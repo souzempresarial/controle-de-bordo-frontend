@@ -1,4 +1,4 @@
-const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
+﻿const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
 
 function normalizarLancamento(l) {
   return {
@@ -62,7 +62,8 @@ export const API = {
   listarContas:  (cid)            => apiFetch(`/clientes/${cid}/contas`),
   criarConta:    (cid, dados)     => apiFetch(`/clientes/${cid}/contas`, { method: 'POST', body: JSON.stringify(dados) }),
   editarConta:   (cid, id, dados) => apiFetch(`/clientes/${cid}/contas/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
-  excluirConta:  (cid, id)        => apiFetch(`/clientes/${cid}/contas/${id}`, { method: 'DELETE' }),
+  excluirConta:      (cid, id)   => apiFetch(`/clientes/${cid}/contas/${id}`, { method: 'DELETE' }),
+  excluirContasBulk: (cid, cat)   => apiFetch(`/clientes/${cid}/contas/bulk${cat ? `?categoria=${encodeURIComponent(cat)}` : ``}`, { method: 'DELETE' }),
 
   // Metas
   listarMetas: (cid)        => apiFetch(`/clientes/${cid}/metas`),
@@ -71,4 +72,8 @@ export const API = {
   // Saldo inicial
   buscarSaldo: (cid, ano)        => apiFetch(`/clientes/${cid}/saldo/${ano}`),
   salvarSaldo: (cid, ano, dados) => apiFetch(`/clientes/${cid}/saldo/${ano}`, { method: 'POST', body: JSON.stringify(dados) }),
+
+  // Recursos em Capital
+  buscarCapital: (cid, mes)        => apiFetch(`/clientes/${cid}/capital/${mes}`),
+  salvarCapital: (cid, mes, dados) => apiFetch(`/clientes/${cid}/capital/${mes}`, { method: 'POST', body: JSON.stringify(dados) }),
 };

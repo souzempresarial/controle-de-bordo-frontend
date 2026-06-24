@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+﻿import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
@@ -33,7 +33,7 @@ function calcDREMes(lancamentos, pfx) {
   const ebitda      = lucroBruto - sga;
   const margEbitda  = recBruta > 0 ? (ebitda / recBruta * 100) : null;
   const recFin      = ent('Receitas Não-Operacionais', 'Aplicações Fora da Companhia');
-  const despJuros   = sai('Dívidas / Empréstimos');
+  const despJuros   = lm.filter(l => l.tipo === 'Saída' && l.categoria === 'Dívidas / Empréstimos' && l.subcategoria !== 'Amortização').reduce((a,l) => a+l.valor, 0);
   const despNaoOp   = sai('Saídas Não-Operacionais');
   const resFin      = recFin - despJuros - despNaoOp;
 
@@ -532,7 +532,16 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
 }
 
 // ── BALANÇO PATRIMONIAL ───────────────────────────────────────────────────────
-function Balanco({ lancamentos }) {
+const CAPITAL_CAMPOS = [
+  { campo: 'cap_caixa',               label: 'Capital Liq em Caixa' },
+  { campo: 'cap_estoque_aparelhos',   label: 'Capital em Estoque Aparelhos' },
+  { campo: 'cap_estoque_acessorios',  label: 'Capital em Estoque Acessórios' },
+  { campo: 'cap_reserva',             label: 'Reserva de Emergência' },
+  { campo: 'cap_manutencao',          label: 'Aparelhos em Manutenção' },
+  { campo: 'cap_receber',             label: 'Contas a Receber' },
+];
+
+function Balanco({ lancamentos, clienteAtivo }) {
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -543,8 +552,53 @@ function Balanco({ lancamentos }) {
   const mesAtual = hoje().slice(5, 7);
   const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState(mesAtual);
+  const [capitalCache, setCapitalCache] = useState({});
+  const [modalCapital, setModalCapital] = useState(false);
+  const [capitalForm, setCapitalForm] = useState({});
+  const [salvandoCap, setSalvandoCap] = useState(false);
+  const [contas, setContas] = useState([]);
 
   const periodo = `${ano}-${mes}`;
+
+  useEffect(() => {
+    if (!clienteAtivo?.id) return;
+    API.listarContas(clienteAtivo.id).then(setContas).catch(() => {});
+  }, [clienteAtivo]);
+
+  useEffect(() => {
+    if (!clienteAtivo?.id || capitalCache[periodo] !== undefined) return;
+    API.buscarCapital(clienteAtivo.id, periodo)
+      .then(d => setCapitalCache(prev => ({ ...prev, [periodo]: d })))
+      .catch(() => setCapitalCache(prev => ({ ...prev, [periodo]: {} })));
+  }, [clienteAtivo, periodo]);
+
+  const capital = capitalCache[periodo] || {};
+  const getCapital = (campo) => capital[campo] || 0;
+  const totalCapital = CAPITAL_CAMPOS.reduce((a, { campo }) => a + getCapital(campo), 0);
+
+  function abrirModalCapital() {
+    const form = {};
+    CAPITAL_CAMPOS.forEach(({ campo }) => { form[campo] = capital[campo] != null ? String(capital[campo]) : ''; });
+    setCapitalForm(form);
+    setModalCapital(true);
+  }
+
+  async function salvarCapital() {
+    if (!clienteAtivo?.id) return;
+    setSalvandoCap(true);
+    try {
+      await Promise.all(
+        CAPITAL_CAMPOS.map(({ campo }) =>
+          API.salvarCapital(clienteAtivo.id, periodo, { campo, valor: parseFloat(capitalForm[campo]) || 0 })
+        )
+      );
+      const novo = {};
+      CAPITAL_CAMPOS.forEach(({ campo }) => { novo[campo] = parseFloat(capitalForm[campo]) || 0; });
+      setCapitalCache(prev => ({ ...prev, [periodo]: novo }));
+      setModalCapital(false);
+    } catch(e) { console.error(e); }
+    finally { setSalvandoCap(false); }
+  }
 
   const dados = useMemo(() => {
     const lancAteAno = lancamentos.filter(l => l.data.slice(0, 7) <= periodo);
@@ -569,17 +623,19 @@ function Balanco({ lancamentos }) {
     const upgradeEstoque = lancAteAno.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
     const totalAtivo     = Math.max(0, caixa) + totalAReceber + estoque + upgradeEstoque;
 
-    const aPagar           = lancamentos.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
-    const totalFornecPagar = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
-    const totalOutrasPagar = aPagar.filter(l => l.categoria !== 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
-    const totalPassivo     = totalFornecPagar + totalOutrasPagar;
+    const aPagar              = lancamentos.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
+    const totalFornecPagar    = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
+    const totalOutrasPagar    = aPagar.filter(l => !['Fornecedores (Estoque)','Dívidas / Empréstimos','Impostos'].includes(l.categoria)).reduce((a,l) => a+l.valor, 0);
+    const totalEmprestimosPagar = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos' && c.status === 'pendente').reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);
+    const totalImpostosPagar  = lancAteAno.filter(l => l.tipo === 'Saída' && l.categoria === 'Impostos' && l.status === 'Confirmado').reduce((a,l) => a+l.valor, 0);
+    const totalPassivo        = totalFornecPagar + totalEmprestimosPagar + totalImpostosPagar + totalOutrasPagar;
     const pl               = totalAtivo - totalPassivo;
     const endividamento    = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
 
-    return { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
-  }, [lancamentos, periodo]);
+    return { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalEmprestimosPagar, totalImpostosPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
+  }, [lancamentos, periodo, contas]);
 
-  const { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
+  const { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalEmprestimosPagar, totalImpostosPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
 
   const Linha = ({ label, val, indent = false, neg = false }) => {
     const cor = val === 0 ? 'var(--text2)' : neg ? 'var(--saida)' : val > 0 ? 'var(--entrada)' : 'var(--saida)';
@@ -608,8 +664,8 @@ function Balanco({ lancamentos }) {
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
           <div className="card">
             <div className="card-label">Total Ativo</div>
-            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totalAtivo)}</div>
-            <div className="card-sub">Recursos totais</div>
+            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totalCapital)}</div>
+            <div className="card-sub">Recursos em capital</div>
           </div>
           <div className="card">
             <div className="card-label">Total Passivo</div>
@@ -618,7 +674,7 @@ function Balanco({ lancamentos }) {
           </div>
           <div className="card">
             <div className="card-label">Patrimônio Líquido</div>
-            <div className="card-value" style={{ color: pl >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(pl)}</div>
+            <div className="card-value" style={{ color: (totalCapital - totalPassivo) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totalCapital - totalPassivo)}</div>
             <div className="card-sub">Ativo − Passivo</div>
           </div>
           <div className="card">
@@ -641,18 +697,13 @@ function Balanco({ lancamentos }) {
         <div className="table-panel" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>ATIVO</h3>
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>Acumulado até {MESES[parseInt(mes) - 1]}/{ano}</span>
+            <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
           </div>
-          <Grupo label="Ativo Circulante" />
-          <Linha label="Caixa e Equivalentes" val={Math.max(0, caixa)} indent />
-          <Linha label="Contas a Receber" val={totalAReceber} indent />
-          <Linha label="Estoque Estimado" val={estoque} indent />
-          <div style={{ fontSize: 11, color: 'var(--text2)', paddingLeft: 16, paddingBottom: 6 }}>
-            Fornecedores pagos {fmt(totalFornecPago)} − CMV reconhecido {fmt(totalCMVRec)}
-          </div>
-          {upgradeEstoque > 0 && <Linha label="Controle de Upgrade" val={upgradeEstoque} indent />}
-          {caixa < 0 && <div style={{ fontSize: 11, color: 'var(--warn)', paddingLeft: 16, paddingBottom: 6 }}>⚠ Saldo de caixa negativo: {fmt(caixa)}</div>}
-          <LinhaTotal label="TOTAL ATIVO" val={totalAtivo} final />
+          <Grupo label="Recursos em Capital" />
+          {CAPITAL_CAMPOS.map(({ campo, label }) => (
+            <Linha key={campo} label={label} val={getCapital(campo)} indent />
+          ))}
+          <LinhaTotal label="TOTAL ATIVO" val={totalCapital} final />
         </div>
 
         <div className="table-panel" style={{ padding: '16px 20px' }}>
@@ -662,20 +713,53 @@ function Balanco({ lancamentos }) {
           </div>
           <Grupo label="Passivo Circulante" />
           <Linha label="Fornecedores a Pagar" val={totalFornecPagar} indent neg />
-          <Linha label="Outras Contas a Pagar" val={totalOutrasPagar} indent neg />
+          {totalEmprestimosPagar > 0 && <Linha label="Empréstimos" val={totalEmprestimosPagar} indent neg />}
+          {totalImpostosPagar > 0 && <Linha label="Impostos" val={totalImpostosPagar} indent neg />}
+          {totalOutrasPagar > 0 && <Linha label="Outras Contas a Pagar" val={totalOutrasPagar} indent neg />}
           <LinhaTotal label="TOTAL PASSIVO" val={totalPassivo} />
           <Grupo label="Patrimônio Líquido" />
-          <Linha label="Resultado Acumulado" val={pl} indent neg={pl < 0} />
-          <LinhaTotal label="TOTAL PASSIVO + PL" val={totalAtivo} final />
+          <Linha label="Resultado Acumulado" val={totalCapital - totalPassivo} indent neg={(totalCapital - totalPassivo) < 0} />
+          <LinhaTotal label="TOTAL PASSIVO + PL" val={totalCapital} final />
         </div>
       </div>
 
-      {totalAtivo > 0 && (
+      {modalCapital && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalCapital(false)}>
+          <div className="modal-box modal-small">
+            <div className="modal-header">
+              <h3>Recursos em Capital — {MESES_FULL[parseInt(mes) - 1]}/{ano}</h3>
+              <button className="modal-close" onClick={() => setModalCapital(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                {CAPITAL_CAMPOS.map(({ campo, label }) => (
+                  <div key={campo} className="field">
+                    <label>{label}</label>
+                    <input
+                      type="number" step="0.01" placeholder="0,00"
+                      value={capitalForm[campo] || ''}
+                      onChange={e => setCapitalForm(prev => ({ ...prev, [campo]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setModalCapital(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={salvarCapital} disabled={salvandoCap}>
+                {salvandoCap ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {totalCapital > 0 && (
         <div className="table-panel" style={{ padding: '16px 20px', marginTop: 0 }}>
           <h3 style={{ marginTop: 0, marginBottom: 16 }}>Composição do Ativo</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[['Caixa', Math.max(0, caixa), '#22c55e'], ['A Receber', totalAReceber, '#f59e0b'], ['Estoque', estoque, '#16a34a'], ['Upgrade', upgradeEstoque, '#8b5cf6']].filter(([, val]) => val > 0).map(([label, val, cor]) => {
-              const pct = totalAtivo > 0 ? (val / totalAtivo * 100) : 0;
+            {CAPITAL_CAMPOS.map(({ campo, label }, i) => ({ label, val: getCapital(campo), cor: ['#22c55e','#3b82f6','#f59e0b','#8b5cf6','#f03e3e','#06b6d4'][i] })).filter(({ val }) => val > 0).map(({ label, val, cor }) => {
+              const pct = totalCapital > 0 ? (val / totalCapital * 100) : 0;
               return (
                 <div key={label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
@@ -938,7 +1022,7 @@ export default function Financeiro() {
 
       {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
       {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} />}
-      {aba === 'balanco'  && <Balanco lancamentos={lancamentos} />}
+      {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} />}
       {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} />}
       {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
     </div>

@@ -1,4 +1,4 @@
-export const CATEGORIAS_ENTRADA = {
+﻿export const CATEGORIAS_ENTRADA = {
   '— Receitas Operacionais —': null,
   'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Fonte Turbo','Outro'],
   'Acessórios':            ['Acessórios Geral','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
@@ -26,7 +26,7 @@ export const CATEGORIAS_SAIDA = {
   'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','CEF Matriz','Ministério da Fazenda','Outro'],
   '— Não-Operacional —': null,
   'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Patrocínio','Momento Recreativo','Perda de Mercadoria','Outro'],
-  'Dívidas / Empréstimos': ['Empréstimo Infinity','Empréstimo Itaú','Outro'],
+  'Dívidas / Empréstimos': ['Outro'],
   '— Investimento —': null,
   'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis','Outro'],
 };
