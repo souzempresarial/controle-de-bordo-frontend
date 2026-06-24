@@ -128,6 +128,7 @@ function fmtDateBR(iso) {
   return `${day}/${m}/${y}`;
 }
 
+
 export default function Relatorio() {
   const { lancamentos, clienteAtivo } = useApp();
 
@@ -457,6 +458,7 @@ export default function Relatorio() {
               </div>
             </div>
           </div>
+
 
         </div>
       )}
