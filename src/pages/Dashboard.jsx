@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
@@ -209,7 +209,7 @@ export default function Dashboard() {
   function fecharModal() { setModalAberto(false); setEditandoId(null); setEditandoCMV(null); }
 
   async function salvar() {
-    if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
+    if (parseFloat(form.valor || 0) < 0) { setErroForm('Valor não pode ser negativo'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
 
     setSalvando(true);
@@ -217,7 +217,7 @@ export default function Dashboard() {
     try {
       if (editandoId) {
         const editando     = lancamentos.find(l => l.id === editandoId);
-        const valorBruto    = parseFloat(form.valor);
+        const valorBruto    = parseFloat(form.valor) || 0;
         const deducaoRaw    = parseFloat(form.deducao);
         const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
         const valorRecebido = deducao !== null ? valorBruto - deducao : null;
@@ -273,7 +273,7 @@ export default function Dashboard() {
         const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
 
         const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
-        const valorBruto    = parseFloat(form.valor);
+        const valorBruto    = parseFloat(form.valor) || 0;
         const deducaoRaw    = parseFloat(form.deducao);
         const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
         const valorRecebido = deducao !== null ? valorBruto - deducao : null;
@@ -343,8 +343,13 @@ export default function Dashboard() {
   }
 
   const isEntrada = form.tipo === 'Entrada';
-  const margemPreview = isEntrada && form.valor && form.cmvValor
-    ? { lucro: parseFloat(form.valor) - parseFloat(form.cmvValor), margem: ((parseFloat(form.valor) - parseFloat(form.cmvValor)) / parseFloat(form.valor) * 100).toFixed(2) }
+  const margemPreview = isEntrada && form.cmvValor
+    ? (() => {
+        const rec = parseFloat(form.valor) || 0;
+        const cmv = parseFloat(form.cmvValor) || 0;
+        const lucro = rec - cmv;
+        return { lucro, margem: rec > 0 ? (lucro / rec * 100).toFixed(2) : '—' };
+      })()
     : null;
 
   return (
@@ -635,10 +640,10 @@ export default function Dashboard() {
                   </div>
                   {margemPreview && (
                     <div className="margem-preview">
-                      <span>Receita: <strong>{fmt(parseFloat(form.valor))}</strong></span>
-                      <span>CMV: <strong style={{ color: 'var(--saida)' }}>{fmt(parseFloat(form.cmvValor))}</strong></span>
+                      <span>Receita: <strong>{fmt(parseFloat(form.valor) || 0)}</strong></span>
+                      <span>CMV: <strong style={{ color: 'var(--saida)' }}>{fmt(parseFloat(form.cmvValor) || 0)}</strong></span>
                       <span>Lucro: <strong style={{ color: margemPreview.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(margemPreview.lucro)}</strong></span>
-                      <span>Margem: <strong style={{ color: margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem}%</strong></span>
+                      <span>Margem: <strong style={{ color: margemPreview.margem === '—' ? 'var(--text2)' : margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem === '—' ? '—' : margemPreview.margem + '%'}</strong></span>
                     </div>
                   )}
                 </div>

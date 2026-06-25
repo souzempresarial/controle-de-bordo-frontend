@@ -106,11 +106,13 @@ export default function Lancamentos() {
   const cmvSubs  = form ? getSubcats(form.cmvCat) : [];
 
   const isEntrada = form?.tipo === 'Entrada';
-  const margemPreview = isEntrada && form?.valor && form?.cmvValor
-    ? {
-        lucro:  parseFloat(form.valor) - parseFloat(form.cmvValor),
-        margem: ((parseFloat(form.valor) - parseFloat(form.cmvValor)) / parseFloat(form.valor) * 100).toFixed(2),
-      }
+  const margemPreview = isEntrada && form?.cmvValor
+    ? (() => {
+        const rec   = parseFloat(form.valor) || 0;
+        const cmv   = parseFloat(form.cmvValor) || 0;
+        const lucro = rec - cmv;
+        return { lucro, margem: rec > 0 ? (lucro / rec * 100).toFixed(2) : '—' };
+      })()
     : null;
 
   function setField(campo, valor) {
@@ -139,7 +141,7 @@ export default function Lancamentos() {
   function fecharModal() { setEditando(null); setEditandoCMV(null); setForm(null); }
 
   async function salvar() {
-    if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe o valor'); return; }
+    if (parseFloat(form.valor || 0) < 0) { setErroForm('Valor não pode ser negativo'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
     setSalvando(true); setErroForm('');
     try {
@@ -457,7 +459,7 @@ export default function Lancamentos() {
                       <span>Receita: <strong>{fmt(parseFloat(form.valor))}</strong></span>
                       <span>CMV: <strong style={{ color: 'var(--saida)' }}>{fmt(parseFloat(form.cmvValor))}</strong></span>
                       <span>Lucro: <strong style={{ color: margemPreview.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(margemPreview.lucro)}</strong></span>
-                      <span>Margem: <strong style={{ color: margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem}%</strong></span>
+                      <span>Margem: <strong style={{ color: margemPreview.margem === '—' ? 'var(--text2)' : margemPreview.margem >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{margemPreview.margem === '—' ? '—' : `${margemPreview.margem}%`}</strong></span>
                     </div>
                   )}
                 </div>
