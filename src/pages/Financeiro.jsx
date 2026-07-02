@@ -46,7 +46,7 @@ function calcDREMes(lancamentos, pfx) {
 }
 
 // ── DRE ──────────────────────────────────────────────────────────────────────
-function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
+function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, setMesFiltro, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -54,9 +54,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
-  const [ano, setAno]               = useState(anoAtual);
-  const [mesFiltro, setMesFiltro]   = useState(mesAtual);
+
   const [expandedRows, setExpanded] = useState(new Set());
 
   function toggleExpand(cat) {
@@ -304,7 +302,7 @@ const DFC_GRUPOS = [
   },
 ];
 
-function FluxoCaixa({ lancamentos, clienteAtivo }) {
+function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -312,9 +310,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
-  const [ano, setAno]         = useState(anoAtual);
-  const [mesFiltro, setMes]   = useState(mesAtual);
+
   const [saldoInicial, setSI] = useState(0);
   const [saldoMes, setSIMes]  = useState(0);
   const [modalSI, setModalSI] = useState(false);
@@ -405,7 +401,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select className="period-select" value={mesFiltro} onChange={e => setMes(Number(e.target.value))}>
+          <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
             {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
           </select>
           <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
@@ -541,7 +537,7 @@ const CAPITAL_CAMPOS = [
   { campo: 'cap_receber',             label: 'Contas a Receber' },
 ];
 
-function Balanco({ lancamentos, clienteAtivo }) {
+function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -549,9 +545,7 @@ function Balanco({ lancamentos, clienteAtivo }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const mesAtual = hoje().slice(5, 7);
-  const [ano, setAno] = useState(anoAtual);
-  const [mes, setMes] = useState(mesAtual);
+  const mes = String(mesFiltro + 1).padStart(2, '0');
   const [capitalCache, setCapitalCache] = useState({});
   const [modalCapital, setModalCapital] = useState(false);
   const [capitalForm, setCapitalForm] = useState({});
@@ -684,8 +678,8 @@ function Balanco({ lancamentos, clienteAtivo }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
-            {MESES.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
+            {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
           </select>
           <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
             {anos.map(a => <option key={a}>{a}</option>)}
@@ -780,16 +774,14 @@ function Balanco({ lancamentos, clienteAtivo }) {
 }
 
 // ── CONTROLE DE UPGRADE ───────────────────────────────────────────────────────
-function ControleUpgrade({ lancamentos }) {
+function ControleUpgrade({ lancamentos, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
-  const mesAtual = hoje().slice(5, 7);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
     set.add(anoAtual);
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const [ano, setAno] = useState(anoAtual);
   const [mes, setMes] = useState('');
 
   const upgrades = useMemo(() => {
@@ -1018,6 +1010,10 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
 export default function Financeiro() {
   const { lancamentos, clienteAtivo, metasCache, setMetasCache } = useApp();
   const [aba, setAba] = useState('dre');
+  const anoAtual = hoje().slice(0, 4);
+  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
+  const [mesFiltro, setMesFiltro] = useState(mesAtual);
+  const [ano, setAno] = useState(anoAtual);
 
   return (
     <div className="financeiro-page">
@@ -1029,10 +1025,10 @@ export default function Financeiro() {
         <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
       </div>
 
-      {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
-      {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} />}
-      {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} />}
-      {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} />}
+      {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
+      {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
+      {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
+      {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} ano={ano} setAno={setAno} />}
       {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
     </div>
   );
