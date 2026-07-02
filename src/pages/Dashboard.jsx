@@ -35,8 +35,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const mesAtual = hoje().slice(0, 7);
-  const [mes, setMes] = useState(mesAtual.slice(5, 7));
-  const [ano, setAno] = useState(mesAtual.slice(0, 4));
+  const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
+  const [ano, setAno] = useState(() => localStorage.getItem('dash_ano') || mesAtual.slice(0, 4));
 
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
@@ -357,14 +357,14 @@ export default function Dashboard() {
       {/* Seletor de período */}
       <div className="period-row">
         <span className="period-label">Período</span>
-        <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
+        <select className="period-select" value={mes} onChange={e => { setMes(e.target.value); localStorage.setItem('dash_mes', e.target.value); }}>
           {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
             <option key={m} value={m}>
               {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
             </option>
           ))}
         </select>
-        <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
+        <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); localStorage.setItem('dash_ano', e.target.value); }}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
       </div>
