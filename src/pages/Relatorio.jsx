@@ -35,9 +35,13 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lucAcc      = fatAcc - cmvAcc - dedAcc;
   const lucMedioAcc = uniAcc > 0 ? lucAcc / uniAcc : 0;
 
-  const entCaixa    = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + (l.valorRecebido ?? l.valor), 0);
-  const saiCaixa    = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const caixaLiq    = entCaixa - saiCaixa;
+  const lmDFC        = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
+  const entBruto     = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
+  const dedInline    = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
+  const upgradeInline = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a, l) => a + l.valorUpgrade, 0);
+  const entCaixa     = entBruto - upgradeInline;
+  const saiCaixa     = lmDFC.filter(l => l.tipo === 'Saída').reduce((a, l) => a + l.valor, 0) + dedInline;
+  const caixaLiq     = entCaixa - saiCaixa;
   const margemBruta = fat > 0 ? lucBruto / fat * 100 : 0;
 
   const cvIndiretos = lm.filter(l => l.tipo === 'Saída' && l.categoria === 'Custos Variáveis Indiretos' && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
@@ -197,7 +201,7 @@ export default function Relatorio() {
     <div className="relatorio-page">
 
       {/* ── Filtros ── */}
-      <div className="rel-filtros">
+      <div className="rel-filtros no-print">
         <span className="period-label">Período</span>
         <input type="date" className="period-select" value={dataInicio} onChange={e => atualizarInicio(e.target.value)} />
         <span style={{ color: 'var(--text2)', fontSize: 13 }}>até</span>
@@ -209,6 +213,21 @@ export default function Relatorio() {
         >
           {verLancamentos ? 'Ocultar lançamentos ▲' : 'Ver lançamentos ▼'}
         </button>
+        {d.fat > 0 && (
+          <button className="btn btn-primary btn-sm" onClick={() => {
+            const w = window.open('', '_blank');
+            const el = document.querySelector('.rel-monthly');
+            if (!el || !w) return;
+            const styles = [...document.styleSheets].map(s => {
+              try { return [...s.cssRules].map(r => r.cssText).join('\n'); } catch { return ''; }
+            }).join('\n');
+            w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${styles}</style></head><body class="dark" style="background:#fff;padding:24px">${el.innerHTML}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.focus(); w.print(); }, 800);
+          }}>
+            ⬇ Gerar PDF
+          </button>
+        )}
       </div>
 
       {verLancamentos && (

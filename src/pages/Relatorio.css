@@ -401,6 +401,65 @@
   .rel-pdf-heading       { font-size: 28px; }
 }
 
+/* ── Print / PDF ── */
+@media print {
+  /* Esconde tudo que não é o relatório */
+  .topbar,
+  .sidebar,
+  .sidebar-overlay,
+  .no-print,
+  .rel-exec-scroll { display: none !important; }
+
+  /* Remove margens do browser */
+  @page { margin: 12mm 14mm; }
+
+  body, html { background: #fff !important; }
+
+  /* O conteúdo ocupa a página inteira */
+  .app, .main, .relatorio-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  /* Fundo branco nos cards */
+  .table-panel,
+  .rel-caixa-main,
+  .rel-caixa-card,
+  .rel-lucro-card {
+    background: #fff !important;
+    box-shadow: none !important;
+    border-color: #ddd !important;
+  }
+
+  /* Texto escuro */
+  .rel-pdf-heading  { color: #111 !important; }
+  .rel-kv-label     { color: #555 !important; }
+  .rel-kv-val       { color: #111 !important; }
+  .rel-chart-title  { color: #555 !important; }
+  .rel-caixa-main-label { color: #555 !important; }
+
+  /* Header executivo: mantém fundo escuro, página inteira */
+  .rel-exec-header {
+    min-height: 100vh !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    page-break-after: always;
+  }
+
+  /* Cada seção em nova página */
+  .rel-pdf-section {
+    page-break-before: always;
+    page-break-inside: avoid;
+    border: 1px solid #ddd !important;
+    border-radius: 12px !important;
+  }
+
+  /* Gráficos: forçar renderização */
+  svg { overflow: visible !important; }
+}
+
 /* ── Matrix table (mantido para uso futuro) ── */
 .rel-matrix-table {
   width: 100%;
