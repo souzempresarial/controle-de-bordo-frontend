@@ -213,21 +213,6 @@ export default function Relatorio() {
         >
           {verLancamentos ? 'Ocultar lançamentos ▲' : 'Ver lançamentos ▼'}
         </button>
-        {d.fat > 0 && (
-          <button className="btn btn-primary btn-sm" onClick={() => {
-            const w = window.open('', '_blank');
-            const el = document.querySelector('.rel-monthly');
-            if (!el || !w) return;
-            const styles = [...document.styleSheets].map(s => {
-              try { return [...s.cssRules].map(r => r.cssText).join('\n'); } catch { return ''; }
-            }).join('\n');
-            w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${styles}</style></head><body class="dark" style="background:#fff;padding:24px">${el.innerHTML}</body></html>`);
-            w.document.close();
-            setTimeout(() => { w.focus(); w.print(); }, 800);
-          }}>
-            ⬇ Gerar PDF
-          </button>
-        )}
       </div>
 
       {verLancamentos && (
