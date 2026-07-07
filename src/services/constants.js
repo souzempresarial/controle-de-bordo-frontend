@@ -6,6 +6,8 @@
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
   '— Receitas Não-Operacionais —': null,
   'Receitas Não-Operacionais': ['Blindagem','Seguro','Vendas Extras','Empréstimo','Investimento Externo','Aplicações Fora da Companhia','Outro'],
+  '— Aportes / Transferências —': null,
+  'Aportes e Transferências': ['Aporte do Sócio','Pix de Terceiro','Transferência Entre Contas','Devolução Recebida','Outro'],
 };
 
 export const CATEGORIAS_SAIDA = {
@@ -45,6 +47,7 @@ export const DEDUCOES_CATS = ['Deduções das Vendas'];
 export const SGA_CATS      = ['Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
 export const NAOOP_CATS    = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
 export const GASTOS_CATS   = [...DEDUCOES_CATS, ...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
+export const APORTE_CATS   = ['Aportes e Transferências'];
 
 export function getCatsPorTipo(tipo) {
   if (tipo === 'Entrada') return CATEGORIAS_ENTRADA;

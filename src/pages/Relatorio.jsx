@@ -1,13 +1,13 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS, APORTE_CATS } from '../services/constants';
 import { fmt, fmtPct, hoje, MESES } from '../services/utils';
 import './Relatorio.css';
 
 function calcPeriodo(lancamentos, inicio, fim) {
   const lm        = lancamentos.filter(l => l.data >= inicio && l.data <= fim);
-  const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const recLiq    = fat - deducoes;
   const cmvTotal  = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
@@ -177,7 +177,7 @@ export default function Relatorio() {
   const score      = calcScore(d, prevFat);
 
   const recBreakdown = useMemo(() => {
-    const vendas = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV);
+    const vendas = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria));
     const total  = vendas.reduce((a, l) => a + l.valor, 0);
     const obj    = {};
     vendas.forEach(l => {

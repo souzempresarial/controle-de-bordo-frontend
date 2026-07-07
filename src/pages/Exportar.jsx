@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { fmt, hoje } from '../services/utils';
-import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, APORTE_CATS } from '../services/constants';
 import './Exportar.css';
 
 function fmtBR(v) {
@@ -32,7 +32,7 @@ export default function Exportar() {
   const metricas = useMemo(() => {
     const lm = filtrados;
 
-    const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+    const fat       = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const cmv       = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
     const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const sga       = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);

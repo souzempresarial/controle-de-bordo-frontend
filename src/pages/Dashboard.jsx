@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CMVCATS, DEDUCOES_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
 import { fmt, fmtPct, fmtData, hoje, MESES } from '../services/utils';
 import './Dashboard.css';
 
@@ -73,8 +73,8 @@ export default function Dashboard() {
 
   const tm       = calcularTotais(lm);
   const tp       = calcularTotais(lprev);
-  const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const fat      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const fatPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const cmvMes   = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const cmvPrev  = lprev.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
   const deducoes     = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
@@ -89,7 +89,7 @@ export default function Dashboard() {
 
   const lucroBruto  = recLiq - cmvMes;
   const margemBruta = fat > 0 ? (lucroBruto / fat * 100) : null;
-  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente');
+  const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
   const aparelhos   = vendas.filter(l => l.categoria === 'Aparelhos');
   const unidades    = aparelhos.reduce((a, l) => a + (l.quantidade || 1), 0);
   const ticket      = vendas.length > 0 ? fat / vendas.reduce((a, l) => a + (l.quantidade || 1), 0) : null;
@@ -130,7 +130,7 @@ export default function Dashboard() {
   }
 
   const resumoProdutos = useMemo(() => {
-    const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente');
+    const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
     const map = {};
     entradas.forEach(l => {
       const key = l.subcategoria || l.categoria || 'Outro';
