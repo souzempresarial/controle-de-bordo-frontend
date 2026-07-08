@@ -28,7 +28,8 @@ function calcDREMes(lancamentos, pfx) {
   const variaveis   = sai('Despesas Variáveis');
   const softwares   = sai('Softwares / Tecnologias');
   const terceiros   = sai('Serviços Terceirizados');
-  const sga         = ocupacao + pessoal + variaveis + softwares + terceiros;
+  const impostos   = sai('Impostos');
+  const sga         = ocupacao + pessoal + variaveis + softwares + terceiros + impostos;
   const pontoEq     = (margContrib && margContrib > 0) ? (sga / (margContrib / 100)) : null;
   const ebitda      = lucroBruto - sga;
   const margEbitda  = recBruta > 0 ? (ebitda / recBruta * 100) : null;
@@ -40,7 +41,7 @@ function calcDREMes(lancamentos, pfx) {
   return {
     subscricao, recNaoOp, recBruta, deducoes, recLiquida,
     cmvInd, cmvDir, cmvTotal, lucroBruto, margContrib, pontoEq,
-    ocupacao, pessoal, variaveis, softwares, terceiros, sga,
+    ocupacao, pessoal, variaveis, softwares, terceiros, impostos, sga,
     ebitda, margEbitda, recFin, despJuros, despNaoOp, resFin,
   };
 }
@@ -263,6 +264,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
               <RowExp label="(-) Despesas Variáveis"      cat="Despesas Variáveis"      vals={mv.map(v => v.variaveis)} tot={S('variaveis')} neg />
               <RowExp label="(-) Softwares / Tecnologias" cat="Softwares / Tecnologias" vals={mv.map(v => v.softwares)} tot={S('softwares')} neg />
               <RowExp label="(-) Serviços Terceirizados"  cat="Serviços Terceirizados"  vals={mv.map(v => v.terceiros)} tot={S('terceiros')} neg />
+              <RowExp label="(-) Impostos"              cat="Impostos"              vals={mv.map(v => v.impostos)} tot={S('impostos')} neg />
               <RowBig label="(=) LUCRO OPERACIONAL (EBITDA)" vals={mv.map(v => v.ebitda)} tot={tEbitda} />
               <RowPct label="Margem EBITDA (%)" vals={mv.map(v => v.margEbitda)} tot={tRecBruta > 0 ? tEbitda / tRecBruta * 100 : null} />
               <RowMed label="(=) Resultado Financeiro" vals={mv.map(v => v.resFin)} tot={tResFin} />
@@ -295,7 +297,7 @@ const DFC_GRUPOS = [
   {
     sep: 'SAÍDAS',
     grupos: [
-      { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados'] },
+      { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'] },
       { label: 'SAÍDAS NÃO-OPERACIONAIS', cats: ['Saídas Não-Operacionais','Dívidas / Empréstimos'] },
       { label: 'INVESTIMENTOS', cats: ['Investimentos'] },
     ],
