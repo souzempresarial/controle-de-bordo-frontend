@@ -784,7 +784,7 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const [mes, setMes] = useState('');
+  const [mes, setMes] = useState(hoje().slice(5, 7));
 
   const upgrades = useMemo(() => {
     const periodo = (l) => l.data.startsWith(ano) && (mes === '' || l.data.startsWith(`${ano}-${mes}`));
