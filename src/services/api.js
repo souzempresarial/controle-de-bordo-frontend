@@ -76,4 +76,16 @@ export const API = {
   // Recursos em Capital
   buscarCapital: (cid, mes)        => apiFetch(`/clientes/${cid}/capital/${mes}`),
   salvarCapital: (cid, mes, dados) => apiFetch(`/clientes/${cid}/capital/${mes}`, { method: 'POST', body: JSON.stringify(dados) }),
+
+  // Extrato
+  processarExtrato: (cid, arquivo) => {
+    const token = localStorage.getItem('cb_token');
+    const form  = new FormData();
+    form.append('arquivo', arquivo);
+    return fetch(`${API_URL}/clientes/${cid}/extrato/processar`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(r => r.json());
+  },
 };

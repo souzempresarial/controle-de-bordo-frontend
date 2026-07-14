@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../services/constants';
@@ -44,6 +44,12 @@ export default function Lancamentos() {
 
   const [sortCol, setSortCol] = useState('data');
   const [sortDir, setSortDir] = useState('desc');
+
+  const [extratoModal, setExtratoModal]   = useState(false);
+  const [extratoLinhas, setExtratoLinhas] = useState([]);
+  const [extratoProc, setExtratoProc]     = useState(false);
+  const [extratoImp, setExtratoImp]       = useState(false);
+  const [extratoErro, setExtratoErro]     = useState('');
 
   function toggleSort(col) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -244,11 +250,44 @@ export default function Lancamentos() {
     setConfirmando(null);
   }
 
+
+  async function processarArquivo(e) {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    setExtratoProc(true); setExtratoErro(''); setExtratoLinhas([]);
+    try {
+      const res = await API.processarExtrato(clienteAtivo.id, arquivo);
+      if (res.erro) throw new Error(res.erro);
+      setExtratoLinhas((res.transacoes || []).map((t, i) => ({ ...t, _id: i })));
+    } catch (err) { setExtratoErro(err.message); }
+    finally { setExtratoProc(false); }
+  }
+
+  function editarLinha(id, campo, valor) {
+    setExtratoLinhas(prev => prev.map(l => l._id === id ? { ...l, [campo]: valor } : l));
+  }
+
+  async function importarExtrato() {
+    setExtratoImp(true); setExtratoErro('');
+    try {
+      for (const t of extratoLinhas) {
+        const novo = await API.criarLancamento(clienteAtivo.id, {
+          tipo: t.tipo, valor: parseFloat(t.valor), data: t.data,
+          categoria: t.categoria_sugerida || '', subcategoria: t.subcategoria_sugerida || '',
+          descricao: t.descricao || '', status: 'Confirmado',
+        });
+        setLancamentos(prev => [novo, ...prev]);
+      }
+      setExtratoModal(false); setExtratoLinhas([]);
+    } catch (err) { setExtratoErro(err.message); }
+    finally { setExtratoImp(false); }
+  }
   return (
     <div className="lancamentos-page">
       <div className="table-panel">
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
           <input className="search-box" placeholder="🔍 Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
           <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
             <option value="">Todos os tipos</option>
@@ -518,6 +557,83 @@ export default function Lancamentos() {
               <button className="btn-danger" onClick={excluirTodos} disabled={apagandoTodos}>
                 {apagandoTodos ? 'Apagando...' : `Apagar ${filtrados.length}`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {extratoModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setExtratoModal(false)}>
+          <div className="modal-box" style={{ maxWidth: 900, width: '95vw' }}>
+            <div className="modal-header">
+              <h3>Importar Extrato Bancário</h3>
+              <button className="modal-close" onClick={() => setExtratoModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <p style={{ fontSize: 13, color: 'var(--text2)' }}>Envie o PDF ou imagem do extrato. A IA vai ler e categorizar as transações automaticamente.</p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input type="file" accept=".pdf,image/*" onChange={processarArquivo} disabled={extratoProc} style={{ fontSize: 13 }} />
+                {extratoProc && <span style={{ fontSize: 13, color: 'var(--text2)' }}>Processando...</span>}
+              </label>
+              {extratoErro && <p style={{ color: 'var(--saida)', fontSize: 13 }}>{extratoErro}</p>}
+              {extratoLinhas.length > 0 && (
+                <>
+                  <p style={{ fontSize: 13, color: 'var(--text2)' }}>{extratoLinhas.length} transações encontradas. Revise antes de importar:</p>
+                  <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0 }}>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>Data</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', minWidth: 200 }}>Descrição</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>Tipo</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '1px solid var(--border)' }}>Valor</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', minWidth: 160 }}>Categoria</th>
+                          <th style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {extratoLinhas.map(l => (
+                          <tr key={l._id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '6px 10px' }}>
+                              <input type="date" value={l.data} onChange={e => editarLinha(l._id, 'data', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 4px', fontSize: 12 }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <input value={l.descricao} onChange={e => editarLinha(l._id, 'descricao', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <select value={l.tipo} onChange={e => editarLinha(l._id, 'tipo', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: l.tipo === 'Entrada' ? 'var(--entrada)' : 'var(--saida)', padding: '2px 4px', fontSize: 12 }}>
+                                <option>Entrada</option><option>Saída</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: l.tipo === 'Entrada' ? 'var(--entrada)' : 'var(--saida)' }}>
+                              <input type="number" value={l.valor} onChange={e => editarLinha(l._id, 'valor', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'inherit', padding: '2px 4px', fontSize: 12, width: 90, textAlign: 'right' }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <input value={l.categoria_sugerida || ''} onChange={e => editarLinha(l._id, 'categoria_sugerida', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <button onClick={() => setExtratoLinhas(p => p.filter(x => x._id !== l._id))}
+                                style={{ background: 'none', border: 'none', color: 'var(--saida)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setExtratoModal(false)}>Cancelar</button>
+              {extratoLinhas.length > 0 && (
+                <button className="btn btn-primary" onClick={importarExtrato} disabled={extratoImp}>
+                  {extratoImp ? 'Importando...' : `Importar ${extratoLinhas.length} lançamentos`}
+                </button>
+              )}
             </div>
           </div>
         </div>
