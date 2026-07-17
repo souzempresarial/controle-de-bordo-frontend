@@ -88,4 +88,6 @@ export const API = {
       body: form,
     }).then(r => r.json());
   },
+  salvarRegrasExtrato: (cid, transacoes) =>
+    apiFetch(`/clientes/${cid}/extrato/regras`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
 };

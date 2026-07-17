@@ -283,6 +283,9 @@ export default function Lancamentos() {
         });
         setLancamentos(prev => [novo, ...prev]);
       }
+      API.salvarRegrasExtrato(clienteAtivo.id, extratoLinhas.filter(t => t.categoria_sugerida).map(t => ({
+        descricao: t.descricao, categoria: t.categoria_sugerida, subcategoria: t.subcategoria_sugerida,
+      }))).catch(() => {});
       setExtratoModal(false); setExtratoLinhas([]);
     } catch (err) { setExtratoErro(err.message); }
     finally { setExtratoImp(false); }
