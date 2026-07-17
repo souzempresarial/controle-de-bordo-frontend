@@ -82,7 +82,7 @@ export const API = {
     const token = localStorage.getItem('cb_token');
     const form  = new FormData();
     form.append('arquivo', arquivo);
-    return fetch(`${API_URL}/clientes/${cid}/extrato/processar`, {
+    return fetch(`https://e5dyozgewxfhwitb6dpm5e2fbm0wobrh.lambda-url.sa-east-1.on.aws/clientes/${cid}/extrato/processar`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: form,
