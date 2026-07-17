@@ -587,6 +587,7 @@ export default function Lancamentos() {
                           <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>Tipo</th>
                           <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '1px solid var(--border)' }}>Valor</th>
                           <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', minWidth: 160 }}>Categoria</th>
+                          <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', minWidth: 160 }}>Subcategoria</th>
                           <th style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}></th>
                         </tr>
                       </thead>
@@ -613,6 +614,10 @@ export default function Lancamentos() {
                             </td>
                             <td style={{ padding: '6px 10px' }}>
                               <input value={l.categoria_sugerida || ''} onChange={e => editarLinha(l._id, 'categoria_sugerida', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <input value={l.subcategoria_sugerida || ''} onChange={e => editarLinha(l._id, 'subcategoria_sugerida', e.target.value)}
                                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
                             </td>
                             <td style={{ padding: '6px 10px' }}>
