@@ -264,7 +264,12 @@ export default function Lancamentos() {
   }
 
   function editarLinha(id, campo, valor) {
-    setExtratoLinhas(prev => prev.map(l => l._id === id ? { ...l, [campo]: valor } : l));
+    setExtratoLinhas(prev => prev.map(l => {
+      if (l._id !== id) return l;
+      const updated = { ...l, [campo]: valor };
+      if (campo === 'categoria_sugerida') updated.subcategoria_sugerida = '';
+      return updated;
+    }));
   }
 
   async function importarExtrato() {
@@ -613,12 +618,22 @@ export default function Lancamentos() {
                                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'inherit', padding: '2px 4px', fontSize: 12, width: 90, textAlign: 'right' }} />
                             </td>
                             <td style={{ padding: '6px 10px' }}>
-                              <input value={l.categoria_sugerida || ''} onChange={e => editarLinha(l._id, 'categoria_sugerida', e.target.value)}
-                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                              <select value={l.categoria_sugerida || ''} onChange={e => editarLinha(l._id, 'categoria_sugerida', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 4px', fontSize: 12, width: '100%' }}>
+                                <option value="">— selecione —</option>
+                                {Object.entries(getCatsPorTipo('Saída')).filter(([,v]) => v !== null).map(([cat]) => (
+                                  <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                              </select>
                             </td>
                             <td style={{ padding: '6px 10px' }}>
-                              <input value={l.subcategoria_sugerida || ''} onChange={e => editarLinha(l._id, 'subcategoria_sugerida', e.target.value)}
-                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                              <select value={l.subcategoria_sugerida || ''} onChange={e => editarLinha(l._id, 'subcategoria_sugerida', e.target.value)}
+                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 4px', fontSize: 12, width: '100%' }}>
+                                <option value="">— selecione —</option>
+                                {getSubcats(l.categoria_sugerida || '').map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
                             </td>
                             <td style={{ padding: '6px 10px' }}>
                               <button onClick={() => setExtratoLinhas(p => p.filter(x => x._id !== l._id))}
