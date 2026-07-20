@@ -258,7 +258,8 @@ export default function Lancamentos() {
     try {
       const res = await API.processarExtrato(clienteAtivo.id, arquivo);
       if (res.erro) throw new Error(res.erro);
-      setExtratoLinhas((res.transacoes || []).map((t, i) => ({ ...t, _id: i })));
+      const sorted = (res.transacoes || []).slice().sort((a, b) => a.data.localeCompare(b.data));
+      setExtratoLinhas(sorted.map((t, i) => ({ ...t, _id: i })));
     } catch (err) { setExtratoErro(err.message); }
     finally { setExtratoProc(false); }
   }
