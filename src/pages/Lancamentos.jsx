@@ -53,6 +53,12 @@ export default function Lancamentos() {
   const [extratoInicio, setExtratoInicio] = useState('');
   const [extratoFim, setExtratoFim]       = useState('');
 
+  const [dividindo, setDividindo]           = useState(null);
+  const [dividirOrigem, setDividirOrigem]   = useState(null);
+  const [dividirPartes, setDividirPartes]   = useState([]);
+  const [dividirErro, setDividirErro]       = useState('');
+  const [dividirSalvando, setDividirSalvando] = useState(false);
+
   function toggleSort(col) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortCol(col); setSortDir('asc'); }
@@ -273,6 +279,76 @@ export default function Lancamentos() {
       if (campo === 'categoria_sugerida') updated.subcategoria_sugerida = '';
       return updated;
     }));
+  }
+
+  function abrirDividir(item, origem) {
+    const desc = item.descricao || '';
+    const cat  = origem === 'extrato' ? (item.categoria_sugerida || '') : (item.categoria || '');
+    const sub  = origem === 'extrato' ? (item.subcategoria_sugerida || '') : (item.subcategoria || '');
+    setDividindo(item);
+    setDividirOrigem(origem);
+    setDividirPartes([
+      { descricao: desc, categoria: cat, subcategoria: sub, valor: '' },
+      { descricao: desc, categoria: '', subcategoria: '', valor: '' },
+    ]);
+    setDividirErro('');
+  }
+
+  function setParte(i, campo, valor) {
+    setDividirPartes(prev => prev.map((p, idx) => {
+      if (idx !== i) return p;
+      const np = { ...p, [campo]: valor };
+      if (campo === 'categoria') np.subcategoria = '';
+      return np;
+    }));
+  }
+
+  async function confirmarDividir() {
+    const total    = dividirPartes.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
+    const original = parseFloat(dividindo.valor);
+    if (Math.abs(total - original) > 0.01) {
+      setDividirErro(`Soma das partes (${fmt(total)}) deve ser igual ao total (${fmt(original)})`);
+      return;
+    }
+    if (dividirPartes.some(p => !p.categoria)) { setDividirErro('Selecione categoria em todas as partes'); return; }
+    setDividirSalvando(true); setDividirErro('');
+    try {
+      if (dividirOrigem === 'extrato') {
+        const base = Math.max(0, ...extratoLinhas.map(l => l._id));
+        const novas = dividirPartes.map((p, i) => ({
+          _id: base + i + 1,
+          data: dividindo.data,
+          descricao: p.descricao || dividindo.descricao,
+          tipo: dividindo.tipo,
+          valor: parseFloat(p.valor),
+          categoria_sugerida: p.categoria,
+          subcategoria_sugerida: p.subcategoria || '',
+        }));
+        setExtratoLinhas(prev =>
+          [...prev.filter(l => l._id !== dividindo._id), ...novas]
+            .sort((a, b) => a.data.localeCompare(b.data))
+        );
+      } else {
+        await API.excluirLancamento(clienteAtivo.id, dividindo.id);
+        const criados = [];
+        for (const p of dividirPartes) {
+          const novo = await API.criarLancamento(clienteAtivo.id, {
+            tipo: dividindo.tipo, valor: parseFloat(p.valor), data: dividindo.data,
+            categoria: p.categoria, subcategoria: p.subcategoria || '',
+            descricao: p.descricao || dividindo.descricao,
+            status: dividindo.status || 'Confirmado',
+          });
+          criados.push(novo);
+        }
+        setLancamentos(prev => [...criados, ...prev.filter(l => l.id !== dividindo.id)]);
+        if (editando?.id === dividindo.id) fecharModal();
+      }
+      setDividindo(null);
+    } catch (err) {
+      setDividirErro(err.message || 'Erro ao dividir');
+    } finally {
+      setDividirSalvando(false);
+    }
   }
 
   async function importarExtrato() {
@@ -519,6 +595,9 @@ export default function Lancamentos() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
+              <button className="btn btn-ghost" onClick={() => abrirDividir(editando, 'lancamento')} style={{ color: 'var(--text2)' }}>
+                ✂️ Dividir
+              </button>
               <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
                 {salvando ? 'Salvando...' : 'Salvar Alterações'}
               </button>
@@ -648,8 +727,13 @@ export default function Lancamentos() {
                               </select>
                             </td>
                             <td style={{ padding: '6px 10px' }}>
-                              <button onClick={() => setExtratoLinhas(p => p.filter(x => x._id !== l._id))}
-                                style={{ background: 'none', border: 'none', color: 'var(--saida)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button onClick={() => abrirDividir(l, 'extrato')}
+                                  title="Dividir em partes"
+                                  style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 14 }}>✂️</button>
+                                <button onClick={() => setExtratoLinhas(p => p.filter(x => x._id !== l._id))}
+                                  style={{ background: 'none', border: 'none', color: 'var(--saida)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -666,6 +750,118 @@ export default function Lancamentos() {
                   {extratoImp ? 'Importando...' : `Importar ${extratoLinhas.length} lançamentos`}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Dividir Lançamento */}
+      {dividindo && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !dividirSalvando && setDividindo(null)}>
+          <div className="modal-box" style={{ maxWidth: 720, width: '95vw' }}>
+            <div className="modal-header">
+              <h3>✂️ Dividir: {dividindo.descricao}</h3>
+              <button className="modal-close" onClick={() => !dividirSalvando && setDividindo(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {(() => {
+                const totalPartes = dividirPartes.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
+                const original    = parseFloat(dividindo.valor);
+                const restante    = original - totalPartes;
+                const ok          = Math.abs(restante) < 0.01;
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, fontSize: 13 }}>
+                    <span>Total original: <strong>{fmt(original)}</strong></span>
+                    <span>Distribuído: <strong style={{ color: ok ? 'var(--entrada)' : totalPartes > original ? 'var(--saida)' : 'var(--text)' }}>{fmt(totalPartes)}</strong></span>
+                    {!ok && (
+                      <span style={{ color: restante > 0 ? 'var(--warn)' : 'var(--saida)', fontWeight: 600 }}>
+                        {restante > 0 ? `Falta: ${fmt(restante)}` : `Excede: ${fmt(-restante)}`}
+                      </span>
+                    )}
+                    {ok && <span style={{ color: 'var(--entrada)', fontWeight: 600 }}>✓ OK</span>}
+                  </div>
+                );
+              })()}
+
+              {dividirPartes.map((parte, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 28px', gap: 8, alignItems: 'center' }}>
+                  <input
+                    placeholder="Descrição"
+                    value={parte.descricao}
+                    onChange={e => setParte(i, 'descricao', e.target.value)}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: '5px 8px', fontSize: 12 }}
+                  />
+                  <select
+                    value={parte.categoria}
+                    onChange={e => setParte(i, 'categoria', e.target.value)}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: '5px 6px', fontSize: 12 }}
+                  >
+                    <option value="">— categoria —</option>
+                    {Object.entries(getCatsPorTipo(dividindo.tipo || 'Saída')).filter(([,v]) => v !== null).map(([cat]) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={parte.subcategoria}
+                    onChange={e => setParte(i, 'subcategoria', e.target.value)}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: '5px 6px', fontSize: 12 }}
+                  >
+                    <option value="">— subcategoria —</option>
+                    {getSubcats(parte.categoria).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="R$"
+                    value={parte.valor}
+                    onChange={e => setParte(i, 'valor', e.target.value)}
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: '5px 6px', fontSize: 12, textAlign: 'right' }}
+                  />
+                  {dividirPartes.length > 2 ? (
+                    <button
+                      onClick={() => setDividirPartes(p => p.filter((_, idx) => idx !== i))}
+                      style={{ background: 'none', border: 'none', color: 'var(--saida)', cursor: 'pointer', fontSize: 16, padding: 0 }}
+                    >✕</button>
+                  ) : <span />}
+                </div>
+              ))}
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setDividirPartes(p => [...p, { descricao: dividindo.descricao || '', categoria: '', subcategoria: '', valor: '' }])}
+                >
+                  + Adicionar parte
+                </button>
+                {(() => {
+                  const totalPartes = dividirPartes.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
+                  const restante = parseFloat(dividindo.valor) - totalPartes;
+                  return restante > 0.01 ? (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        const lastEmpty = dividirPartes.map((p, i) => (!p.valor ? i : -1)).filter(i => i >= 0).pop();
+                        if (lastEmpty != null) setParte(lastEmpty, 'valor', restante.toFixed(2));
+                        else setDividirPartes(p => [...p, { descricao: dividindo.descricao || '', categoria: '', subcategoria: '', valor: restante.toFixed(2) }]);
+                      }}
+                      style={{ color: 'var(--text2)' }}
+                    >
+                      Preencher restante ({fmt(restante)})
+                    </button>
+                  ) : null;
+                })()}
+              </div>
+
+              {dividirErro && <div className="form-erro">{dividirErro}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setDividindo(null)} disabled={dividirSalvando}>Cancelar</button>
+              <button
+                className="btn btn-primary"
+                onClick={confirmarDividir}
+                disabled={dividirSalvando || Math.abs(dividirPartes.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0) - parseFloat(dividindo.valor)) > 0.01}
+              >
+                {dividirSalvando ? 'Salvando...' : `Confirmar divisão (${dividirPartes.length} partes)`}
+              </button>
             </div>
           </div>
         </div>
