@@ -78,10 +78,12 @@ export const API = {
   salvarCapital: (cid, mes, dados) => apiFetch(`/clientes/${cid}/capital/${mes}`, { method: 'POST', body: JSON.stringify(dados) }),
 
   // Extrato
-  processarExtrato: (cid, arquivo) => {
+  processarExtrato: (cid, arquivo, dataInicio, dataFim) => {
     const token = localStorage.getItem('cb_token');
     const form  = new FormData();
     form.append('arquivo', arquivo);
+    if (dataInicio) form.append('dataInicio', dataInicio);
+    if (dataFim)    form.append('dataFim',    dataFim);
     return fetch(`https://e5dyozgewxfhwitb6dpm5e2fbm0wobrh.lambda-url.sa-east-1.on.aws/clientes/${cid}/extrato/processar`, {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },

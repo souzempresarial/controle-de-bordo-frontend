@@ -50,6 +50,8 @@ export default function Lancamentos() {
   const [extratoProc, setExtratoProc]     = useState(false);
   const [extratoImp, setExtratoImp]       = useState(false);
   const [extratoErro, setExtratoErro]     = useState('');
+  const [extratoInicio, setExtratoInicio] = useState('');
+  const [extratoFim, setExtratoFim]       = useState('');
 
   function toggleSort(col) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -256,7 +258,7 @@ export default function Lancamentos() {
     if (!arquivo) return;
     setExtratoProc(true); setExtratoErro(''); setExtratoLinhas([]);
     try {
-      const res = await API.processarExtrato(clienteAtivo.id, arquivo);
+      const res = await API.processarExtrato(clienteAtivo.id, arquivo, extratoInicio || null, extratoFim || null);
       if (res.erro) throw new Error(res.erro);
       const sorted = (res.transacoes || []).slice().sort((a, b) => a.data.localeCompare(b.data));
       setExtratoLinhas(sorted.map((t, i) => ({ ...t, _id: i })));
@@ -579,6 +581,12 @@ export default function Lancamentos() {
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <p style={{ fontSize: 13, color: 'var(--text2)' }}>Envie o PDF ou imagem do extrato. A IA vai ler e categorizar as transações automaticamente.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--text2)' }}>Período (opcional):</span>
+                <input type="date" value={extratoInicio} onChange={e => setExtratoInicio(e.target.value)} disabled={extratoProc} style={{ fontSize: 13 }} />
+                <span style={{ fontSize: 13, color: 'var(--text2)' }}>até</span>
+                <input type="date" value={extratoFim} onChange={e => setExtratoFim(e.target.value)} disabled={extratoProc} style={{ fontSize: 13 }} />
+              </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <input type="file" accept=".pdf,image/*" onChange={processarArquivo} disabled={extratoProc} style={{ fontSize: 13 }} />
                 {extratoProc && <span style={{ fontSize: 13, color: 'var(--text2)' }}>Processando...</span>}
