@@ -86,7 +86,11 @@ export const API = {
       method: 'POST',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: form,
-    }).then(r => r.json());
+    }).then(async r => {
+      const texto = await r.text();
+      try { return JSON.parse(texto); }
+      catch { throw new Error('O processamento demorou demais. Tente novamente — PDFs muito grandes podem levar mais tempo.'); }
+    });
   },
   salvarRegrasExtrato: (cid, transacoes) =>
     apiFetch(`/clientes/${cid}/extrato/regras`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
