@@ -37,6 +37,7 @@ export default function Dashboard() {
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
   const [ano, setAno] = useState(() => localStorage.getItem('dash_ano') || mesAtual.slice(0, 4));
+  const [produtosSel, setProdutosSel] = useState(new Set());
 
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
@@ -134,12 +135,13 @@ export default function Dashboard() {
     const map = {};
     entradas.forEach(l => {
       const key = l.subcategoria || l.categoria || 'Outro';
-      if (!map[key]) map[key] = { produto: key, unidades: 0, faturamento: 0, lucro: 0 };
+      if (!map[key]) map[key] = { produto: key, unidades: 0, faturamento: 0, lucro: 0, descricoes: [] };
       map[key].unidades    += (l.quantidade || 1);
       map[key].faturamento += l.valor;
       const cmvL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && (x.isCMV || CMVCATS.includes(x.categoria))).reduce((a, x) => a + x.valor, 0) : 0;
       const dedL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && x.tipo === 'Saída' && DEDUCOES_CATS.includes(x.categoria)).reduce((a, x) => a + x.valor, 0) : 0;
       map[key].lucro += l.valor - cmvL - dedL;
+      if (l.descricao && !map[key].descricoes.includes(l.descricao)) map[key].descricoes.push(l.descricao);
     });
     return Object.values(map).filter(p => p.faturamento > 0).sort((a, b) => b.faturamento - a.faturamento);
   }, [lm]);
@@ -432,6 +434,7 @@ export default function Dashboard() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 28 }}></th>
                 <th>Produto</th>
                 <th style={{ textAlign: 'right' }}>Unidades</th>
                 <th style={{ textAlign: 'right' }}>Faturamento</th>
@@ -441,20 +444,74 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {resumoProdutos.map(p => (
-                <tr key={p.produto}>
-                  <td style={{ fontWeight: 600 }}>{p.produto}</td>
-                  <td style={{ textAlign: 'right' }}>{p.unidades}</td>
-                  <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                  <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro / p.unidades)}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
-                </tr>
-              ))}
+              {resumoProdutos.map(p => {
+                const sel = produtosSel.has(p.produto);
+                return (
+                  <tr key={p.produto}
+                    onClick={() => setProdutosSel(prev => { const s = new Set(prev); s.has(p.produto) ? s.delete(p.produto) : s.add(p.produto); return s; })}
+                    style={{ cursor: 'pointer', background: sel ? 'var(--primary)22' : undefined }}>
+                    <td>
+                      <input type="checkbox" readOnly checked={sel} style={{ cursor: 'pointer', accentColor: 'var(--primary)' }} />
+                    </td>
+                    <td style={{ fontWeight: 600 }}>
+                      {p.produto}
+                      {p.descricoes.length > 0 && (
+                        <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text2)', marginLeft: 6 }}>
+                          ({p.descricoes.join(', ')})
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{p.unidades}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro / p.unidades)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
+            <tfoot>
+              {(() => {
+                const totUnid = resumoProdutos.reduce((a, p) => a + p.unidades, 0);
+                const totFat  = resumoProdutos.reduce((a, p) => a + p.faturamento, 0);
+                const totLuc  = resumoProdutos.reduce((a, p) => a + p.lucro, 0);
+                const selArr  = resumoProdutos.filter(p => produtosSel.has(p.produto));
+                const selUnid = selArr.reduce((a, p) => a + p.unidades, 0);
+                const selFat  = selArr.reduce((a, p) => a + p.faturamento, 0);
+                const selLuc  = selArr.reduce((a, p) => a + p.lucro, 0);
+                return (<>
+                  {selArr.length >= 2 && (
+                    <tr style={{ borderTop: '2px solid var(--primary)', background: 'var(--primary)18' }}>
+                      <td></td>
+                      <td style={{ fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>Selecionado ({selArr.length})</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{selUnid}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(selFat)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(selUnid > 0 ? selFat / selUnid : 0)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span style={{ fontWeight: 700, color: selLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(selUnid > 0 ? selLuc / selUnid : 0)}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({selFat > 0 ? (selLuc / selFat * 100).toFixed(1) : 0}%)</span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: selLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(selLuc)}</td>
+                    </tr>
+                  )}
+                  <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
+                    <td></td>
+                    <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(totUnid > 0 ? totFat / totUnid : 0)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totUnid > 0 ? totLuc / totUnid : 0)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({totFat > 0 ? (totLuc / totFat * 100).toFixed(1) : 0}%)</span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
+                  </tr>
+                </>);
+              })()}
+            </tfoot>
           </table>
         </div>
       )}
