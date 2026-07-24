@@ -1,0 +1,51 @@
+.upgrade-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.upgrade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.upgrade-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.upgrade-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.upgrade-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.upgrade-card-label {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.upgrade-card-valor {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.upgrade-filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

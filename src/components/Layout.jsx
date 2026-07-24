@@ -71,6 +71,9 @@ export default function Layout({ children, usuario, onLogout }) {
         <NavLink to="/exportar" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📥</span> Exportar
         </NavLink>
+        <NavLink to="/upgrade" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+          <span className="nav-icon">📱</span> Controle de Upgrade
+        </NavLink>
 
         {isAdmin && (
           <>

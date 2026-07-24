@@ -1,4 +1,4 @@
-﻿const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
+const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
 
 function normalizarLancamento(l) {
   return {
@@ -76,6 +76,13 @@ export const API = {
   // Recursos em Capital
   buscarCapital: (cid, mes)        => apiFetch(`/clientes/${cid}/capital/${mes}`),
   salvarCapital: (cid, mes, dados) => apiFetch(`/clientes/${cid}/capital/${mes}`, { method: 'POST', body: JSON.stringify(dados) }),
+
+  // Upgrade
+  listarAparelhos:  (cid)            => apiFetch(`/clientes/${cid}/upgrade`),
+  criarAparelho:    (cid, dados)     => apiFetch(`/clientes/${cid}/upgrade`, { method: 'POST', body: JSON.stringify(dados) }),
+  editarAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
+  excluirAparelho:  (cid, id)        => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'DELETE' }),
+  venderAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}/vender`, { method: 'POST', body: JSON.stringify(dados) }),
 
   // Extrato
   processarExtrato: (cid, arquivo, dataInicio, dataFim) => {
