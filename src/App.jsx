@@ -10,6 +10,7 @@ import Relatorio from './pages/Relatorio';
 import Contas from './pages/Contas';
 import Financeiro from './pages/Financeiro';
 import Exportar from './pages/Exportar';
+import Upgrade from './pages/Upgrade';
 
 function getUsuarioInicial() {
   const token = localStorage.getItem('cb_token');
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Contas /></PrivateLayout>} />
           <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Financeiro /></PrivateLayout>} />
           <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Exportar /></PrivateLayout>} />
+          <Route path="/upgrade"     element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Upgrade /></PrivateLayout>} />
 
           {/* Rota raiz: redireciona conforme papel */}
           <Route
