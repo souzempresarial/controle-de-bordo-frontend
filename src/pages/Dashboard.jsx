@@ -434,7 +434,6 @@ export default function Dashboard() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 28 }}></th>
                 <th>Produto</th>
                 <th style={{ textAlign: 'right' }}>Unidades</th>
                 <th style={{ textAlign: 'right' }}>Faturamento</th>
@@ -450,9 +449,6 @@ export default function Dashboard() {
                   <tr key={p.produto}
                     onClick={() => setProdutosSel(prev => { const s = new Set(prev); s.has(p.produto) ? s.delete(p.produto) : s.add(p.produto); return s; })}
                     style={{ cursor: 'pointer', background: sel ? 'var(--primary)22' : undefined }}>
-                    <td>
-                      <input type="checkbox" readOnly checked={sel} style={{ cursor: 'pointer', accentColor: 'var(--primary)' }} />
-                    </td>
                     <td style={{ fontWeight: 600 }}>
                       {p.produto}
                       {p.descricoes.length > 0 && (
