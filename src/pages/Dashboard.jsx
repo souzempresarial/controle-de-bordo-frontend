@@ -37,8 +37,6 @@ export default function Dashboard() {
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
   const [ano, setAno] = useState(() => localStorage.getItem('dash_ano') || mesAtual.slice(0, 4));
-  const [produtosSel, setProdutosSel] = useState(new Set());
-
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId]   = useState(null);
@@ -444,11 +442,8 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {resumoProdutos.map(p => {
-                const sel = produtosSel.has(p.produto);
                 return (
-                  <tr key={p.produto}
-                    onClick={() => setProdutosSel(prev => { const s = new Set(prev); s.has(p.produto) ? s.delete(p.produto) : s.add(p.produto); return s; })}
-                    style={{ cursor: 'pointer', background: sel ? 'var(--primary)22' : undefined }}>
+                  <tr key={p.produto}>
                     <td style={{ fontWeight: 600 }}>
                       {p.produto}
                       {p.descricoes.length > 0 && (
@@ -474,27 +469,8 @@ export default function Dashboard() {
                 const totUnid = resumoProdutos.reduce((a, p) => a + p.unidades, 0);
                 const totFat  = resumoProdutos.reduce((a, p) => a + p.faturamento, 0);
                 const totLuc  = resumoProdutos.reduce((a, p) => a + p.lucro, 0);
-                const selArr  = resumoProdutos.filter(p => produtosSel.has(p.produto));
-                const selUnid = selArr.reduce((a, p) => a + p.unidades, 0);
-                const selFat  = selArr.reduce((a, p) => a + p.faturamento, 0);
-                const selLuc  = selArr.reduce((a, p) => a + p.lucro, 0);
                 return (<>
-                  {selArr.length >= 2 && (
-                    <tr style={{ borderTop: '2px solid var(--primary)', background: 'var(--primary)18' }}>
-                      <td></td>
-                      <td style={{ fontWeight: 700, fontSize: 12, color: 'var(--primary)' }}>Selecionado ({selArr.length})</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{selUnid}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(selFat)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(selUnid > 0 ? selFat / selUnid : 0)}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: 700, color: selLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(selUnid > 0 ? selLuc / selUnid : 0)}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({selFat > 0 ? (selLuc / selFat * 100).toFixed(1) : 0}%)</span>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: selLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(selLuc)}</td>
-                    </tr>
-                  )}
                   <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
-                    <td></td>
                     <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
                     <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
