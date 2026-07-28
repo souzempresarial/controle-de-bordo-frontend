@@ -29,7 +29,7 @@ export function AppProvider({ children }) {
       setLancamentos(lans);
       setContas(cts);
       setMetasCache(mc);
-      localStorage.setItem('cb_cliente_json', JSON.stringify(cliente));
+      sessionStorage.setItem('cb_cliente_json', JSON.stringify(cliente));
     } finally {
       setLoading(false);
     }
@@ -40,19 +40,18 @@ export function AppProvider({ children }) {
     setLancamentos([]);
     setContas([]);
     setMetasCache({});
-    localStorage.removeItem('cb_cliente_json');
+    sessionStorage.removeItem('cb_cliente_json');
   }, []);
 
   // Restaura cliente ativo ao recarregar a página
   useEffect(() => {
-    const token       = localStorage.getItem('cb_token');
-    const clienteJson = localStorage.getItem('cb_cliente_json');
-    if (token && clienteJson) {
+    const clienteJson = sessionStorage.getItem('cb_cliente_json');
+    if (clienteJson) {
       try {
         const cliente = JSON.parse(clienteJson);
         entrarCliente(cliente);
       } catch {
-        localStorage.removeItem('cb_cliente_json');
+        sessionStorage.removeItem('cb_cliente_json');
       }
     }
   }, []);

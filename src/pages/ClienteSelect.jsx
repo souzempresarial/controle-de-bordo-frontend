@@ -164,10 +164,9 @@ export default function ClienteSelect({ onLogout }) {
   }
 
   function handleLogout() {
-    localStorage.removeItem('cb_token');
-    localStorage.removeItem('cb_papel');
-    localStorage.removeItem('cb_nome');
-    localStorage.removeItem('cb_cliente_id');
+    sessionStorage.removeItem('cb_papel');
+    sessionStorage.removeItem('cb_nome');
+    sessionStorage.removeItem('cb_cliente_id');
     onLogout();
     navigate('/login');
   }
@@ -362,7 +361,6 @@ export default function ClienteSelect({ onLogout }) {
                     <label>Papel</label>
                     <select value={formUsuario.papel} onChange={e => setFormUsuario(f => ({ ...f, papel: e.target.value }))}>
                       <option value="cliente">cliente</option>
-                      <option value="admin">admin</option>
                     </select>
                   </div>
                 </div>

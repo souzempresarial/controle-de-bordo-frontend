@@ -1,4 +1,4 @@
-const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
+const API_URL = 'http://localhost:3000';
 
 function normalizarLancamento(l) {
   return {
@@ -14,20 +14,16 @@ function normalizarLancamento(l) {
 }
 
 async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('cb_token');
   const res = await fetch(API_URL + path, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
     ...options,
   });
 
   if (res.status === 401) {
-    localStorage.removeItem('cb_token');
-    localStorage.removeItem('cb_papel');
-    localStorage.removeItem('cb_nome');
-    localStorage.removeItem('cb_cliente_id');
+    sessionStorage.removeItem('cb_papel');
+    sessionStorage.removeItem('cb_nome');
+    sessionStorage.removeItem('cb_cliente_id');
     window.location.reload();
     throw new Error('Sessão expirada. Faça login novamente.');
   }
@@ -39,11 +35,20 @@ async function apiFetch(path, options = {}) {
 
 export const API = {
   // Auth
-  login:          (dados)    => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(dados) }),
-  criarUsuario:   (dados)    => apiFetch('/auth/usuarios', { method: 'POST', body: JSON.stringify(dados) }),
-  listarUsuarios: ()         => apiFetch('/auth/usuarios'),
-  excluirUsuario:  (id)            => apiFetch(`/auth/usuarios/${id}`, { method: 'DELETE' }),
-  redefinirSenha:  (id, novaSenha) => apiFetch(`/auth/usuarios/${id}/senha`, { method: 'PUT', body: JSON.stringify({ novaSenha }) }),
+  login:    (dados) => apiFetch('/auth/login',   { method: 'POST', body: JSON.stringify(dados) }),
+  logout:   ()      => apiFetch('/auth/logout',  { method: 'POST' }),
+  registrar: (dados) => apiFetch('/auth/registro', { method: 'POST', body: JSON.stringify(dados) }),
+  verificarEmail:       (token)          => apiFetch(`/auth/verificar/${token}`),
+  reenviarVerificacao:  (email)          => apiFetch('/auth/reenviar-verificacao', { method: 'POST', body: JSON.stringify({ email }) }),
+  minhaInfo:            ()               => apiFetch('/auth/me'),
+  editarPerfil:         (dados)          => apiFetch('/auth/perfil', { method: 'PUT', body: JSON.stringify(dados) }),
+  criarUsuario:         (dados)          => apiFetch('/auth/usuarios', { method: 'POST', body: JSON.stringify(dados) }),
+  listarUsuarios:       ()               => apiFetch('/auth/usuarios'),
+  excluirUsuario:       (id)             => apiFetch(`/auth/usuarios/${id}`, { method: 'DELETE' }),
+  redefinirSenha:       (id, novaSenha)  => apiFetch(`/auth/usuarios/${id}/senha`, { method: 'PUT', body: JSON.stringify({ novaSenha }) }),
+
+  // Admin
+  ranking: (mes) => apiFetch(`/admin/ranking${mes ? `?mes=${mes}` : ''}`),
 
   // Clientes
   listarClientes:  ()           => apiFetch('/clientes'),
@@ -85,15 +90,15 @@ export const API = {
   venderAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}/vender`, { method: 'POST', body: JSON.stringify(dados) }),
 
   // Extrato
-  processarExtrato: (cid, arquivo, dataInicio, dataFim) => {
-    const token = localStorage.getItem('cb_token');
-    const form  = new FormData();
+  processarExtrato: async (cid, arquivo, dataInicio, dataFim) => {
+    const { token } = await apiFetch('/auth/token-extrato', { method: 'POST' });
+    const form = new FormData();
     form.append('arquivo', arquivo);
     if (dataInicio) form.append('dataInicio', dataInicio);
     if (dataFim)    form.append('dataFim',    dataFim);
     return fetch(`https://e5dyozgewxfhwitb6dpm5e2fbm0wobrh.lambda-url.sa-east-1.on.aws/clientes/${cid}/extrato/processar`, {
       method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { Authorization: `Bearer ${token}` },
       body: form,
     }).then(async r => {
       const texto = await r.text();

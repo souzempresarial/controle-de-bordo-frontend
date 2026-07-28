@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { fmt, fmtData, hoje } from '../services/utils';
