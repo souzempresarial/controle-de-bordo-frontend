@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { API } from '../services/api';
+import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import './Login.css';
 
 export default function Login({ onLogin }) {
+  const { entrarCliente }     = useApp();
   const [tela, setTela]       = useState('login'); // 'login' | 'registro' | 'pendente'
   const [email, setEmail]     = useState('');
   const [senha, setSenha]     = useState('');
@@ -25,6 +27,7 @@ export default function Login({ onLogin }) {
       sessionStorage.setItem('cb_papel',     data.papel);
       sessionStorage.setItem('cb_nome',      data.nome || '');
       if (data.clienteId) sessionStorage.setItem('cb_cliente_id', String(data.clienteId));
+      if (data.cliente) await entrarCliente(data.cliente);
       onLogin(data);
     } catch (err) {
       setErro(err.message);
