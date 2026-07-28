@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { API } from './services/api';
 import { AppProvider } from './context/AppContext';
 import Login from './pages/Login';
 import ClienteSelect from './pages/ClienteSelect';
@@ -10,13 +11,14 @@ import Relatorio from './pages/Relatorio';
 import Contas from './pages/Contas';
 import Financeiro from './pages/Financeiro';
 import Exportar from './pages/Exportar';
+import VerificarEmail from './pages/VerificarEmail';
+import Ranking from './pages/Ranking';
 import Upgrade from './pages/Upgrade';
 
 function getUsuarioInicial() {
-  const token = localStorage.getItem('cb_token');
-  const papel = localStorage.getItem('cb_papel');
-  const nome  = localStorage.getItem('cb_nome');
-  return token ? { token, papel, nome } : null;
+  const papel = sessionStorage.getItem('cb_papel');
+  const nome  = sessionStorage.getItem('cb_nome');
+  return papel ? { papel, nome } : null;
 }
 
 function PrivateRoute({ usuario, children }) {
@@ -42,11 +44,11 @@ export default function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem('cb_token');
-    localStorage.removeItem('cb_papel');
-    localStorage.removeItem('cb_nome');
-    localStorage.removeItem('cb_cliente_id');
-    localStorage.removeItem('cb_cliente_json');
+    API.logout().catch(() => {});
+    sessionStorage.removeItem('cb_papel');
+    sessionStorage.removeItem('cb_nome');
+    sessionStorage.removeItem('cb_cliente_id');
+    sessionStorage.removeItem('cb_cliente_json');
     setUsuario(null);
   }
 
@@ -85,7 +87,7 @@ export default function App() {
           <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Contas /></PrivateLayout>} />
           <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Financeiro /></PrivateLayout>} />
           <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Exportar /></PrivateLayout>} />
-          <Route path="/upgrade"     element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Upgrade /></PrivateLayout>} />
+          <Route path="/upgrade"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Upgrade /></PrivateLayout>} />
 
           {/* Rota raiz: redireciona conforme papel */}
           <Route
@@ -96,6 +98,19 @@ export default function App() {
                 : papel === 'admin'
                 ? <Navigate to="/clientes" replace />
                 : <Navigate to="/dashboard" replace />
+            }
+          />
+
+          {/* Verificação de e-mail (pública) */}
+          <Route path="/verificar" element={<VerificarEmail />} />
+
+          {/* Ranking — admin only */}
+          <Route
+            path="/ranking"
+            element={
+              <PrivateLayout usuario={usuario} onLogout={handleLogout}>
+                {papel !== 'admin' ? <Navigate to="/dashboard" replace /> : <Ranking />}
+              </PrivateLayout>
             }
           />
 

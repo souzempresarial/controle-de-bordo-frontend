@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../services/api';
 import './Usuarios.css';
 
-const PAPEIS = ['admin', 'cliente'];
+const PAPEIS = ['cliente'];
 
 const formVazio = () => ({ nome: '', email: '', senha: '', papel: 'cliente', clienteId: '' });
 
@@ -84,10 +84,9 @@ export default function Usuarios({ onLogout }) {
   }
 
   function handleLogout() {
-    localStorage.removeItem('cb_token');
-    localStorage.removeItem('cb_papel');
-    localStorage.removeItem('cb_nome');
-    localStorage.removeItem('cb_cliente_id');
+    sessionStorage.removeItem('cb_papel');
+    sessionStorage.removeItem('cb_nome');
+    sessionStorage.removeItem('cb_cliente_id');
     onLogout();
     navigate('/login');
   }
