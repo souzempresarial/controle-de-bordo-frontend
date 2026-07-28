@@ -1,4 +1,6 @@
-﻿const API_URL = 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
+﻿const API_URL = import.meta.env.PROD
+  ? '/api'
+  : 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com';
 
 function normalizarLancamento(l) {
   return {
