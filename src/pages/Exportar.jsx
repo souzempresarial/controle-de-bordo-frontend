@@ -25,9 +25,6 @@ export default function Exportar() {
     return lancamentos.filter(l => l.data >= dataInicio && l.data <= dataFim);
   }, [lancamentos, dataInicio, dataFim]);
 
-  const totEntradas = filtrados.filter(l => l.tipo === 'Entrada' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const totSaidas   = filtrados.filter(l => l.tipo === 'Saída' && !l.isCMV).reduce((a, l) => a + l.valor, 0);
-  const saldo       = totEntradas - totSaidas;
 
   const metricas = useMemo(() => {
     const lm = filtrados;
@@ -67,6 +64,10 @@ export default function Exportar() {
 
     return { fat, cmv, lucroLiq, margem, custoTotal, uniAp, fatAp, ticketAp, lucMedAp, lucroAp, uniAcc, fatAcc, lucroAcc, entCaixa, saiCaixa, geracaoCaixa };
   }, [filtrados]);
+
+  const totEntradas = metricas.fat;
+  const totSaidas   = metricas.custoTotal;
+  const saldo       = metricas.lucroLiq;
 
   function exportarCSV() {
     if (!filtrados.length) return;
@@ -196,15 +197,15 @@ export default function Exportar() {
               <span className="resumo-valor">{filtrados.length}</span>
             </div>
             <div className="resumo-item">
-              <span className="resumo-label">Entradas</span>
+              <span className="resumo-label">Faturamento</span>
               <span className="resumo-valor entrada">{fmt(totEntradas)}</span>
             </div>
             <div className="resumo-item">
-              <span className="resumo-label">Saídas</span>
+              <span className="resumo-label">Custos</span>
               <span className="resumo-valor saida">{fmt(totSaidas)}</span>
             </div>
             <div className="resumo-item">
-              <span className="resumo-label">Saldo</span>
+              <span className="resumo-label">Lucro Líquido</span>
               <span className={`resumo-valor ${saldo >= 0 ? 'entrada' : 'saida'}`}>{fmt(saldo)}</span>
             </div>
           </div>

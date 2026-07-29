@@ -141,7 +141,7 @@ body {
 }
 .nav-btn:hover { background: var(--surface2); color: var(--text); }
 .nav-btn.active { background: #22c55e18; color: #22c55e; border-left: 2px solid #22c55e; padding-left: 10px; }
-.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; display: block; }
 .nav-section { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; padding: 14px 12px 5px; }
 
 /* ── MAIN ── */
