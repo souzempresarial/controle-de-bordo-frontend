@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Read(//c/Users/souze/OneDrive/Desktop/controle-de-bordo-backend/src/routes/**)",
+      "Read(//c/Users/souze/OneDrive/Desktop/controle-de-bordo-backend/src/controllers/**)",
+      "Read(//c/Users/souze/OneDrive/Desktop/controle-de-bordo-backend/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\souze\\OneDrive\\Desktop\\controle-de-bordo-backend\\src\\controllers",
+      "c:\\Users\\souze\\OneDrive\\Desktop\\controle-de-bordo-backend\\src\\routes",
+      "c:\\Users\\souze\\OneDrive\\Desktop\\controle-de-bordo-backend"
+    ]
+  }
+}

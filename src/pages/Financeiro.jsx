@@ -351,15 +351,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
     [lancDFC, lancamentos, ano]
   );
 
-  const saldoAcum = useMemo(() => {
-    let acum = 0;
-    return mv.map((m, i) => {
-      if (i === saldoMes && saldoInicial > 0) acum = saldoInicial;
-      acum += m.saldo;
-      return acum;
-    });
-  }, [mv, saldoInicial, saldoMes]);
-
   async function salvarSaldoInicial() {
     const valor = parseFloat(siValor) || 0;
     const mes   = parseInt(siMes);

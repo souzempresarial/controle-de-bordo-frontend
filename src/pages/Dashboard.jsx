@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
-import { fmt, fmtPct, fmtData, hoje, MESES } from '../services/utils';
+import { fmt, fmtData, hoje, MESES } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
