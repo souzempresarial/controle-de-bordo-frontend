@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 
 export function useTheme() {
-  const [tema, setTema] = useState(() => localStorage.getItem('cb_tema') || 'dark');
+  const [tema, setTema] = useState(() => localStorage.getItem('sf_tema') || 'dark');
 
   useEffect(() => {
     document.documentElement.dataset.theme = tema;
-    localStorage.setItem('cb_tema', tema);
+    localStorage.setItem('sf_tema', tema);
   }, [tema]);
 
   function toggleTema() {

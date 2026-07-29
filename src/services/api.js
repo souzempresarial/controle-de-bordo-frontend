@@ -23,9 +23,9 @@ async function apiFetch(path, options = {}) {
   });
 
   if (res.status === 401) {
-    sessionStorage.removeItem('cb_papel');
-    sessionStorage.removeItem('cb_nome');
-    sessionStorage.removeItem('cb_cliente_id');
+    sessionStorage.removeItem('sf_papel');
+    sessionStorage.removeItem('sf_nome');
+    sessionStorage.removeItem('sf_cliente_id');
     window.location.reload();
     throw new Error('Sessão expirada. Faça login novamente.');
   }

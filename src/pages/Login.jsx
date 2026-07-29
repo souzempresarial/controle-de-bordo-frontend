@@ -24,9 +24,9 @@ export default function Login({ onLogin }) {
     setLoading(true); setErro('');
     try {
       const data = await API.login({ email, senha });
-      sessionStorage.setItem('cb_papel',     data.papel);
-      sessionStorage.setItem('cb_nome',      data.nome || '');
-      if (data.clienteId) sessionStorage.setItem('cb_cliente_id', String(data.clienteId));
+      sessionStorage.setItem('sf_papel',     data.papel);
+      sessionStorage.setItem('sf_nome',      data.nome || '');
+      if (data.clienteId) sessionStorage.setItem('sf_cliente_id', String(data.clienteId));
       if (data.cliente) await entrarCliente(data.cliente);
       onLogin(data);
     } catch (err) {

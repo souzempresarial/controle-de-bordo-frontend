@@ -16,8 +16,8 @@ import Ranking from './pages/Ranking';
 import Upgrade from './pages/Upgrade';
 
 function getUsuarioInicial() {
-  const papel = sessionStorage.getItem('cb_papel');
-  const nome  = sessionStorage.getItem('cb_nome');
+  const papel = sessionStorage.getItem('sf_papel');
+  const nome  = sessionStorage.getItem('sf_nome');
   return papel ? { papel, nome } : null;
 }
 
@@ -35,7 +35,7 @@ export default function App() {
   const [usuario, setUsuario] = useState(getUsuarioInicial);
 
   useEffect(() => {
-    const tema = localStorage.getItem('cb_tema') || 'dark';
+    const tema = localStorage.getItem('sf_tema') || 'dark';
     document.documentElement.dataset.theme = tema;
   }, []);
 
@@ -45,10 +45,10 @@ export default function App() {
 
   function handleLogout() {
     API.logout().catch(() => {});
-    sessionStorage.removeItem('cb_papel');
-    sessionStorage.removeItem('cb_nome');
-    sessionStorage.removeItem('cb_cliente_id');
-    sessionStorage.removeItem('cb_cliente_json');
+    sessionStorage.removeItem('sf_papel');
+    sessionStorage.removeItem('sf_nome');
+    sessionStorage.removeItem('sf_cliente_id');
+    sessionStorage.removeItem('sf_cliente_json');
     setUsuario(null);
   }
 
