@@ -6,7 +6,7 @@ import './Login.css';
 
 export default function Login({ onLogin }) {
   const { entrarCliente }     = useApp();
-  const [tela, setTela]       = useState('login'); // 'login' | 'registro' | 'pendente'
+  const [tela, setTela]       = useState('login'); // 'login' | 'registro' | 'pendente' | 'esqueci' | 'esqueci-enviado'
   const [email, setEmail]     = useState('');
   const [senha, setSenha]     = useState('');
   const [nome, setNome]       = useState('');
@@ -52,6 +52,20 @@ export default function Login({ onLogin }) {
     }
   }
 
+  async function handleEsqueci(e) {
+    e.preventDefault();
+    if (!email) { setErro('Digite seu e-mail'); return; }
+    setLoading(true); setErro('');
+    try {
+      await API.esqueceuSenha(email);
+      setTela('esqueci-enviado');
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleReenviar() {
     if (!email) { setErro('Digite seu e-mail para reenviar'); return; }
     setLoading(true); setErro(''); setInfo('');
@@ -73,9 +87,11 @@ export default function Login({ onLogin }) {
       <div className="login-card">
         <div className="login-header">
           <img src="/logo.png" alt="SOUZ Finance" className="login-logo" />
-          {tela === 'login'    && <p>Faça login para acessar sua conta</p>}
-          {tela === 'registro' && <p>Crie sua conta gratuitamente</p>}
-          {tela === 'pendente' && <p>Verifique seu e-mail</p>}
+          {tela === 'login'          && <p>Faça login para acessar sua conta</p>}
+          {tela === 'registro'       && <p>Crie sua conta gratuitamente</p>}
+          {tela === 'pendente'       && <p>Verifique seu e-mail</p>}
+          {tela === 'esqueci'        && <p>Recuperar senha</p>}
+          {tela === 'esqueci-enviado' && <p>Verifique seu e-mail</p>}
         </div>
 
         {/* ── Login ── */}
@@ -96,6 +112,12 @@ export default function Login({ onLogin }) {
               <button type="button" onClick={() => irPara('registro')}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 13, padding: 0, fontWeight: 600 }}>
                 Criar conta
+              </button>
+            </p>
+            <p style={{ textAlign: 'center', fontSize: 13, marginTop: 4 }}>
+              <button type="button" onClick={() => irPara('esqueci')}
+                style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 12, padding: 0 }}>
+                Esqueci minha senha
               </button>
             </p>
           </form>
@@ -144,6 +166,38 @@ export default function Login({ onLogin }) {
             <button onClick={handleReenviar} disabled={loading} style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px', cursor: 'pointer', fontSize: 14 }}>
               {loading ? 'Enviando...' : 'Reenviar e-mail'}
             </button>
+            <button type="button" onClick={() => irPara('login')}
+              style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
+              Voltar ao login
+            </button>
+          </div>
+        )}
+
+        {/* ── Esqueci minha senha ── */}
+        {tela === 'esqueci' && (
+          <form onSubmit={handleEsqueci} className="login-form">
+            <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 4 }}>
+              Digite seu e-mail e enviaremos um link para redefinir sua senha.
+            </p>
+            <div className="field">
+              <label>Email</label>
+              <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            {erro && <div className="login-erro">{erro}</div>}
+            <button type="submit" disabled={loading}>{loading ? 'Enviando...' : 'Enviar link'}</button>
+            <button type="button" onClick={() => irPara('login')}
+              style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 13, marginTop: 8 }}>
+              Voltar ao login
+            </button>
+          </form>
+        )}
+
+        {/* ── Esqueci — link enviado ── */}
+        {tela === 'esqueci-enviado' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+            <p style={{ fontSize: 14, color: 'var(--text2)', textAlign: 'center', lineHeight: 1.6 }}>
+              Se o e-mail <strong style={{ color: 'var(--text)' }}>{email}</strong> estiver cadastrado, você receberá um link para redefinir sua senha em instantes.
+            </p>
             <button type="button" onClick={() => irPara('login')}
               style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 13 }}>
               Voltar ao login

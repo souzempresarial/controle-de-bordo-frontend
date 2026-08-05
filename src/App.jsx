@@ -12,6 +12,7 @@ import Contas from './pages/Contas';
 import Financeiro from './pages/Financeiro';
 import Exportar from './pages/Exportar';
 import VerificarEmail from './pages/VerificarEmail';
+import RedefinirSenha from './pages/RedefinirSenha';
 import Ranking from './pages/Ranking';
 import Upgrade from './pages/Upgrade';
 
@@ -103,6 +104,9 @@ export default function App() {
 
           {/* Verificação de e-mail (pública) */}
           <Route path="/verificar" element={<VerificarEmail />} />
+
+          {/* Redefinição de senha (pública) */}
+          <Route path="/redefinir" element={<RedefinirSenha />} />
 
           {/* Ranking — admin only */}
           <Route
