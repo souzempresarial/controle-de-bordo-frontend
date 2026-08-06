@@ -15,6 +15,8 @@ function normalizarLancamento(l) {
   };
 }
 
+let _redirecionandoLogin = false;
+
 async function apiFetch(path, options = {}) {
   const res = await fetch(API_URL + path, {
     credentials: 'include',
@@ -23,11 +25,15 @@ async function apiFetch(path, options = {}) {
   });
 
   if (res.status === 401) {
-    sessionStorage.removeItem('sf_papel');
-    sessionStorage.removeItem('sf_nome');
-    sessionStorage.removeItem('sf_cliente_id');
-    window.location.reload();
-    throw new Error('Sessão expirada. Faça login novamente.');
+    if (!_redirecionandoLogin) {
+      _redirecionandoLogin = true;
+      sessionStorage.removeItem('sf_papel');
+      sessionStorage.removeItem('sf_nome');
+      sessionStorage.removeItem('sf_cliente_id');
+      sessionStorage.removeItem('sf_cliente_json');
+      window.location.href = '/login';
+    }
+    return new Promise(() => {});
   }
 
   const data = await res.json();
