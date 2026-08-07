@@ -43,6 +43,7 @@ export default function Contas() {
   const [toast, setToast]             = useState(null);
   const [verQuitadas, setVerQuitadas]   = useState(false);
   const [verQuitadasR, setVerQuitadasR] = useState(false);
+  const [aba, setAba]                   = useState('pagar');
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(mesAtual.slice(5, 7));
   const [ano, setAno] = useState(mesAtual.slice(0, 4));
@@ -101,7 +102,7 @@ export default function Contas() {
 
   function abrirNovo() {
     setEditandoId(null);
-    setForm(formVazio());
+    setForm({ ...formVazio(), tipo: aba });
     setErroForm('');
     setModalAberto(true);
   }
@@ -321,7 +322,7 @@ export default function Contas() {
                 {c.recorrente && <span className="recorrente-badge">{c.periodicidade}</span>}
               </td>
               <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
-              <td style={{ textAlign: 'right', color: 'var(--saida)', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
+              <td style={{ textAlign: 'right', color: aba === 'receber' ? 'var(--entrada)' : 'var(--saida)', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
               <td>
                 <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                   <button className="btn btn-primary btn-sm" onClick={() => quitar(c)} disabled={quitando === c.id}>
@@ -366,171 +367,196 @@ export default function Contas() {
 
   return (
     <div className="contas-page">
-      <div className="period-row">
-        <span className="period-label">Período</span>
-        <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
-          {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
-            <option key={m} value={m}>
-              {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
-            </option>
-          ))}
-        </select>
-        <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
-          {anos.map(a => <option key={a}>{a}</option>)}
-        </select>
-      </div>
 
-      <div className="contas-kpis">
-        <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
-          <div className="contas-kpi-icon">📋</div>
-          <div className="contas-kpi-label">Total do Mês</div>
-          <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totGeral)}</div>
-          <div className="contas-kpi-sub">{pendP.length + quitadasP.length} conta{(pendP.length + quitadasP.length) !== 1 ? 's' : ''}</div>
+      {/* Período + resumo rápido */}
+      <div className="contas-top">
+        <div className="period-row" style={{ margin: 0 }}>
+          <span className="period-label">Período</span>
+          <select className="period-select" value={mes} onChange={e => setMes(e.target.value)}>
+            {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
+              <option key={m} value={m}>
+                {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+              </option>
+            ))}
+          </select>
+          <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
+            {anos.map(a => <option key={a}>{a}</option>)}
+          </select>
         </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
-          <div className="contas-kpi-icon">⚠️</div>
-          <div className="contas-kpi-label">Vencidas</div>
-          <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVenc)}</div>
-          <div className="contas-kpi-sub">{vencidasP.length} conta{vencidasP.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
-          <div className="contas-kpi-icon">🕐</div>
-          <div className="contas-kpi-label">A Pagar</div>
-          <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totAPagar)}</div>
-          <div className="contas-kpi-sub">{aPagarP.length} conta{aPagarP.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-          <div className="contas-kpi-icon">✅</div>
-          <div className="contas-kpi-label">Pagas</div>
-          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuit)}</div>
-          <div className="contas-kpi-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
+        <div className="contas-summary">
+          <div className="summary-item summary-pagar">
+            <span className="summary-label">A Pagar</span>
+            <span className="summary-value">{fmt(totP)}</span>
+            {vencidasP.length > 0 && <span className="summary-badge">{vencidasP.length} vencida{vencidasP.length !== 1 ? 's' : ''}</span>}
+          </div>
+          <div className="summary-divider" />
+          <div className="summary-item summary-receber">
+            <span className="summary-label">A Receber</span>
+            <span className="summary-value">{fmt(totR)}</span>
+            {vencidasR.length > 0 && <span className="summary-badge">{vencidasR.length} vencida{vencidasR.length !== 1 ? 's' : ''}</span>}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta</button>
-        {quitadasP.length > 0 && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadas(v => !v)}>
-            {verQuitadas ? 'Ocultar pagas' : `Ver pagas (${quitadasP.length})`}
-          </button>
-        )}
-        {contas.filter(c => c.status === 'pendente').length > 1 && (
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }}
-            onClick={() => setConfirmandoBulk('todas')}>
-            🗑 Excluir todas pendentes ({contas.filter(c => c.status === 'pendente').length})
-          </button>
-        )}
+      {/* Tabs */}
+      <div className="contas-tabs">
+        <button className={`contas-tab${aba === 'pagar' ? ' active-pagar' : ''}`} onClick={() => setAba('pagar')}>
+          Contas a Pagar
+          {vencidasP.length > 0 && <span className="tab-badge">{vencidasP.length}</span>}
+        </button>
+        <button className={`contas-tab${aba === 'receber' ? ' active-receber' : ''}`} onClick={() => setAba('receber')}>
+          Contas a Receber
+          {vencidasR.length > 0 && <span className="tab-badge">{vencidasR.length}</span>}
+        </button>
       </div>
 
-      <div className="table-panel">
-        <div className="table-header">
-          <h2 style={{ color: 'var(--saida)' }}>Contas a Pagar</h2>
-          {pendP.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendP.length} pendente{pendP.length !== 1 ? 's' : ''} · Total: {fmt(totP)}</span>}
+      {/* ── Aba: A Pagar ── */}
+      {aba === 'pagar' && <>
+        <div className="contas-kpis">
+          <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
+            <div className="contas-kpi-icon">📋</div>
+            <div className="contas-kpi-label">Total do Mês</div>
+            <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totGeral)}</div>
+            <div className="contas-kpi-sub">{pendP.length + quitadasP.length} conta{(pendP.length + quitadasP.length) !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
+            <div className="contas-kpi-icon">⚠️</div>
+            <div className="contas-kpi-label">Vencidas</div>
+            <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVenc)}</div>
+            <div className="contas-kpi-sub">{vencidasP.length} conta{vencidasP.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
+            <div className="contas-kpi-icon">🕐</div>
+            <div className="contas-kpi-label">A Pagar</div>
+            <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totAPagar)}</div>
+            <div className="contas-kpi-sub">{aPagarP.length} conta{aPagarP.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+            <div className="contas-kpi-icon">✅</div>
+            <div className="contas-kpi-label">Pagas</div>
+            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuit)}</div>
+            <div className="contas-kpi-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
+          </div>
         </div>
-        <TabelaContas lista={pendP} tipoLabel="pagar" />
-      </div>
 
-      {verQuitadas && quitadasP.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta a Pagar</button>
+          {quitadasP.length > 0 && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadas(v => !v)}>
+              {verQuitadas ? 'Ocultar pagas' : `Ver pagas (${quitadasP.length})`}
+            </button>
+          )}
+          {contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente').length > 1 && (
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }}
+              onClick={() => setConfirmandoBulk('todas')}>
+              🗑 Excluir todas pendentes ({contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente').length})
+            </button>
+          )}
+        </div>
+
         <div className="table-panel">
           <div className="table-header">
-            <h2 style={{ color: 'var(--text2)' }}>Pagas no mês</h2>
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasP.length} conta{quitadasP.length !== 1 ? 's' : ''} · Total: {fmt(totQuit)}</span>
+            <h2 style={{ color: 'var(--saida)' }}>Pendentes</h2>
+            {pendP.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendP.length} pendente{pendP.length !== 1 ? 's' : ''} · Total: {fmt(totP)}</span>}
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quitadasP.map(c => (
-                  <tr key={c.id} style={{ opacity: 0.6 }}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
-                    <td>{c.descricao || '—'}</td>
-                    <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <TabelaContas lista={pendP} tipoLabel="pagar" />
+        </div>
+
+        {verQuitadas && quitadasP.length > 0 && (
+          <div className="table-panel">
+            <div className="table-header">
+              <h2 style={{ color: 'var(--text2)' }}>Pagas no mês</h2>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasP.length} conta{quitadasP.length !== 1 ? 's' : ''} · Total: {fmt(totQuit)}</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th style={{ textAlign: 'right' }}>Valor</th></tr></thead>
+                <tbody>
+                  {quitadasP.map(c => (
+                    <tr key={c.id} style={{ opacity: 0.6 }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
+                      <td>{c.descricao || '—'}</td>
+                      <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(parseFloat(c.valor))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </>}
+
+      {/* ── Aba: A Receber ── */}
+      {aba === 'receber' && <>
+        <div className="contas-kpis">
+          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+            <div className="contas-kpi-icon">💰</div>
+            <div className="contas-kpi-label">Total do Mês</div>
+            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totR + totQuitR)}</div>
+            <div className="contas-kpi-sub">{pendR.length + quitadasR.length} conta{(pendR.length + quitadasR.length) !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
+            <div className="contas-kpi-icon">⚠️</div>
+            <div className="contas-kpi-label">Vencidas</div>
+            <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVencR)}</div>
+            <div className="contas-kpi-sub">{vencidasR.length} conta{vencidasR.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
+            <div className="contas-kpi-icon">🕐</div>
+            <div className="contas-kpi-label">A Receber</div>
+            <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totARecR)}</div>
+            <div className="contas-kpi-sub">{aReceberR.length} conta{aReceberR.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+            <div className="contas-kpi-icon">✅</div>
+            <div className="contas-kpi-label">Recebidas</div>
+            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuitR)}</div>
+            <div className="contas-kpi-sub">{quitadasR.length} recebida{quitadasR.length !== 1 ? 's' : ''}</div>
           </div>
         </div>
-      )}
 
-      {/* ── Contas a Receber ── */}
-      <div className="contas-kpis" style={{ marginTop: 32 }}>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-          <div className="contas-kpi-icon">💰</div>
-          <div className="contas-kpi-label">Total a Receber</div>
-          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totR + totQuitR)}</div>
-          <div className="contas-kpi-sub">{pendR.length + quitadasR.length} conta{(pendR.length + quitadasR.length) !== 1 ? 's' : ''}</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" style={{ background: 'var(--entrada)' }} onClick={abrirNovo}>＋ Nova Conta a Receber</button>
+          {quitadasR.length > 0 && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadasR(v => !v)}>
+              {verQuitadasR ? 'Ocultar recebidas' : `Ver recebidas (${quitadasR.length})`}
+            </button>
+          )}
         </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
-          <div className="contas-kpi-icon">⚠️</div>
-          <div className="contas-kpi-label">Vencidas</div>
-          <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVencR)}</div>
-          <div className="contas-kpi-sub">{vencidasR.length} conta{vencidasR.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
-          <div className="contas-kpi-icon">🕐</div>
-          <div className="contas-kpi-label">A Receber</div>
-          <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totARecR)}</div>
-          <div className="contas-kpi-sub">{aReceberR.length} conta{aReceberR.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-          <div className="contas-kpi-icon">✅</div>
-          <div className="contas-kpi-label">Recebidas</div>
-          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuitR)}</div>
-          <div className="contas-kpi-sub">{quitadasR.length} recebida{quitadasR.length !== 1 ? 's' : ''}</div>
-        </div>
-      </div>
 
-      {quitadasR.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadasR(v => !v)}>
-            {verQuitadasR ? 'Ocultar recebidas' : `Ver recebidas (${quitadasR.length})`}
-          </button>
-        </div>
-      )}
-
-      <div className="table-panel">
-        <div className="table-header">
-          <h2 style={{ color: 'var(--entrada)' }}>Contas a Receber</h2>
-          {pendR.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendR.length} pendente{pendR.length !== 1 ? 's' : ''} · Total: {fmt(totR)}</span>}
-        </div>
-        <TabelaContas lista={pendR} tipoLabel="receber" />
-      </div>
-
-      {verQuitadasR && quitadasR.length > 0 && (
         <div className="table-panel">
           <div className="table-header">
-            <h2 style={{ color: 'var(--text2)' }}>Recebidas no mês</h2>
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasR.length} conta{quitadasR.length !== 1 ? 's' : ''} · Total: {fmt(totQuitR)}</span>
+            <h2 style={{ color: 'var(--entrada)' }}>Pendentes</h2>
+            {pendR.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendR.length} pendente{pendR.length !== 1 ? 's' : ''} · Total: {fmt(totR)}</span>}
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quitadasR.map(c => (
-                  <tr key={c.id} style={{ opacity: 0.6 }}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
-                    <td>{c.descricao || '—'}</td>
-                    <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(parseFloat(c.valor))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TabelaContas lista={pendR} tipoLabel="receber" />
         </div>
-      )}
+
+        {verQuitadasR && quitadasR.length > 0 && (
+          <div className="table-panel">
+            <div className="table-header">
+              <h2 style={{ color: 'var(--text2)' }}>Recebidas no mês</h2>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasR.length} conta{quitadasR.length !== 1 ? 's' : ''} · Total: {fmt(totQuitR)}</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th style={{ textAlign: 'right' }}>Valor</th></tr></thead>
+                <tbody>
+                  {quitadasR.map(c => (
+                    <tr key={c.id} style={{ opacity: 0.6 }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
+                      <td>{c.descricao || '—'}</td>
+                      <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(parseFloat(c.valor))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </>}
 
       {/* Modal Nova / Editar Conta */}
       {modalAberto && (

@@ -1,5 +1,108 @@
 .contas-page { display: flex; flex-direction: column; gap: 18px; }
 
+/* ── Topo: período + resumo ── */
+.contas-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contas-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 20px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-pagar .summary-value { color: var(--saida); }
+.summary-receber .summary-value { color: var(--entrada); }
+
+.summary-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #ef444422;
+  color: #ef4444;
+  border-radius: 100px;
+  padding: 1px 8px;
+}
+
+.summary-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+}
+
+/* ── Tabs ── */
+.contas-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: -4px;
+}
+
+.contas-tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .15s;
+}
+
+.contas-tab:hover { color: var(--text); }
+
+.contas-tab.active-pagar {
+  color: var(--saida);
+  border-bottom-color: var(--saida);
+}
+
+.contas-tab.active-receber {
+  color: var(--entrada);
+  border-bottom-color: var(--entrada);
+}
+
+.tab-badge {
+  background: #ef4444;
+  color: #fff;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
 /* ── KPI cards ── */
 .contas-kpis {
   display: grid;
