@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import './Login.css';
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAAAAEJmNXfV_eWBcU0a';
 
 export default function Login({ onLogin }) {
   const { entrarCliente }     = useApp();
@@ -14,16 +16,42 @@ export default function Login({ onLogin }) {
   const [erro, setErro]       = useState('');
   const [info, setInfo]       = useState('');
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
   const { tema, toggleTema }  = useTheme();
+  const turnstileRef  = useRef(null);
+  const widgetIdRef   = useRef(null);
+
+  useEffect(() => {
+    if (tela !== 'login' || !turnstileRef.current) return;
+    const render = () => {
+      if (!window.turnstile || !turnstileRef.current) return;
+      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback:          (t) => setTurnstileToken(t),
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback':   () => setTurnstileToken(''),
+      });
+    };
+    if (window.turnstile) { render(); }
+    else { document.querySelector('script[src*="turnstile"]')?.addEventListener('load', render); }
+    return () => {
+      if (widgetIdRef.current != null && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+        setTurnstileToken('');
+      }
+    };
+  }, [tela]);
 
   function irPara(t) { setTela(t); setErro(''); setInfo(''); }
 
   async function handleLogin(e) {
     e.preventDefault();
     if (!email || !senha) { setErro('Preencha email e senha'); return; }
+    if (!turnstileToken)  { setErro('Verificação de segurança pendente'); return; }
     setLoading(true); setErro('');
     try {
-      const data = await API.login({ email, senha });
+      const data = await API.login({ email, senha, turnstileToken });
       sessionStorage.setItem('sf_papel',     data.papel);
       sessionStorage.setItem('sf_nome',      data.nome || '');
       if (data.clienteId) sessionStorage.setItem('sf_cliente_id', String(data.clienteId));
@@ -105,6 +133,7 @@ export default function Login({ onLogin }) {
               <label>Senha</label>
               <input type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} />
             </div>
+            <div ref={turnstileRef} style={{ margin: '4px 0' }}></div>
             {erro && <div className="login-erro">{erro}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: 'var(--text2)' }}>
