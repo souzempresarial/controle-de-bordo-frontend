@@ -17,6 +17,7 @@ export default function Login({ onLogin }) {
   const [info, setInfo]       = useState('');
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileOk, setTurnstileOk]     = useState(false);
   const { tema, toggleTema }  = useTheme();
   const turnstileRef  = useRef(null);
   const widgetIdRef   = useRef(null);
@@ -27,9 +28,9 @@ export default function Login({ onLogin }) {
       if (!window.turnstile || !turnstileRef.current) return;
       widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
-        callback:          (t) => setTurnstileToken(t),
-        'expired-callback': () => setTurnstileToken(''),
-        'error-callback':   () => setTurnstileToken(''),
+        callback:          (t) => { setTurnstileToken(t); setTurnstileOk(true); },
+        'expired-callback': () => { setTurnstileToken(''); setTurnstileOk(false); },
+        'error-callback':   () => { setTurnstileToken(''); setTurnstileOk(false); },
       });
     };
     if (window.turnstile) { render(); }
@@ -39,6 +40,7 @@ export default function Login({ onLogin }) {
         window.turnstile.remove(widgetIdRef.current);
         widgetIdRef.current = null;
         setTurnstileToken('');
+        setTurnstileOk(false);
       }
     };
   }, [tela]);
@@ -132,7 +134,7 @@ export default function Login({ onLogin }) {
               <label>Senha</label>
               <input type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} />
             </div>
-            <div ref={turnstileRef} style={{ margin: '4px 0' }}></div>
+            <div ref={turnstileRef} style={{ margin: '4px 0', display: turnstileOk ? 'block' : 'none' }}></div>
             {erro && <div className="login-erro">{erro}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: 'var(--text2)' }}>
