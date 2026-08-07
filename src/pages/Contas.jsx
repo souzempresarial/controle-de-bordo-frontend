@@ -41,7 +41,8 @@ export default function Contas() {
   const [confirmandoBulk, setConfirmandoBulk] = useState(null);
   const [quitando, setQuitando]             = useState(null);
   const [toast, setToast]             = useState(null);
-  const [verQuitadas, setVerQuitadas] = useState(false);
+  const [verQuitadas, setVerQuitadas]   = useState(false);
+  const [verQuitadasR, setVerQuitadasR] = useState(false);
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(mesAtual.slice(5, 7));
   const [ano, setAno] = useState(mesAtual.slice(0, 4));
@@ -60,17 +61,25 @@ export default function Contas() {
   }, [contas]);
 
   const now       = new Date(); now.setHours(0,0,0,0);
-  const pendP     = contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
-  const quitadasP = contas.filter(c => c.tipo === 'pagar' && c.status === 'quitado' && String(c.vencimento).slice(0, 7) === periodo);
+  const pendP     = contas.filter(c => c.tipo === 'pagar'   && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
+  const quitadasP = contas.filter(c => c.tipo === 'pagar'   && c.status === 'quitado'  && String(c.vencimento).slice(0, 7) === periodo);
+  const pendR     = contas.filter(c => c.tipo === 'receber' && c.status === 'pendente' && String(c.vencimento).slice(0, 7) === periodo);
+  const quitadasR = contas.filter(c => c.tipo === 'receber' && c.status === 'quitado'  && String(c.vencimento).slice(0, 7) === periodo);
   const vencidasP = pendP.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') < now);
   const aPagarP   = pendP.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') >= now);
+  const vencidasR = pendR.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') < now);
+  const aReceberR = pendR.filter(c => new Date(String(c.vencimento).slice(0,10) + 'T00:00:00') >= now);
   const totP      = pendP.reduce((a, c) => a + parseFloat(c.valor), 0);
   const totQuit   = quitadasP.reduce((a, c) => a + parseFloat(c.valor), 0);
   const totVenc   = vencidasP.reduce((a, c) => a + parseFloat(c.valor), 0);
   const totAPagar = aPagarP.reduce((a, c) => a + parseFloat(c.valor), 0);
   const totGeral  = totP + totQuit;
+  const totR      = pendR.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totQuitR  = quitadasR.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totVencR  = vencidasR.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totARecR  = aReceberR.reduce((a, c) => a + parseFloat(c.valor), 0);
 
-  const cats    = getCatsPorTipo('Saída');
+  const cats    = getCatsPorTipo(form.tipo === 'receber' ? 'Entrada' : 'Saída');
   const subcats = getSubcats(form.categoria);
 
   const isEmprestimo = form.categoria === 'Dívidas / Empréstimos';
@@ -450,16 +459,107 @@ export default function Contas() {
         </div>
       )}
 
+      {/* ── Contas a Receber ── */}
+      <div className="contas-kpis" style={{ marginTop: 32 }}>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+          <div className="contas-kpi-icon">💰</div>
+          <div className="contas-kpi-label">Total a Receber</div>
+          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totR + totQuitR)}</div>
+          <div className="contas-kpi-sub">{pendR.length + quitadasR.length} conta{(pendR.length + quitadasR.length) !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
+          <div className="contas-kpi-icon">⚠️</div>
+          <div className="contas-kpi-label">Vencidas</div>
+          <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVencR)}</div>
+          <div className="contas-kpi-sub">{vencidasR.length} conta{vencidasR.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
+          <div className="contas-kpi-icon">🕐</div>
+          <div className="contas-kpi-label">A Receber</div>
+          <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totARecR)}</div>
+          <div className="contas-kpi-sub">{aReceberR.length} conta{aReceberR.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
+          <div className="contas-kpi-icon">✅</div>
+          <div className="contas-kpi-label">Recebidas</div>
+          <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuitR)}</div>
+          <div className="contas-kpi-sub">{quitadasR.length} recebida{quitadasR.length !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+
+      {quitadasR.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadasR(v => !v)}>
+            {verQuitadasR ? 'Ocultar recebidas' : `Ver recebidas (${quitadasR.length})`}
+          </button>
+        </div>
+      )}
+
+      <div className="table-panel">
+        <div className="table-header">
+          <h2 style={{ color: 'var(--entrada)' }}>Contas a Receber</h2>
+          {pendR.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendR.length} pendente{pendR.length !== 1 ? 's' : ''} · Total: {fmt(totR)}</span>}
+        </div>
+        <TabelaContas lista={pendR} tipoLabel="receber" />
+      </div>
+
+      {verQuitadasR && quitadasR.length > 0 && (
+        <div className="table-panel">
+          <div className="table-header">
+            <h2 style={{ color: 'var(--text2)' }}>Recebidas no mês</h2>
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>{quitadasR.length} conta{quitadasR.length !== 1 ? 's' : ''} · Total: {fmt(totQuitR)}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Vencimento</th><th>Descrição</th><th>Categoria</th>
+                  <th style={{ textAlign: 'right' }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quitadasR.map(c => (
+                  <tr key={c.id} style={{ opacity: 0.6 }}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(c.vencimento)}</td>
+                    <td>{c.descricao || '—'}</td>
+                    <td style={{ color: 'var(--text2)' }}>{c.categoria || '—'}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(parseFloat(c.valor))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Modal Nova / Editar Conta */}
       {modalAberto && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
           <div className="modal-box">
             <div className="modal-header">
-              <h3>{editandoId ? 'Editar Conta' : isEmprestimo ? 'Novo Empréstimo' : 'Nova Conta a Pagar'}</h3>
+              <h3>{editandoId ? 'Editar Conta' : isEmprestimo ? 'Novo Empréstimo' : form.tipo === 'receber' ? 'Nova Conta a Receber' : 'Nova Conta a Pagar'}</h3>
               <button className="modal-close" onClick={fecharModal}>✕</button>
             </div>
             <div className="modal-body">
               <div className="form-grid">
+                {!editandoId && (
+                  <div className="field span2">
+                    <label>Tipo</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[['pagar','A Pagar'],['receber','A Receber']].map(([v, l]) => (
+                        <button key={v} type="button"
+                          onClick={() => setField('tipo', v)}
+                          style={{
+                            flex: 1, padding: '8px', borderRadius: 8, border: '1px solid var(--border)',
+                            background: form.tipo === v ? (v === 'receber' ? 'var(--entrada)' : 'var(--saida)') : 'var(--surface)',
+                            color: form.tipo === v ? '#fff' : 'var(--text2)',
+                            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          }}
+                        >{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="field span2">
                   <label>Descrição</label>
                   <input type="text" placeholder="Descrição da conta" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
