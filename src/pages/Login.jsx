@@ -48,7 +48,6 @@ export default function Login({ onLogin }) {
   async function handleLogin(e) {
     e.preventDefault();
     if (!email || !senha) { setErro('Preencha email e senha'); return; }
-    if (!turnstileToken)  { setErro('Verificação de segurança pendente'); return; }
     setLoading(true); setErro('');
     try {
       const data = await API.login({ email, senha, turnstileToken });
