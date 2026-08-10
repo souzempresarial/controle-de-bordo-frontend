@@ -15,7 +15,6 @@ import VerificarEmail from './pages/VerificarEmail';
 import RedefinirSenha from './pages/RedefinirSenha';
 import Ranking from './pages/Ranking';
 import Upgrade from './pages/Upgrade';
-import LogAcessos from './pages/LogAcessos';
 
 function getUsuarioInicial() {
   const papel = sessionStorage.getItem('sf_papel');
@@ -119,15 +118,6 @@ export default function App() {
             }
           />
 
-          {/* Log de Acessos — admin only */}
-          <Route
-            path="/log-acessos"
-            element={
-              <PrivateLayout usuario={usuario} onLogout={handleLogout}>
-                {papel !== 'admin' ? <Navigate to="/dashboard" replace /> : <LogAcessos />}
-              </PrivateLayout>
-            }
-          />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
