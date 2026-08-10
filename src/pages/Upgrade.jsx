@@ -218,7 +218,7 @@ export default function Upgrade() {
       <div className="upgrade-header">
         <div>
           <h2>Controle de Upgrade</h2>
-          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Gestão de aparelhos em estoque</p>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Gestão de aparelhos</p>
         </div>
         <button className="btn btn-primary" onClick={abrirNovo}>+ Novo Aparelho</button>
       </div>
@@ -242,7 +242,7 @@ export default function Upgrade() {
           <div className="upgrade-card-valor">{resumo.vendidos}</div>
         </div>
         <div className="upgrade-card">
-          <div className="upgrade-card-label">Lucro projetado</div>
+          <div className="upgrade-card-label">Caixa projetado</div>
           <div className="upgrade-card-valor" style={{ color: 'var(--entrada)', fontSize: 18 }}>{fmt(resumo.lucroProj)}</div>
         </div>
         <div className="upgrade-card">
