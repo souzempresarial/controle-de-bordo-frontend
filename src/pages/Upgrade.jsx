@@ -282,77 +282,103 @@ export default function Upgrade() {
           <div>{aparelhos.length === 0 ? 'Nenhum aparelho cadastrado. Clique em "+ Novo Aparelho" para começar.' : 'Nenhum aparelho encontrado com os filtros atuais.'}</div>
         </div>
       ) : (
-        <div className="table-panel" style={{ marginTop: 0 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Modelo</th>
-                  <th>Cor</th>
-                  <th>GB</th>
-                  <th>Bateria</th>
-                  <th>Vlr. Avaliado</th>
-                  <th>Vlr. Pretendido</th>
-                  <th>Lucro Proj.</th>
-                  <th>Entrada</th>
-                  <th>Dias</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtrados.map(ap => {
-                  const cfg = STATUS_CFG[ap.statusAuto] || STATUS_CFG['NO PRAZO'];
-                  const dias = Math.max(0, Math.floor((Date.now() - new Date(ap.criado_em)) / (1000 * 60 * 60 * 24)));
-                  const lucroProj = ap.valor_pretendido && ap.valor_avaliado
-                    ? parseFloat(ap.valor_pretendido) - parseFloat(ap.valor_avaliado)
-                    : null;
-                  return (
-                    <tr key={ap.id}>
-                      <td style={{ fontWeight: 600 }}>
-                        {ap.modelo}
-                        {ap.observacoes && (
-                          <span style={{ display: 'block', fontSize: 11, color: 'var(--text2)', fontWeight: 400 }}>{ap.observacoes}</span>
-                        )}
-                      </td>
-                      <td>{ap.cor || '—'}</td>
-                      <td>{ap.armazenamento || '—'}</td>
-                      <td>
-                        {ap.bateria != null
-                          ? <span style={{ color: ap.bateria < 80 ? '#f59e0b' : 'var(--text)' }}>{ap.bateria}%</span>
-                          : '—'}
-                      </td>
-                      <td style={{ color: 'var(--saida)' }}>{ap.valor_avaliado != null ? fmt(ap.valor_avaliado) : '—'}</td>
-                      <td>{ap.valor_pretendido != null ? fmt(ap.valor_pretendido) : '—'}</td>
-                      <td style={{ color: lucroProj != null ? (lucroProj >= 0 ? 'var(--entrada)' : 'var(--saida)') : 'var(--text2)', fontWeight: lucroProj != null ? 700 : 400 }}>
-                        {lucroProj != null ? fmt(lucroProj) : '—'}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap', color: 'var(--text2)' }}>{fmtData(ap.criado_em.slice(0,10))}</td>
-                      <td style={{ color: dias >= 15 ? 'var(--saida)' : dias >= 7 ? '#f59e0b' : 'var(--text2)', fontWeight: dias >= 7 && ap.status !== 'vendido' ? 700 : 400 }}>
-                        {ap.status === 'vendido' ? '—' : `${dias}d`}
-                      </td>
-                      <td>
-                        <span style={{ background: cfg.bg, color: cfg.cor, borderRadius: 6, padding: '2px 10px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          {ap.statusAuto}
+        <div className="upgrade-list">
+          {filtrados.map(ap => {
+            const cfg = STATUS_CFG[ap.statusAuto] || STATUS_CFG['NO PRAZO'];
+            const vendido = ap.status === 'vendido';
+            const dias = vendido && ap.vendido_em
+              ? Math.max(0, Math.floor((new Date(ap.vendido_em) - new Date(ap.criado_em)) / (1000 * 60 * 60 * 24)))
+              : Math.max(0, Math.floor((Date.now() - new Date(ap.criado_em)) / (1000 * 60 * 60 * 24)));
+            const lucroProj = ap.valor_pretendido && ap.valor_avaliado
+              ? parseFloat(ap.valor_pretendido) - parseFloat(ap.valor_avaliado)
+              : null;
+            const margem = lucroProj != null && ap.valor_pretendido
+              ? (lucroProj / parseFloat(ap.valor_pretendido) * 100).toFixed(1)
+              : null;
+            const diasColor = !vendido && dias >= 15 ? 'var(--saida)' : !vendido && dias >= 7 ? '#f59e0b' : 'var(--text)';
+
+            return (
+              <div key={ap.id} className="upgrade-ap-card" style={{ borderLeftColor: cfg.cor }}>
+
+                {/* Cabeçalho */}
+                <div className="upgrade-ap-header">
+                  <div className="upgrade-ap-title">
+                    <span className="upgrade-ap-name">{ap.modelo}</span>
+                    <span className="upgrade-ap-specs">
+                      {[ap.cor, ap.armazenamento].filter(Boolean).join(' · ')}
+                      {ap.bateria != null && (
+                        <span style={{ color: ap.bateria < 80 ? '#f59e0b' : 'var(--text2)' }}>
+                          {ap.cor || ap.armazenamento ? ' · ' : ''}Bat. {ap.bateria}%
                         </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {ap.status === 'estoque' && (
-                            <button className="btn btn-primary btn-sm" onClick={() => abrirVender(ap)} style={{ fontSize: 12 }}>
-                              Vender
-                            </button>
-                          )}
-                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(ap)}>✏️</button>
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmExcluir(ap)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </span>
+                    {ap.observacoes && <span className="upgrade-ap-obs">{ap.observacoes}</span>}
+                  </div>
+                  <div className="upgrade-ap-actions">
+                    <span className="upgrade-status-pill" style={{ background: cfg.bg, color: cfg.cor }}>{ap.statusAuto}</span>
+                    {!vendido && (
+                      <button className="btn btn-primary btn-sm" onClick={() => abrirVender(ap)}>Vender</button>
+                    )}
+                    <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(ap)}>✏️</button>
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmExcluir(ap)}>🗑</button>
+                  </div>
+                </div>
+
+                {/* Valores */}
+                <div className="upgrade-ap-valores">
+                  <div className="upgrade-val-bloco">
+                    <span className="upgrade-val-label">CMV</span>
+                    <span className="upgrade-val-num" style={{ color: 'var(--saida)' }}>
+                      {ap.valor_avaliado != null ? fmt(ap.valor_avaliado) : '—'}
+                    </span>
+                  </div>
+                  <div className="upgrade-val-sep" />
+                  <div className="upgrade-val-bloco">
+                    <span className="upgrade-val-label">{vendido ? 'Vendido por' : 'Pretendido'}</span>
+                    <span className="upgrade-val-num">
+                      {ap.valor_pretendido != null ? fmt(ap.valor_pretendido) : '—'}
+                    </span>
+                  </div>
+                  {lucroProj != null && (
+                    <>
+                      <div className="upgrade-val-sep" />
+                      <div className="upgrade-val-bloco">
+                        <span className="upgrade-val-label">{vendido ? 'Lucro real' : 'Lucro proj.'}</span>
+                        <span className="upgrade-val-num" style={{ color: lucroProj >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+                          {lucroProj >= 0 ? '+' : ''}{fmt(lucroProj)}
+                          {margem != null && <span className="upgrade-margem"> ({margem}%)</span>}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Rodapé: datas */}
+                <div className="upgrade-ap-footer">
+                  <div className="upgrade-data-pill">
+                    <span className="upgrade-data-icone">📅</span>
+                    <span className="upgrade-data-label">Entrada</span>
+                    <span className="upgrade-data-val">{fmtData(ap.criado_em.slice(0, 10))}</span>
+                  </div>
+                  <div className="upgrade-data-pill">
+                    <span className="upgrade-data-icone">📤</span>
+                    <span className="upgrade-data-label">Saída</span>
+                    <span className="upgrade-data-val">
+                      {vendido && ap.vendido_em ? fmtData(ap.vendido_em.slice(0, 10)) : '—'}
+                    </span>
+                  </div>
+                  <div className="upgrade-data-pill">
+                    <span className="upgrade-data-icone">⏱</span>
+                    <span className="upgrade-data-label">{vendido ? 'Ficou' : 'No estoque'}</span>
+                    <span className="upgrade-data-val" style={{ color: diasColor, fontWeight: !vendido && dias >= 7 ? 700 : 500 }}>
+                      {dias}d
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       )}
 

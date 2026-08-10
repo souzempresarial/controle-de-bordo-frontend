@@ -49,3 +49,154 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* ── Lista de aparelhos ── */
+.upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upgrade-ap-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cabeçalho do card */
+.upgrade-ap-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+}
+
+.upgrade-ap-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.upgrade-ap-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.upgrade-ap-specs {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.upgrade-ap-obs {
+  font-size: 11px;
+  color: var(--text2);
+  font-style: italic;
+}
+
+.upgrade-ap-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.upgrade-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 100px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Faixa de valores */
+.upgrade-ap-valores {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.upgrade-val-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 12px 4px 0;
+}
+
+.upgrade-val-bloco:first-child {
+  padding-left: 0;
+}
+
+.upgrade-val-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text2);
+}
+
+.upgrade-val-num {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.upgrade-val-sep {
+  width: 1px;
+  height: 36px;
+  background: var(--border);
+  margin: 0 12px 0 0;
+  flex-shrink: 0;
+}
+
+.upgrade-margem {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+/* Rodapé: datas */
+.upgrade-ap-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.upgrade-data-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.upgrade-data-icone {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.upgrade-data-label {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.upgrade-data-val {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
