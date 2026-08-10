@@ -17,7 +17,7 @@ function calcularTotais(lista) {
   lista
     .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente')
     .forEach(l => {
-      if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? l.valor;
+      if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? (l.valor - (l.valorUpgrade || 0));
       else if (l.tipo === 'Saída') saidas += l.valor;
     });
   return { entradas, saidas, saldo: entradas - saidas };

@@ -291,7 +291,6 @@ const DFC_GRUPOS = [
     grupos: [
       { label: 'RECEITAS OPERACIONAIS',     cats: ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos'] },
       { label: 'RECEITAS NÃO-OPERACIONAIS', cats: ['Receitas Não-Operacionais'] },
-      { label: '(-) PERMUTA / UPGRADE',     cats: ['Permuta - Upgrade'] },
     ],
   },
   {
@@ -341,8 +340,13 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       const ent          = entBruto - upgradeInline;
       const sai          = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
       const catVal    = (cat) => {
-        if (cat === 'Permuta - Upgrade') return -upgradeInline;
-        const base = lm.filter(l => l.categoria === cat).reduce((a,l) => a + l.valor, 0);
+        if (cat === 'Permuta - Upgrade') return 0;
+        const base = lm.filter(l => l.categoria === cat).reduce((a, l) => {
+          const val = (l.tipo === 'Entrada' && (l.valorUpgrade || 0) > 0)
+            ? l.valor - l.valorUpgrade
+            : l.valor;
+          return a + val;
+        }, 0);
         return cat === 'Deduções das Vendas' ? base + dedInline : base;
       };
       const subVal = (cat, sub) => lancamentos.filter(l => l.data.startsWith(pfx) && l.categoria === cat && l.subcategoria === sub).reduce((a,l) => a + l.valor, 0);
@@ -912,7 +916,7 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const projUni    = uni > 0 ? Math.round(uni / diasPassados * diasNoMes) : 0;
     const projTicket = projUni > 0 ? (fatAparelhos + ritmo * diasRestantes * (fatAparelhos / fat)) / projUni : ticket;
 
-    const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + (parseFloat(l.valorRecebido) || l.valor), 0);
+    const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + (l.valorRecebido != null ? l.valorRecebido : l.valor - (l.valorUpgrade || 0)), 0);
     const saiCaixa  = lm.filter(l => l.tipo === 'Saída'  && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + l.valor, 0);
     const caixaLiq  = entCaixa - saiCaixa;
     const projCaixa = diasPassados > 0 ? caixaLiq / diasPassados * diasNoMes : caixaLiq;
@@ -1014,7 +1018,7 @@ export default function Financeiro() {
         <button className={`aba-btn ${aba === 'dre'    ? 'active' : ''}`} onClick={() => setAba('dre')}>DRE</button>
         <button className={`aba-btn ${aba === 'fluxo'  ? 'active' : ''}`} onClick={() => setAba('fluxo')}>Fluxo de Caixa</button>
         <button className={`aba-btn ${aba === 'balanco' ? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
-        <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Controle de Upgrade</button>
+        <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Estoque de Aparelhos</button>
         <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
       </div>
 

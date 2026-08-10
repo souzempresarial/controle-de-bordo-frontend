@@ -26,6 +26,7 @@ const venderVazio = (ap) => ({
   valor_venda: ap?.valor_pretendido ? String(ap.valor_pretendido) : '',
   data: hoje(),
   pagamento: '',
+  valor_recebido: '',
 });
 
 export default function Upgrade() {
@@ -175,22 +176,32 @@ export default function Upgrade() {
     e.preventDefault();
     if (!venderForm.valor_venda) { setVenderErro('Informe o valor de venda'); return; }
     if (comUpgrade && !novoApForm.modelo) { setVenderErro('Informe o modelo do aparelho recebido'); return; }
+    if (comUpgrade && !venderForm.valor_recebido) { setVenderErro('Informe o valor recebido em dinheiro/Pix'); return; }
+    if (comUpgrade && parseFloat(venderForm.valor_recebido) >= parseFloat(venderForm.valor_venda)) {
+      setVenderErro('Valor recebido deve ser menor que o valor de venda'); return;
+    }
     setVenderSalvando(true); setVenderErro('');
     try {
+      const recebido = comUpgrade && venderForm.valor_recebido ? parseFloat(venderForm.valor_recebido) : null;
+      const upgradeVal = recebido != null ? parseFloat(venderForm.valor_venda) - recebido : null;
       const atualizado = await API.venderAparelho(clienteAtivo.id, venderModal.id, {
-        valor_venda: parseFloat(venderForm.valor_venda),
-        data:        venderForm.data,
-        pagamento:   venderForm.pagamento || null,
+        valor_venda:    parseFloat(venderForm.valor_venda),
+        data:           venderForm.data,
+        pagamento:      venderForm.pagamento || null,
+        valor_recebido: recebido,
       });
       let novosAparelhos = aparelhos.map(a => a.id === venderModal.id ? atualizado : a);
       if (comUpgrade) {
+        const cmvAparelho = novoApForm.valor_avaliado
+          ? parseFloat(novoApForm.valor_avaliado)
+          : upgradeVal;
         const novo = await API.criarAparelho(clienteAtivo.id, {
           modelo:           novoApForm.modelo,
           cor:              novoApForm.cor              || null,
           armazenamento:    novoApForm.armazenamento    || null,
           bateria:          novoApForm.bateria          ? parseInt(novoApForm.bateria)          : null,
           observacoes:      novoApForm.observacoes      || null,
-          valor_avaliado:   novoApForm.valor_avaliado   ? parseFloat(novoApForm.valor_avaliado)  : null,
+          valor_avaliado:   cmvAparelho,
           valor_pretendido: novoApForm.valor_pretendido ? parseFloat(novoApForm.valor_pretendido): null,
         });
         novosAparelhos = [novo, ...novosAparelhos];
@@ -500,6 +511,38 @@ export default function Upgrade() {
                 </div>
 
                 {comUpgrade && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div className="field span2">
+                        <label>Valor recebido em Pix / Dinheiro (R$) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0,00"
+                          value={venderForm.valor_recebido}
+                          onChange={e => {
+                            const recebido = e.target.value;
+                            setVenderForm(f => ({ ...f, valor_recebido: recebido }));
+                            if (venderForm.valor_venda && recebido && !novoApForm.valor_avaliado) {
+                              const upgrade = parseFloat(venderForm.valor_venda) - parseFloat(recebido);
+                              if (upgrade > 0) setNovoApForm(f => ({ ...f, valor_avaliado: String(upgrade) }));
+                            }
+                          }}
+                        />
+                      </div>
+                      {venderForm.valor_recebido && venderForm.valor_venda && parseFloat(venderForm.valor_recebido) > 0 && parseFloat(venderForm.valor_recebido) < parseFloat(venderForm.valor_venda) && (
+                        <div className="field span2">
+                          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, display: 'flex', gap: 20 }}>
+                            <span>Caixa (DFC): <strong style={{ color: 'var(--entrada)' }}>{fmt(parseFloat(venderForm.valor_recebido))}</strong></span>
+                            <span>Aparelho recebido: <strong>{fmt(parseFloat(venderForm.valor_venda) - parseFloat(venderForm.valor_recebido))}</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {comUpgrade && (
                   <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '14px 14px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                       Aparelho recebido no upgrade
@@ -541,7 +584,9 @@ export default function Upgrade() {
                 )}
 
                 <p style={{ fontSize: 12, color: 'var(--text2)', margin: 0 }}>
-                  A venda será lançada automaticamente no financeiro como Receita de Vendas e o CMV como saída.
+                  {comUpgrade
+                    ? 'DRE: faturamento pelo valor total da venda. DFC: apenas o valor recebido em dinheiro/Pix entra no caixa.'
+                    : 'A venda será lançada automaticamente no financeiro como Receita de Vendas e o CMV como saída.'}
                 </p>
                 {venderErro && <div className="form-erro">{venderErro}</div>}
               </div>
