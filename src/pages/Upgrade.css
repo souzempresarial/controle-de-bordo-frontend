@@ -1,202 +1,283 @@
-.upgrade-page {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* ── Page ── */
+.up-page { display: flex; flex-direction: column; gap: 18px; }
 
-.upgrade-header {
+/* ── Header ── */
+.up-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 12px;
+}
+.up-header h2 { font-size: 20px; font-weight: 700; margin: 0; }
+.up-subtitle  { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+/* ── Alert banner ── */
+.up-alert {
+  background: #f03e3e14;
+  border: 1px solid #f03e3e50;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--saida);
 }
 
-.upgrade-header h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.upgrade-cards {
+/* ── Stats ── */
+.up-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
 }
-
-.upgrade-card {
+.up-stat {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-
-.upgrade-card-label {
+.up-stat-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.up-stat-label {
   font-size: 11px;
   color: var(--text2);
-  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: .05em;
 }
+.up-stat-warn { border-color: #f03e3e50; }
+.up-stat-warn .up-stat-num { color: var(--saida); }
+.up-stat-green { color: var(--entrada) !important; }
 
-.upgrade-card-valor {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text);
-}
+/* ── List ── */
+.up-list { display: flex; flex-direction: column; gap: 8px; }
 
-.upgrade-filtros {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* ── Lista de aparelhos ── */
-.upgrade-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.upgrade-ap-card {
+/* ── Card ── */
+.up-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 4px solid;
-  border-radius: 12px;
+  border-left: 4px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: stretch;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Cabeçalho do card */
-.upgrade-ap-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px 10px;
-}
+.up-card-urgente  { border-left-color: var(--saida); background: linear-gradient(90deg, #f03e3e09 0%, var(--surface) 50%); }
+.up-card-atencao  { border-left-color: #f97316;       background: linear-gradient(90deg, #f9731609 0%, var(--surface) 50%); }
+.up-card-alerta   { border-left-color: var(--warn);   background: linear-gradient(90deg, #f59e0b09 0%, var(--surface) 50%); }
+.up-card-no-prazo { border-left-color: var(--entrada); }
+.up-card-vendido  { border-left-color: var(--border); opacity: 0.55; }
 
-.upgrade-ap-title {
+/* Days column */
+.up-card-dias {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  min-width: 72px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.up-card-dias-num {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.up-card-dias-suf {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+/* Body */
+.up-card-body {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
 }
 
-.upgrade-ap-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
+.up-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
+.up-card-info   { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.up-card-modelo { font-size: 15px; font-weight: 700; color: var(--text); }
+.up-card-specs  { font-size: 12px; color: var(--text2); }
+.up-card-obs    { font-size: 11px; color: var(--text2); font-style: italic; }
 
-.upgrade-ap-specs {
+.up-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.up-card-entrada { font-size: 11px; color: var(--text2); white-space: nowrap; }
+
+.up-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.up-card-valores {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   font-size: 12px;
   color: var(--text2);
 }
+.up-card-valores strong { font-size: 13px; font-weight: 700; }
 
-.upgrade-ap-obs {
-  font-size: 11px;
-  color: var(--text2);
-  font-style: italic;
-}
+.up-card-acoes { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-.upgrade-ap-actions {
+.up-icon-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  justify-content: center;
+  padding: 5px 8px;
 }
 
-.upgrade-status-pill {
+/* Status pill */
+.up-status-pill {
   font-size: 10px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 100px;
-  letter-spacing: 0.03em;
+  letter-spacing: .04em;
   white-space: nowrap;
 }
 
-/* Faixa de valores */
-.upgrade-ap-valores {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
-  padding: 10px 16px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+/* Vendidos toggle */
+.up-vendidos-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: all .15s;
+  width: 100%;
 }
+.up-vendidos-btn:hover { background: var(--surface2); color: var(--text); }
 
-.upgrade-val-bloco {
+/* Danger button */
+.btn-danger       { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: .85; }
+
+/* ── Form sections in modal ── */
+.up-form-section {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 12px 4px 0;
+  gap: 10px;
 }
-
-.upgrade-val-bloco:first-child {
-  padding-left: 0;
-}
-
-.upgrade-val-label {
+.up-form-section-label {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: .1em;
   color: var(--text2);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
 }
 
-.upgrade-val-num {
-  font-size: 15px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-}
-
-.upgrade-val-sep {
-  width: 1px;
-  height: 36px;
-  background: var(--border);
-  margin: 0 12px 0 0;
-  flex-shrink: 0;
-}
-
-.upgrade-margem {
-  font-size: 11px;
-  font-weight: 600;
-  margin-left: 4px;
-  opacity: 0.8;
-}
-
-/* Rodapé: datas */
-.upgrade-ap-footer {
+/* Preview row (CMV → Venda = Lucro) */
+.up-preview-row {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 10px 16px;
+  gap: 12px;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text2);
   flex-wrap: wrap;
 }
+.up-preview-row strong { font-size: 13px; font-weight: 700; }
+.up-preview-arrow { color: var(--text2); opacity: 0.4; font-weight: 700; }
 
-.upgrade-data-pill {
+/* Vender info block */
+.up-vender-info {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.up-vender-nome  { font-size: 14px; font-weight: 700; color: var(--text); }
+.up-vender-specs { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ── Toast ── */
+.up-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--entrada);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  z-index: 500;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 8px;
+  animation: toast-in .2s ease;
+}
+.up-toast-error { border-left-color: var(--saida); }
+.up-toast-icon  { color: var(--entrada); font-size: 15px; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.upgrade-data-icone {
-  font-size: 13px;
-  line-height: 1;
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .up-stats { grid-template-columns: repeat(2, 1fr); }
+  .up-card-dias { min-width: 58px; padding: 10px 12px; }
+  .up-card-dias-num { font-size: 24px; }
+  .up-card-modelo { font-size: 14px; }
+  .up-toast { bottom: 16px; right: 16px; left: 16px; }
 }
 
-.upgrade-data-label {
-  color: var(--text2);
-  font-weight: 600;
-}
-
-.upgrade-data-val {
-  color: var(--text);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+@media (max-width: 480px) {
+  .up-card { flex-direction: column; }
+  .up-card-dias {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    gap: 6px;
+  }
+  .up-card-dias-num { font-size: 20px; }
+  .up-card-dias-suf { margin-top: 0; }
+  .up-card-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .up-card-acoes  { align-self: flex-end; }
+  .up-stats { grid-template-columns: repeat(2, 1fr); }
 }
