@@ -12,7 +12,7 @@
 .aba-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ── DRE TABLE ── */
-.dre-table { width: auto; min-width: 100%; border-collapse: collapse; font-size: 12px; }
+.dre-table { width: auto; border-collapse: collapse; font-size: 12px; }
 .dre-table th {
   padding: 8px 12px; text-align: left; font-size: 11px;
   color: var(--text2); text-transform: uppercase; letter-spacing: .5px;
