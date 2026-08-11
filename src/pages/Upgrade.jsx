@@ -77,7 +77,9 @@ export default function Upgrade() {
   const [comUpgrade, setComUpgrade]         = useState(false);
   const [novoApForm, setNovoApForm]         = useState(novoApVazio());
 
-  const [confirmExcluir, setConfirmExcluir] = useState(null);
+  const [confirmExcluir, setConfirmExcluir]   = useState(null);
+  const [confirmLimpar,  setConfirmLimpar]    = useState(false);
+  const [limpando,       setLimpando]         = useState(false);
 
   useEffect(() => { if (clienteAtivo) carregar(); }, [clienteAtivo]);
 
@@ -186,6 +188,17 @@ export default function Upgrade() {
       setModal(null);
     } catch (err) { setFormErro(err.message); }
     finally { setSalvando(false); }
+  }
+
+  async function limparTodos() {
+    setLimpando(true);
+    try {
+      await API.limparAparelhos(clienteAtivo.id);
+      setAparelhos([]);
+      setConfirmLimpar(false);
+      setToast({ msg: 'Todos os aparelhos foram removidos', type: 'success' });
+    } catch (err) { setErro(err.message); }
+    finally { setLimpando(false); }
   }
 
   async function excluir(id) {
@@ -350,7 +363,12 @@ export default function Upgrade() {
           <h2>Controle de Upgrade</h2>
           <p className="up-subtitle">Gestão de aparelhos em estoque</p>
         </div>
-        <button className="btn btn-primary" onClick={abrirNovo}>+ Novo Aparelho</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }} onClick={() => setConfirmLimpar(true)}>
+            Limpar tudo
+          </button>
+          <button className="btn btn-primary" onClick={abrirNovo}>+ Novo Aparelho</button>
+        </div>
       </div>
 
       {/* Alert banner */}
@@ -665,6 +683,29 @@ export default function Upgrade() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Limpar Tudo */}
+      {confirmLimpar && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmLimpar(false)}>
+          <div className="modal-box modal-small">
+            <div className="modal-header">
+              <h3>Limpar tudo</h3>
+              <button className="modal-close" onClick={() => setConfirmLimpar(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 14, color: 'var(--text2)' }}>
+                Isso vai remover <strong style={{ color: 'var(--text)' }}>todos os {aparelhos.length} aparelhos</strong> do controle de upgrade. Essa ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setConfirmLimpar(false)} disabled={limpando}>Cancelar</button>
+              <button className="btn btn-danger" onClick={limparTodos} disabled={limpando}>
+                {limpando ? 'Removendo...' : 'Remover tudo'}
+              </button>
+            </div>
           </div>
         </div>
       )}

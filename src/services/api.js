@@ -97,6 +97,7 @@ export const API = {
   criarAparelho:    (cid, dados)     => apiFetch(`/clientes/${cid}/upgrade`, { method: 'POST', body: JSON.stringify(dados) }),
   editarAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
   excluirAparelho:  (cid, id)        => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'DELETE' }),
+  limparAparelhos:  (cid)            => apiFetch(`/clientes/${cid}/upgrade`, { method: 'DELETE' }),
   venderAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}/vender`, { method: 'POST', body: JSON.stringify(dados) }),
 
   // Extrato
