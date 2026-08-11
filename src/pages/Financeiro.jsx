@@ -238,7 +238,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
             <thead>
               <tr>
                 <th style={{ minWidth: 280 }}>DRE — Resultado do Exercício</th>
-                {MESES.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
+                {MESES.map(m => <th key={m} style={{ textAlign: 'right' }}>{m}</th>)}
                 <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
               </tr>
             </thead>
@@ -419,7 +419,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
             <thead>
               <tr>
                 <th style={{ minWidth: 260 }}>Fluxo de Caixa</th>
-                {MESES.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
+                {MESES.map(m => <th key={m} style={{ textAlign: 'right' }}>{m}</th>)}
                 <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
               </tr>
             </thead>
