@@ -12,16 +12,14 @@
 .aba-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ── DRE TABLE ── */
-.dre-table { width: auto; border-collapse: collapse; font-size: 12px; }
+.dre-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .dre-table th {
-  padding: 8px 6px; text-align: left; font-size: 11px;
+  padding: 8px 12px; text-align: left; font-size: 11px;
   color: var(--text2); text-transform: uppercase; letter-spacing: .5px;
   border-bottom: 1px solid var(--border); background: var(--surface2);
   font-weight: 600; white-space: nowrap;
 }
-.dre-table th:first-child { padding-left: 14px; }
-.dre-table td { padding: 7px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
-.dre-table td:first-child { padding-left: 14px; }
+.dre-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .dre-table tr:hover td { background: var(--surface2); }
 
 
