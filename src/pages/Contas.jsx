@@ -80,6 +80,12 @@ export default function Contas() {
   const totVencR  = vencidasR.reduce((a, c) => a + parseFloat(c.valor), 0);
   const totARecR  = aReceberR.reduce((a, c) => a + parseFloat(c.valor), 0);
 
+  const proximas7P = pendP.filter(c => { const d = new Date(String(c.vencimento).slice(0,10) + 'T00:00:00'); const diff = Math.round((d - now) / 86400000); return diff >= 0 && diff <= 7; });
+  const proximas7R = pendR.filter(c => { const d = new Date(String(c.vencimento).slice(0,10) + 'T00:00:00'); const diff = Math.round((d - now) / 86400000); return diff >= 0 && diff <= 7; });
+  const totProx7P  = proximas7P.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const totProx7R  = proximas7R.reduce((a, c) => a + parseFloat(c.valor), 0);
+  const saldoPeriodo = totR - totP;
+
   const cats    = getCatsPorTipo(form.tipo === 'receber' ? 'Entrada' : 'Saída');
   const subcats = getSubcats(form.categoria);
 
@@ -398,6 +404,44 @@ export default function Contas() {
         </div>
       </div>
 
+      {/* Radar de prazo */}
+      {(vencidasP.length > 0 || vencidasR.length > 0 || proximas7P.length > 0 || proximas7R.length > 0) && (
+        <div className="contas-radar">
+          {(vencidasP.length > 0 || vencidasR.length > 0) && (
+            <div className="radar-bloco radar-vencida">
+              <svg className="radar-ico" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="M10 6v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/></svg>
+              <div className="radar-info">
+                <span className="radar-label">Vencidas</span>
+                <span className="radar-val">{fmt(totVenc + totVencR)}</span>
+                <span className="radar-sub">{vencidasP.length + vencidasR.length} conta{(vencidasP.length + vencidasR.length) !== 1 ? 's' : ''}{vencidasP.length > 0 && vencidasR.length > 0 ? ` (${vencidasP.length}p · ${vencidasR.length}r)` : ''}</span>
+              </div>
+            </div>
+          )}
+          {(proximas7P.length > 0 || proximas7R.length > 0) && (
+            <>
+              {(vencidasP.length > 0 || vencidasR.length > 0) && <div className="radar-sep" />}
+              <div className="radar-bloco radar-prazo">
+                <svg className="radar-ico" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="M10 5.5V10l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <div className="radar-info">
+                  <span className="radar-label">Vencem em 7 dias</span>
+                  <span className="radar-val">{fmt(totProx7P + totProx7R)}</span>
+                  <span className="radar-sub">{proximas7P.length + proximas7R.length} conta{(proximas7P.length + proximas7R.length) !== 1 ? 's' : ''}{proximas7P.length > 0 && proximas7R.length > 0 ? ` (${proximas7P.length}p · ${proximas7R.length}r)` : ''}</span>
+                </div>
+              </div>
+            </>
+          )}
+          <div className="radar-sep radar-sep-auto" />
+          <div className="radar-bloco radar-saldo">
+            <svg className="radar-ico" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M2 9h16" stroke="currentColor" strokeWidth="1.3"/><circle cx="13.5" cy="13" r="1.2" fill="currentColor"/></svg>
+            <div className="radar-info">
+              <span className="radar-label">Saldo projetado</span>
+              <span className="radar-val" style={{ color: saldoPeriodo >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(saldoPeriodo)}</span>
+              <span className="radar-sub">receber − pagar pendentes</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="contas-tabs">
         <button className={`contas-tab${aba === 'pagar' ? ' active-pagar' : ''}`} onClick={() => setAba('pagar')}>
@@ -418,12 +462,6 @@ export default function Contas() {
             <div className="contas-kpi-label">Total do Mês</div>
             <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totGeral)}</div>
             <div className="contas-kpi-sub">{pendP.length + quitadasP.length} conta{(pendP.length + quitadasP.length) !== 1 ? 's' : ''}</div>
-          </div>
-          <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
-            <div className="contas-kpi-icon">⚠️</div>
-            <div className="contas-kpi-label">Vencidas</div>
-            <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVenc)}</div>
-            <div className="contas-kpi-sub">{vencidasP.length} conta{vencidasP.length !== 1 ? 's' : ''}</div>
           </div>
           <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
             <div className="contas-kpi-icon">🕐</div>
@@ -495,12 +533,6 @@ export default function Contas() {
             <div className="contas-kpi-label">Total do Mês</div>
             <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totR + totQuitR)}</div>
             <div className="contas-kpi-sub">{pendR.length + quitadasR.length} conta{(pendR.length + quitadasR.length) !== 1 ? 's' : ''}</div>
-          </div>
-          <div className="contas-kpi" style={{ '--kpi-cor': '#ef4444' }}>
-            <div className="contas-kpi-icon">⚠️</div>
-            <div className="contas-kpi-label">Vencidas</div>
-            <div className="contas-kpi-value" style={{ color: '#ef4444' }}>{fmt(totVencR)}</div>
-            <div className="contas-kpi-sub">{vencidasR.length} conta{vencidasR.length !== 1 ? 's' : ''}</div>
           </div>
           <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
             <div className="contas-kpi-icon">🕐</div>

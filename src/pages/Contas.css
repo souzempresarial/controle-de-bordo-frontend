@@ -57,6 +57,90 @@
   background: var(--border);
 }
 
+/* ── Radar de prazo ── */
+.contas-radar {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.radar-bloco {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.radar-bloco.radar-vencida { border-left: 3px solid var(--saida); }
+.radar-bloco.radar-prazo   { border-left: 3px solid #f59e0b; }
+.radar-bloco.radar-saldo   { border-left: 3px solid var(--border); }
+
+.radar-ico {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.radar-bloco.radar-vencida .radar-ico { color: var(--saida); }
+.radar-bloco.radar-prazo   .radar-ico { color: #f59e0b; }
+.radar-bloco.radar-saldo   .radar-ico { color: var(--text2); }
+
+.radar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.radar-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text2);
+}
+
+.radar-val {
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.radar-bloco.radar-vencida .radar-val { color: var(--saida); }
+.radar-bloco.radar-prazo   .radar-val { color: #f59e0b; }
+
+.radar-sub {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.radar-sep {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+  margin: 10px 0;
+}
+
+.radar-sep-auto { margin-left: auto; flex: 0; }
+
+@media (max-width: 640px) {
+  .contas-radar { flex-direction: column; }
+  .radar-sep    { width: auto; height: 1px; margin: 0 10px; align-self: auto; }
+  .radar-bloco.radar-vencida,
+  .radar-bloco.radar-prazo,
+  .radar-bloco.radar-saldo  { border-left: none; border-top: 3px solid; }
+  .radar-bloco.radar-vencida { border-top-color: var(--saida); }
+  .radar-bloco.radar-prazo   { border-top-color: #f59e0b; }
+  .radar-bloco.radar-saldo   { border-top-color: var(--border); }
+}
+
 /* ── Tabs ── */
 .contas-tabs {
   display: flex;
@@ -106,7 +190,7 @@
 /* ── KPI cards ── */
 .contas-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
