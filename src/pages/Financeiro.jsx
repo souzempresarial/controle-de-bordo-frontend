@@ -1018,7 +1018,7 @@ export default function Financeiro() {
         <button className={`aba-btn ${aba === 'dre'    ? 'active' : ''}`} onClick={() => setAba('dre')}>DRE</button>
         <button className={`aba-btn ${aba === 'fluxo'  ? 'active' : ''}`} onClick={() => setAba('fluxo')}>Fluxo de Caixa</button>
         <button className={`aba-btn ${aba === 'balanco' ? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
-        <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Estoque de Aparelhos</button>
+        <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Upgrades</button>
         <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
       </div>
 

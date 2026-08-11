@@ -41,7 +41,7 @@ const IconTrash = () => (
 const formVazio = () => ({
   modelo: '', cor: '', armazenamento: '', bateria: '',
   observacoes: '', valor_avaliado: '', valor_pretendido: '',
-  data_entrada: hoje(),
+  data_entrada: hoje(), imei: '',
 });
 
 const novoApVazio = () => ({
@@ -153,6 +153,7 @@ export default function Upgrade() {
       valor_avaliado:   ap.valor_avaliado   != null ? String(ap.valor_avaliado)   : '',
       valor_pretendido: ap.valor_pretendido  != null ? String(ap.valor_pretendido) : '',
       data_entrada:     ap.criado_em ? ap.criado_em.slice(0, 10) : hoje(),
+      imei:             ap.imei || '',
     });
     setFormErro('');
   }
@@ -171,6 +172,7 @@ export default function Upgrade() {
         valor_avaliado:   form.valor_avaliado   ? parseFloat(form.valor_avaliado)  : null,
         valor_pretendido: form.valor_pretendido ? parseFloat(form.valor_pretendido): null,
         data_entrada:     form.data_entrada     || null,
+        imei:             form.imei             || null,
       };
       if (modal === 'novo') {
         const novo = await API.criarAparelho(clienteAtivo.id, dados);
@@ -292,6 +294,7 @@ export default function Upgrade() {
                   )}
                 </div>
               )}
+              {ap.imei && <div className="up-card-obs">IMEI: {ap.imei}</div>}
               {ap.observacoes && <div className="up-card-obs">{ap.observacoes}</div>}
             </div>
             <div className="up-card-meta">
@@ -436,10 +439,15 @@ export default function Upgrade() {
                 <div className="up-form-section">
                   <div className="up-form-section-label">Identificação</div>
                   <div className="form-grid">
-                    <div className="field span2">
+                    <div className="field">
                       <label>Modelo *</label>
                       <input type="text" placeholder="ex: iPhone 13 Pro" value={form.modelo}
                         onChange={e => setForm(f => ({...f, modelo: e.target.value}))} autoFocus />
+                    </div>
+                    <div className="field">
+                      <label>IMEI</label>
+                      <input type="text" placeholder="ex: 353879234567890" value={form.imei}
+                        onChange={e => setForm(f => ({...f, imei: e.target.value}))} />
                     </div>
                     <div className="field">
                       <label>Data de Entrada</label>
