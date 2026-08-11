@@ -349,7 +349,10 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
         }, 0);
         return cat === 'Deduções das Vendas' ? base + dedInline : base;
       };
-      const subVal = (cat, sub) => lancamentos.filter(l => l.data.startsWith(pfx) && l.categoria === cat && l.subcategoria === sub).reduce((a,l) => a + l.valor, 0);
+      const subVal = (cat, sub) => lm.filter(l => l.categoria === cat && l.subcategoria === sub).reduce((a, l) => {
+        const val = (l.tipo === 'Entrada' && (l.valorUpgrade || 0) > 0) ? l.valor - l.valorUpgrade : l.valor;
+        return a + val;
+      }, 0);
       return { ent, sai, saldo: ent - sai, catVal, subVal };
     }),
     [lancDFC, lancamentos, ano]
