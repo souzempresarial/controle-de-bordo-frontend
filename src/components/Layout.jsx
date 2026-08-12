@@ -176,7 +176,7 @@ export default function Layout({ children, usuario, onLogout }) {
                   Cancelar
                 </button>
                 <button type="submit" disabled={perfilSalvando}
-                  style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+                  style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
                   {perfilSalvando ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
