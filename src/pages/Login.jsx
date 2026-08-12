@@ -141,7 +141,7 @@ export default function Login({ onLogin }) {
               <label>Senha</label>
               <input type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} />
             </div>
-            <div ref={turnstileRef} style={{ margin: '4px 0' }}></div>
+            <div ref={turnstileRef} style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none' }}></div>
             {erro && <div className="login-erro">{erro}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: 'var(--text2)' }}>
