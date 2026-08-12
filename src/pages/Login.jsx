@@ -143,7 +143,7 @@ export default function Login({ onLogin }) {
             </div>
             <div ref={turnstileRef} style={{ margin: '4px 0' }}></div>
             {erro && <div className="login-erro">{erro}</div>}
-            <button type="submit" disabled={loading || !turnstileOk}>{loading ? 'Entrando...' : 'Entrar'}</button>
+            <button type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: 'var(--text2)' }}>
               Não tem conta?{' '}
               <button type="button" onClick={() => irPara('registro')}
