@@ -164,9 +164,6 @@ export default function ClienteSelect({ onLogout }) {
   }
 
   function handleLogout() {
-    sessionStorage.removeItem('cb_papel');
-    sessionStorage.removeItem('cb_nome');
-    sessionStorage.removeItem('cb_cliente_id');
     onLogout();
     navigate('/login');
   }
