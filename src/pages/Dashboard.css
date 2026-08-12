@@ -58,6 +58,14 @@
   color: var(--text2);
 }
 
-@media (max-width: 768px) {
-  .col-hide-mobile { display: none; }
+.resumo-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.resumo-table-wrap::-webkit-scrollbar { height: 4px; }
+.resumo-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.resumo-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.resumo-table { min-width: 600px; }
