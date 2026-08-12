@@ -429,15 +429,15 @@ export default function Dashboard() {
             <h2>Resumo de Produtos</h2>
             <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
           </div>
-          <table>
+          <table className="resumo-table">
             <thead>
               <tr>
                 <th>Produto</th>
                 <th style={{ textAlign: 'right' }}>Unidades</th>
                 <th style={{ textAlign: 'right' }}>Faturamento</th>
-                <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                <th style={{ textAlign: 'right' }} className="col-hide-mobile">Ticket Médio</th>
                 <th style={{ textAlign: 'right' }}>Lucro Médio</th>
-                <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
+                <th style={{ textAlign: 'right' }} className="col-hide-mobile">Lucro Acumulado</th>
               </tr>
             </thead>
             <tbody>
@@ -454,12 +454,12 @@ export default function Dashboard() {
                     </td>
                     <td style={{ textAlign: 'right' }}>{p.unidades}</td>
                     <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
+                    <td style={{ textAlign: 'right' }} className="col-hide-mobile">{fmt(p.faturamento / p.unidades)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro / p.unidades)}</span>
                       <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }} className="col-hide-mobile">{fmt(p.lucro)}</td>
                   </tr>
                 );
               })}
@@ -474,12 +474,12 @@ export default function Dashboard() {
                     <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
                     <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(totUnid > 0 ? totFat / totUnid : 0)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }} className="col-hide-mobile">{fmt(totUnid > 0 ? totFat / totUnid : 0)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totUnid > 0 ? totLuc / totUnid : 0)}</span>
                       <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({totFat > 0 ? (totLuc / totFat * 100).toFixed(1) : 0}%)</span>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }} className="col-hide-mobile">{fmt(totLuc)}</td>
                   </tr>
                 </>);
               })()}

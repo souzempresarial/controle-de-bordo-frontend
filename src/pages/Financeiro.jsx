@@ -222,7 +222,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
             <div className="card-sub">{cRecBruta > 0 ? fmtPct(cLucroLiq / cRecBruta * 100) : '—'}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="dre-period-select" style={{ display: 'flex', gap: 8 }}>
           <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
             {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
           </select>

@@ -122,7 +122,9 @@ body {
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+  height: 100%;
 }
+.sidebar-footer { display: none; }
 .nav-btn {
   background: none;
   border: none;
@@ -309,6 +311,11 @@ tr:hover td { background: var(--surface2); }
   table { font-size: 12px; }
   th, td { padding: 7px 8px; }
   .table-panel { overflow-x: auto; }
+
+  .btn-topbar-nome { display: none; }
+  .btn-topbar-sair { display: none; }
+
+  .sidebar-footer { display: flex; flex-direction: column; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
 }
 
 /* ── FORM ── */

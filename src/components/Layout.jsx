@@ -77,7 +77,7 @@ export default function Layout({ children, usuario, onLogout }) {
           )}
           <button onClick={abrirPerfil} className="btn-topbar" title="Meu perfil" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            {usuario?.nome}
+            <span className="btn-topbar-nome">{usuario?.nome}</span>
           </button>
           <button onClick={toggleTema} className="btn-topbar btn-tema" title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
             {tema === 'dark'
@@ -85,7 +85,7 @@ export default function Layout({ children, usuario, onLogout }) {
               : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             }
           </button>
-          <button onClick={handleLogout} className="btn-topbar">Sair</button>
+          <button onClick={handleLogout} className="btn-topbar btn-topbar-sair">Sair</button>
         </div>
       </header>
 
@@ -122,6 +122,17 @@ export default function Layout({ children, usuario, onLogout }) {
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar
         </NavLink>
+
+        <div className="sidebar-footer">
+          <button className="nav-btn" onClick={() => { fecharSidebar(); abrirPerfil(); }}>
+            <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Meu Perfil
+          </button>
+          <button className="nav-btn" onClick={handleLogout}>
+            <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </button>
+        </div>
 
         {isAdmin && (
           <>

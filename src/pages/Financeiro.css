@@ -1,12 +1,13 @@
 .financeiro-page { display: flex; flex-direction: column; gap: 18px; }
 
 /* ── ABAS ── */
-.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; flex-wrap: wrap; }
+.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.abas::-webkit-scrollbar { display: none; }
 .aba-btn {
   background: none; border: none; color: var(--text2);
   padding: 8px 18px; font-size: 13px; font-weight: 600;
   cursor: pointer; border-bottom: 2px solid transparent;
-  margin-bottom: -1px; transition: all .15s;
+  margin-bottom: -1px; transition: all .15s; white-space: nowrap; flex-shrink: 0;
 }
 .aba-btn:hover { color: var(--text); }
 .aba-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -38,3 +39,7 @@
   padding: 2px 5px; font-size: 12px; outline: none;
 }
 .dre-input:focus { border-color: var(--accent); }
+
+@media (max-width: 768px) {
+  .dre-period-select { width: 100%; justify-content: flex-end; }
+}
