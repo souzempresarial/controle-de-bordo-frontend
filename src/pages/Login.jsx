@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import './Login.css';
-
-const TURNSTILE_SITE_KEY = '0x4AAAAAAAAEJmNXfV_eWBcU0a';
 
 export default function Login({ onLogin }) {
   const { entrarCliente }     = useApp();
@@ -16,34 +14,7 @@ export default function Login({ onLogin }) {
   const [erro, setErro]       = useState('');
   const [info, setInfo]       = useState('');
   const [loading, setLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const [turnstileOk, setTurnstileOk]     = useState(false);
   const { tema, toggleTema }  = useTheme();
-  const turnstileRef  = useRef(null);
-  const widgetIdRef   = useRef(null);
-
-  useEffect(() => {
-    if (tela !== 'login' || !turnstileRef.current) return;
-    const render = () => {
-      if (!window.turnstile || !turnstileRef.current) return;
-      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-        sitekey: TURNSTILE_SITE_KEY,
-        callback:          (t) => { setTurnstileToken(t); setTurnstileOk(true); },
-        'expired-callback': () => { setTurnstileToken(''); setTurnstileOk(false); },
-        'error-callback':   () => { setTurnstileToken(''); setTurnstileOk(false); },
-      });
-    };
-    if (window.turnstile) { render(); }
-    else { document.querySelector('script[src*="turnstile"]')?.addEventListener('load', render); }
-    return () => {
-      if (widgetIdRef.current != null && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
-        widgetIdRef.current = null;
-        setTurnstileToken('');
-        setTurnstileOk(false);
-      }
-    };
-  }, [tela]);
 
   function irPara(t) { setTela(t); setErro(''); setInfo(''); }
 
@@ -52,7 +23,7 @@ export default function Login({ onLogin }) {
     if (!email || !senha) { setErro('Preencha email e senha'); return; }
     setLoading(true); setErro('');
     try {
-      const data = await API.login({ email, senha, turnstileToken });
+      const data = await API.login({ email, senha });
       sessionStorage.setItem('sf_papel',     data.papel);
       sessionStorage.setItem('sf_nome',      data.nome || '');
       if (data.clienteId) sessionStorage.setItem('sf_cliente_id', String(data.clienteId));
@@ -62,11 +33,6 @@ export default function Login({ onLogin }) {
       onLogin(data);
     } catch (err) {
       setErro(err.message);
-      if (widgetIdRef.current != null && window.turnstile) {
-        window.turnstile.reset(widgetIdRef.current);
-      }
-      setTurnstileToken('');
-      setTurnstileOk(false);
     } finally {
       setLoading(false);
     }
@@ -141,8 +107,7 @@ export default function Login({ onLogin }) {
               <label>Senha</label>
               <input type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} />
             </div>
-            <div ref={turnstileRef} style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none' }}></div>
-            {erro && <div className="login-erro">{erro}</div>}
+{erro && <div className="login-erro">{erro}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
             <p style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: 'var(--text2)' }}>
               Não tem conta?{' '}
