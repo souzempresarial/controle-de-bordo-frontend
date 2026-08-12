@@ -22,18 +22,37 @@ function getUsuarioInicial() {
   return papel ? { papel, nome } : null;
 }
 
+function getPrimeiraPermissaoFuncionario() {
+  try {
+    const perms = JSON.parse(sessionStorage.getItem('sf_permissoes') || 'null');
+    return Array.isArray(perms) && perms[0] ? `/${perms[0]}` : null;
+  } catch {
+    return null;
+  }
+}
+
 function PrivateRoute({ usuario, children }) {
   if (!usuario) return <Navigate to="/login" replace />;
   return children;
+}
+
+function SemAcesso({ onLogout }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px', fontFamily: 'system-ui', color: 'var(--text-2, #888)' }}>
+      <p>Nenhuma permissão configurada. Contate o administrador.</p>
+      <button onClick={onLogout} style={{ padding: '8px 20px', borderRadius: '8px', border: '1px solid var(--border, #ddd)', cursor: 'pointer', background: 'transparent', color: 'inherit' }}>Sair</button>
+    </div>
+  );
 }
 
 function PrivateLayout({ usuario, onLogout, children, slug }) {
   if (!usuario) return <Navigate to="/login" replace />;
   if (slug && usuario.papel === 'funcionario') {
     const perms = (() => { try { return JSON.parse(sessionStorage.getItem('sf_permissoes') || 'null'); } catch { return null; } })();
-    if (perms && !perms.includes(slug)) {
+    if (perms !== null && !perms.includes(slug)) {
       const primeiro = perms[0];
-      return <Navigate to={primeiro ? `/${primeiro}` : '/login'} replace />;
+      if (!primeiro) return <SemAcesso onLogout={onLogout} />;
+      return <Navigate to={`/${primeiro}`} replace />;
     }
   }
   return <Layout usuario={usuario} onLogout={onLogout}>{children}</Layout>;
@@ -72,7 +91,11 @@ export default function App() {
             path="/login"
             element={
               usuario
-                ? <Navigate to={papel === 'admin' ? '/clientes' : '/dashboard'} replace />
+                ? <Navigate to={
+                    papel === 'admin' ? '/clientes' :
+                    papel === 'funcionario' ? (getPrimeiraPermissaoFuncionario() || '/dashboard') :
+                    '/dashboard'
+                  } replace />
                 : <Login onLogin={handleLogin} />
             }
           />
@@ -106,6 +129,8 @@ export default function App() {
                 ? <Navigate to="/login" replace />
                 : papel === 'admin'
                 ? <Navigate to="/clientes" replace />
+                : papel === 'funcionario'
+                ? <Navigate to={getPrimeiraPermissaoFuncionario() || '/dashboard'} replace />
                 : <Navigate to="/dashboard" replace />
             }
           />
