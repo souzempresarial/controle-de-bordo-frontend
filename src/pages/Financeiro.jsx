@@ -911,6 +911,7 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const uni        = aparelhos.reduce((a,l) => a + (l.quantidade || 1), 0);
     const fatAparelhos = aparelhos.reduce((a,l) => a + l.valor, 0);
     const fatAcess   = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Acessórios').reduce((a,l) => a + l.valor, 0);
+    const fatAssist  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.categoria === 'Assistência Técnica').reduce((a,l) => a + l.valor, 0);
     const ticket     = uni > 0 ? fatAparelhos / uni : 0;
 
     const ritmo      = diasPassados > 0 ? fat / diasPassados : 0;
@@ -924,7 +925,7 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const caixaLiq  = entCaixa - saiCaixa;
     const projCaixa = diasPassados > 0 ? caixaLiq / diasPassados * diasNoMes : caixaLiq;
 
-    return { fat, lucroLiq, uni, ticket, fatAcess, caixaLiq, projCaixa, diasNoMes, diasPassados, diasRestantes, projFat, projLucro, projUni, projTicket, ritmo };
+    return { fat, lucroLiq, uni, ticket, fatAcess, fatAssist, caixaLiq, projCaixa, diasNoMes, diasPassados, diasRestantes, projFat, projLucro, projUni, projTicket, ritmo };
   }, [lancamentos, pfx, anoN, mesN]);
 
   const MetricCard = ({ titulo, campo, atual, proj: projVal, cor, isMoney = true }) => {
@@ -978,7 +979,8 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
         <MetricCard titulo="Lucro Líquido"      campo="meta_lucro"  atual={proj.lucroLiq} proj={proj.projLucro}  cor={proj.lucroLiq >= 0 ? '#3b82f6' : '#f03e3e'} />
         <MetricCard titulo="Aparelhos Vendidos" campo="meta_uni"    atual={proj.uni}      proj={proj.projUni}    cor="#f59e0b" isMoney={false} />
         <MetricCard titulo="Ticket Médio"       campo="meta_ticket" atual={proj.ticket}   proj={proj.projTicket} cor="#8b5cf6" />
-        <MetricCard titulo="Fat. Acessórios"    campo="meta_acess"  atual={proj.fatAcess}  proj={proj.fat > 0 ? proj.projFat * (proj.fatAcess / proj.fat) : proj.fatAcess} cor="#06b6d4" />
+        <MetricCard titulo="Fat. Acessórios"     campo="meta_acess"   atual={proj.fatAcess}  proj={proj.fat > 0 ? proj.projFat * (proj.fatAcess / proj.fat) : proj.fatAcess}  cor="#06b6d4" />
+        <MetricCard titulo="Fat. Assistência"   campo="meta_assist"  atual={proj.fatAssist} proj={proj.fat > 0 ? proj.projFat * (proj.fatAssist / proj.fat) : proj.fatAssist} cor="#f59e0b" />
         <MetricCard titulo="Geração de Caixa"  campo="meta_caixa"  atual={proj.caixaLiq}  proj={proj.projCaixa}  cor={proj.caixaLiq >= 0 ? '#22c55e' : '#f03e3e'} />
       </div>
 
