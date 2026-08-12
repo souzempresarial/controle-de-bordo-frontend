@@ -376,7 +376,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="dfc-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
           {saldoInicial > 0 && (
             <div className="card">
@@ -400,7 +400,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="dfc-controls" style={{ display: 'flex', gap: 8 }}>
           <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
             {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
           </select>

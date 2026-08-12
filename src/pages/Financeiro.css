@@ -42,4 +42,7 @@
 
 @media (max-width: 768px) {
   .dre-period-select { width: 100%; justify-content: flex-end; }
+  .dfc-header { flex-direction: column; align-items: stretch; }
+  .dfc-header .cards { grid-template-columns: repeat(2, 1fr); }
+  .dfc-controls { flex-wrap: wrap; }
 }
