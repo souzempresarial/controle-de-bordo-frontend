@@ -20,8 +20,8 @@ export default function Layout({ children, usuario, onLogout }) {
   const isAdmin = papel === 'admin';
   const isFuncionario = papel === 'funcionario';
   const permissoesRaw = sessionStorage.getItem('sf_permissoes');
-  const permissoes = permissoesRaw ? JSON.parse(permissoesRaw) : null;
-  const podeVer = (slug) => !isFuncionario || (permissoes && permissoes.includes(slug));
+  const permissoes = (() => { try { return permissoesRaw ? JSON.parse(permissoesRaw) : null; } catch { return null; } })();
+  const podeVer = (slug) => !isFuncionario || (Array.isArray(permissoes) && permissoes.includes(slug));
 
   async function abrirPerfil() {
     setPerfilMsg(''); setPerfilErro('');
