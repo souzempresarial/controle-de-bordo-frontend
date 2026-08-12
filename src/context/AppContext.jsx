@@ -13,11 +13,15 @@ export function AppProvider({ children }) {
   const entrarCliente = useCallback(async (cliente) => {
     setLoading(true);
     try {
-      const [lans, cts, metasArr] = await Promise.all([
+      const [lansRes, ctsRes, metasRes] = await Promise.allSettled([
         API.listarLancamentos(cliente.id),
         API.listarContas(cliente.id),
         API.listarMetas(cliente.id),
       ]);
+
+      const lans     = lansRes.status  === 'fulfilled' ? lansRes.value  : [];
+      const cts      = ctsRes.status   === 'fulfilled' ? ctsRes.value   : [];
+      const metasArr = metasRes.status === 'fulfilled' ? metasRes.value : [];
 
       const mc = {};
       metasArr.forEach(m => {
