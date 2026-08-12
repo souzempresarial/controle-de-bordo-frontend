@@ -48,8 +48,9 @@ function SemAcesso({ onLogout }) {
 function PrivateLayout({ usuario, onLogout, children, slug }) {
   if (!usuario) return <Navigate to="/login" replace />;
   if (slug && usuario.papel === 'funcionario') {
-    const perms = (() => { try { return JSON.parse(sessionStorage.getItem('sf_permissoes') || 'null'); } catch { return null; } })();
-    if (perms !== null && !perms.includes(slug)) {
+    const raw = (() => { try { return JSON.parse(sessionStorage.getItem('sf_permissoes') || 'null'); } catch { return null; } })();
+    const perms = Array.isArray(raw) ? raw : []; // null ou inválido = sem permissões
+    if (!perms.includes(slug)) {
       const primeiro = perms[0];
       if (!primeiro) return <SemAcesso onLogout={onLogout} />;
       return <Navigate to={`/${primeiro}`} replace />;
