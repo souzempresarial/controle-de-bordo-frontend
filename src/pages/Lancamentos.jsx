@@ -247,13 +247,11 @@ export default function Lancamentos() {
   async function excluir(id) {
     try {
       await API.excluirLancamento(clienteAtivo.id, id);
-      setLancamentos(prev => {
-        const sem = prev.filter(l => l.id !== id);
-        const pais = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
-        const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
-        orfaos.forEach(o => API.excluirLancamento(clienteAtivo.id, o.id));
-        return sem.filter(l => !l.isCMV || pais.has(l.grupoId));
-      });
+      const sem    = lancamentos.filter(l => l.id !== id);
+      const pais   = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
+      const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
+      await Promise.allSettled(orfaos.map(o => API.excluirLancamento(clienteAtivo.id, o.id)));
+      setLancamentos(sem.filter(l => !l.isCMV || pais.has(l.grupoId)));
     } catch (err) { console.error(err); }
     setConfirmando(null);
   }
@@ -269,7 +267,7 @@ export default function Lancamentos() {
       const sorted = (res.transacoes || []).slice().sort((a, b) => a.data.localeCompare(b.data));
       setExtratoLinhas(sorted.map((t, i) => ({ ...t, _id: i })));
     } catch (err) { setExtratoErro(err.message); }
-    finally { setExtratoProc(false); }
+    finally { setExtratoProc(false); e.target.value = ''; }
   }
 
   function editarLinha(id, campo, valor) {
@@ -353,21 +351,30 @@ export default function Lancamentos() {
 
   async function importarExtrato() {
     setExtratoImp(true); setExtratoErro('');
-    try {
-      for (const t of extratoLinhas) {
+    const criados = [];
+    let falhas = 0;
+    for (const t of extratoLinhas) {
+      try {
         const novo = await API.criarLancamento(clienteAtivo.id, {
           tipo: t.tipo, valor: parseFloat(t.valor), data: t.data,
           categoria: t.categoria_sugerida || '', subcategoria: t.subcategoria_sugerida || '',
           descricao: t.descricao || '', status: 'Confirmado',
         });
-        setLancamentos(prev => [novo, ...prev]);
-      }
+        criados.push(novo);
+      } catch { falhas++; }
+    }
+    if (criados.length > 0) {
+      setLancamentos(prev => [...criados, ...prev]);
       API.salvarRegrasExtrato(clienteAtivo.id, extratoLinhas.filter(t => t.categoria_sugerida).map(t => ({
         descricao: t.descricao, categoria: t.categoria_sugerida, subcategoria: t.subcategoria_sugerida,
       }))).catch(() => {});
+    }
+    if (falhas > 0) {
+      setExtratoErro(`${criados.length} importado(s) com sucesso. ${falhas} falhou(aram) — verifique e tente novamente.`);
+    } else {
       setExtratoModal(false); setExtratoLinhas([]);
-    } catch (err) { setExtratoErro(err.message); }
-    finally { setExtratoImp(false); }
+    }
+    setExtratoImp(false);
   }
   return (
     <div className="lancamentos-page">

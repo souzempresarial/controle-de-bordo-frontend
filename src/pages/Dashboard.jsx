@@ -145,16 +145,18 @@ export default function Dashboard() {
   }, [lm]);
 
   const semCMV = useMemo(() => {
-    const lista = lm.filter(l => !(l.isCMV && l.grupoId)).slice(0, 50);
-    return [...lista].sort((a, b) => {
-      let va = a[sortCol] ?? '';
-      let vb = b[sortCol] ?? '';
-      if (sortCol === 'valor') { va = parseFloat(va); vb = parseFloat(vb); }
-      else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
+    return lm
+      .filter(l => !(l.isCMV && l.grupoId))
+      .sort((a, b) => {
+        let va = a[sortCol] ?? '';
+        let vb = b[sortCol] ?? '';
+        if (sortCol === 'valor') { va = parseFloat(va); vb = parseFloat(vb); }
+        else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      })
+      .slice(0, 50);
   }, [lm, sortCol, sortDir]);
 
   function setField(campo, valor) {
@@ -329,13 +331,11 @@ export default function Dashboard() {
   async function excluir(id) {
     try {
       await API.excluirLancamento(clienteAtivo.id, id);
-      setLancamentos(prev => {
-        const sem = prev.filter(l => l.id !== id);
-        const pais = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
-        const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
-        orfaos.forEach(o => API.excluirLancamento(clienteAtivo.id, o.id));
-        return sem.filter(l => !l.isCMV || pais.has(l.grupoId));
-      });
+      const sem    = lancamentos.filter(l => l.id !== id);
+      const pais   = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
+      const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
+      await Promise.allSettled(orfaos.map(o => API.excluirLancamento(clienteAtivo.id, o.id)));
+      setLancamentos(sem.filter(l => !l.isCMV || pais.has(l.grupoId)));
     } catch (err) {
       console.error(err);
     }

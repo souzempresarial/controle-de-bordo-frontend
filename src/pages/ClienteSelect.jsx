@@ -67,7 +67,7 @@ export default function ClienteSelect({ onLogout }) {
     setLoadingU(p => ({ ...p, [clienteId]: true }));
     try {
       const data = await API.listarUsuarios();
-      const filtrados = data.filter(u => u.clienteId === clienteId || u.cliente_id === clienteId);
+      const filtrados = data.filter(u => u.cliente_id === clienteId);
       setUsuarios(p => ({ ...p, [clienteId]: filtrados }));
     } catch {
       setUsuarios(p => ({ ...p, [clienteId]: [] }));
