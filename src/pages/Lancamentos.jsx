@@ -173,7 +173,7 @@ export default function Lancamentos() {
       if (isEntrada && form.cmvValor && parseFloat(form.cmvValor) > 0) {
         if (editandoCMV) {
           grupoId = editando.grupoId || editandoCMV.grupoId || ('g' + Date.now());
-          atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
+          atualizadoCMV = await API.editarLancamento(clienteAtivo.id, editandoCMV.id, {
             data: form.data, tipo: 'Saída',
             valor: parseFloat(form.cmvValor),
             categoria: form.cmvCat || editandoCMV.categoria,
@@ -196,7 +196,7 @@ export default function Lancamentos() {
         }
       }
 
-      const atualizado = await API.editarLancamento(editando.id, {
+      const atualizado = await API.editarLancamento(clienteAtivo.id, editando.id, {
         data: form.data, tipo: form.tipo, valor: valorBruto,
         categoria: form.categoria, subcategoria: form.subcategoria,
         descricao: form.descricao, pagamento: form.pagamento,

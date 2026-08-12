@@ -69,7 +69,7 @@ export const API = {
   // Lançamentos
   listarLancamentos: (cid)         => apiFetch(`/clientes/${cid}/lancamentos`).then(lans => lans.map(normalizarLancamento)),
   criarLancamento:   (cid, dados)  => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'POST', body: JSON.stringify(dados) }).then(normalizarLancamento),
-  editarLancamento:  (id, dados)   => apiFetch(`/clientes/0/lancamentos/${id}`, { method: 'PUT', body: JSON.stringify(dados) }).then(normalizarLancamento),
+  editarLancamento:  (cid, id, dados) => apiFetch(`/clientes/${cid}/lancamentos/${id}`, { method: 'PUT', body: JSON.stringify(dados) }).then(normalizarLancamento),
   excluirLancamento: (cid, id)     => apiFetch(`/clientes/${cid}/lancamentos/${id}`, { method: 'DELETE' }),
   limparLancamentos: (cid)         => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'DELETE' }),
 

@@ -229,7 +229,7 @@ export default function Dashboard() {
 
         if (isEnt && form.cmvValor && parseFloat(form.cmvValor) > 0) {
           if (editandoCMV) {
-            atualizadoCMV = await API.editarLancamento(editandoCMV.id, {
+            atualizadoCMV = await API.editarLancamento(clienteAtivo.id, editandoCMV.id, {
               data: form.data, tipo: 'Saída', valor: parseFloat(form.cmvValor),
               categoria: form.cmvCat || editandoCMV.categoria,
               subcategoria: form.cmvSub || editandoCMV.subcategoria,
@@ -250,7 +250,7 @@ export default function Dashboard() {
 
         const upgradeVal = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
         const qtdUpgradeVal = upgradeVal && parseInt(form.qtdUpgrade) > 0 ? parseInt(form.qtdUpgrade) : null;
-        const atualizado = await API.editarLancamento(editandoId, {
+        const atualizado = await API.editarLancamento(clienteAtivo.id, editandoId, {
           data: form.data, tipo: form.tipo, valor: valorBruto,
           categoria: form.categoria, subcategoria: form.subcategoria,
           descricao: form.descricao, pagamento: form.pagamento,
