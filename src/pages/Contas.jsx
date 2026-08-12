@@ -209,7 +209,7 @@ export default function Contas() {
   async function excluirBulk(categoria) {
     try {
       const { deletados } = await API.excluirContasBulk(clienteAtivo.id, categoria);
-      setContas(prev => prev.filter(c => !(c.status === 'pendente' && (!categoria || c.categoria === categoria))));
+      setContas(prev => prev.filter(c => !(c.tipo === 'pagar' && c.status === 'pendente' && (!categoria || c.categoria === categoria))));
       showToast(`${deletados} conta${deletados !== 1 ? 's' : ''} excluída${deletados !== 1 ? 's' : ''}`);
     } catch (err) {
       showToast('Erro ao excluir', 'erro');
@@ -233,7 +233,6 @@ export default function Contas() {
     const tipoLanc = c.tipo === 'receber' ? 'Entrada' : 'Saída';
     try {
       await API.editarConta(clienteAtivo.id, c.id, { ...c, status: 'quitado' });
-      setContas(prev => prev.map(x => x.id === c.id ? { ...x, status: 'quitado' } : x));
 
       const valorJuros = parseFloat(c.valor_juros) || 0;
       if (tipoLanc === 'Saída' && valorJuros > 0) {
@@ -257,6 +256,8 @@ export default function Contas() {
         });
         setLancamentos(prev => [novoLanc, ...prev]);
       }
+
+      setContas(prev => prev.map(x => x.id === c.id ? { ...x, status: 'quitado' } : x));
 
       if (c.recorrente && c.periodicidade && c.vencimento) {
         const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');

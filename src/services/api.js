@@ -114,8 +114,9 @@ export const API = {
     }).then(async r => {
       const texto = await r.text();
       if (!r.ok) {
-        try { const j = JSON.parse(texto); throw new Error(j.erro || j.message || `Erro ${r.status}`); }
-        catch (e) { if (e.message !== texto) throw e; throw new Error(`Erro ${r.status}`); }
+        let msg = `Erro ${r.status}`;
+        try { const j = JSON.parse(texto); msg = j.erro || j.message || msg; } catch {}
+        throw new Error(msg);
       }
       try { return JSON.parse(texto); }
       catch { throw new Error('O processamento demorou demais. Tente novamente — PDFs muito grandes podem levar mais tempo.'); }

@@ -251,10 +251,12 @@ export default function Upgrade() {
         novosAparelhos = [novo, ...novosAparelhos];
       }
       setAparelhos(novosAparelhos);
-      const novosLans = await API.listarLancamentos(clienteAtivo.id);
-      setLancamentos(novosLans);
       setVenderModal(null);
       setToast({ msg: `Venda de ${venderModal.modelo} registrada com sucesso`, type: 'success' });
+      try {
+        const novosLans = await API.listarLancamentos(clienteAtivo.id);
+        setLancamentos(novosLans);
+      } catch {}
     } catch (err) { setVenderErro(err.message); }
     finally { setVenderSalvando(false); }
   }
