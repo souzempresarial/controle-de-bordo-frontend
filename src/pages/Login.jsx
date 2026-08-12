@@ -56,6 +56,8 @@ export default function Login({ onLogin }) {
       sessionStorage.setItem('sf_papel',     data.papel);
       sessionStorage.setItem('sf_nome',      data.nome || '');
       if (data.clienteId) sessionStorage.setItem('sf_cliente_id', String(data.clienteId));
+      if (data.permissoes) sessionStorage.setItem('sf_permissoes', JSON.stringify(data.permissoes));
+      else sessionStorage.removeItem('sf_permissoes');
       if (data.cliente) await entrarCliente(data.cliente);
       onLogin(data);
     } catch (err) {

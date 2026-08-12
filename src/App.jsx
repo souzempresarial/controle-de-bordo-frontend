@@ -27,8 +27,15 @@ function PrivateRoute({ usuario, children }) {
   return children;
 }
 
-function PrivateLayout({ usuario, onLogout, children }) {
+function PrivateLayout({ usuario, onLogout, children, slug }) {
   if (!usuario) return <Navigate to="/login" replace />;
+  if (slug && usuario.papel === 'funcionario') {
+    const perms = (() => { try { return JSON.parse(sessionStorage.getItem('sf_permissoes') || 'null'); } catch { return null; } })();
+    if (perms && !perms.includes(slug)) {
+      const primeiro = perms[0];
+      return <Navigate to={primeiro ? `/${primeiro}` : '/login'} replace />;
+    }
+  }
   return <Layout usuario={usuario} onLogout={onLogout}>{children}</Layout>;
 }
 
@@ -50,6 +57,7 @@ export default function App() {
     sessionStorage.removeItem('sf_nome');
     sessionStorage.removeItem('sf_cliente_id');
     sessionStorage.removeItem('sf_cliente_json');
+    sessionStorage.removeItem('sf_permissoes');
     setUsuario(null);
   }
 
@@ -82,13 +90,13 @@ export default function App() {
           />
 
           {/* Páginas dentro do Layout */}
-          <Route path="/dashboard"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Dashboard /></PrivateLayout>} />
-          <Route path="/lancamentos" element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Lancamentos /></PrivateLayout>} />
-          <Route path="/relatorio"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Relatorio /></PrivateLayout>} />
-          <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Contas /></PrivateLayout>} />
-          <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Financeiro /></PrivateLayout>} />
-          <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Exportar /></PrivateLayout>} />
-          <Route path="/upgrade"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout}><Upgrade /></PrivateLayout>} />
+          <Route path="/dashboard"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="dashboard"><Dashboard /></PrivateLayout>} />
+          <Route path="/lancamentos" element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="lancamentos"><Lancamentos /></PrivateLayout>} />
+          <Route path="/relatorio"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="relatorio"><Relatorio /></PrivateLayout>} />
+          <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="contas"><Contas /></PrivateLayout>} />
+          <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="financeiro"><Financeiro /></PrivateLayout>} />
+          <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="exportar"><Exportar /></PrivateLayout>} />
+          <Route path="/upgrade"     element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="upgrade"><Upgrade /></PrivateLayout>} />
 
           {/* Rota raiz: redireciona conforme papel */}
           <Route
