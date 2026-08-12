@@ -109,7 +109,7 @@ export default function Lancamentos() {
   }, [filtrados, sortCol, sortDir]);
 
   const totaisFiltro = useMemo(() => {
-    const entradas = filtrados.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valor), 0);
+    const entradas = filtrados.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valorRecebido ?? l.valor), 0);
     const saidas   = filtrados.filter(l => l.tipo === 'Saída').reduce((a, l) => a + parseFloat(l.valor), 0);
     return { entradas, saidas, saldo: entradas - saidas };
   }, [filtrados]);
@@ -226,25 +226,28 @@ export default function Lancamentos() {
 
   async function excluirTodos() {
     setApagandoTodos(true);
+    const removidos = new Set();
     try {
       for (const l of filtrados) {
-        await API.excluirLancamento(clienteAtivo.id, l.id);
-        const cmvPar = lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV && l.grupoId);
-        if (cmvPar) await API.excluirLancamento(clienteAtivo.id, cmvPar.id);
+        try {
+          await API.excluirLancamento(clienteAtivo.id, l.id);
+          removidos.add(l.id);
+          const cmvPar = lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV && l.grupoId);
+          if (cmvPar) {
+            await API.excluirLancamento(clienteAtivo.id, cmvPar.id).catch(() => {});
+            removidos.add(cmvPar.id);
+          }
+        } catch { /* continua para o próximo */ }
       }
-      const idsRemover = new Set([
-        ...filtrados.map(l => l.id),
-        ...filtrados.filter(l => l.grupoId).flatMap(l =>
-          lancamentos.filter(x => x.grupoId === l.grupoId && x.isCMV).map(x => x.id)
-        ),
-      ]);
-      setLancamentos(prev => prev.filter(l => !idsRemover.has(l.id)));
-    } catch (err) { console.error(err); }
-    setApagandoTodos(false);
-    setConfirmandoTodos(false);
+    } finally {
+      if (removidos.size) setLancamentos(prev => prev.filter(l => !removidos.has(l.id)));
+      setApagandoTodos(false);
+      setConfirmandoTodos(false);
+    }
   }
 
   async function excluir(id) {
+    setConfirmando(null);
     try {
       await API.excluirLancamento(clienteAtivo.id, id);
       const sem    = lancamentos.filter(l => l.id !== id);
@@ -253,7 +256,6 @@ export default function Lancamentos() {
       await Promise.allSettled(orfaos.map(o => API.excluirLancamento(clienteAtivo.id, o.id)));
       setLancamentos(sem.filter(l => !l.isCMV || pais.has(l.grupoId)));
     } catch (err) { console.error(err); }
-    setConfirmando(null);
   }
 
 
@@ -327,7 +329,6 @@ export default function Lancamentos() {
             .sort((a, b) => a.data.localeCompare(b.data))
         );
       } else {
-        await API.excluirLancamento(clienteAtivo.id, dividindo.id);
         const criados = [];
         for (const p of dividirPartes) {
           const novo = await API.criarLancamento(clienteAtivo.id, {
@@ -338,6 +339,7 @@ export default function Lancamentos() {
           });
           criados.push(novo);
         }
+        await API.excluirLancamento(clienteAtivo.id, dividindo.id);
         setLancamentos(prev => [...criados, ...prev.filter(l => l.id !== dividindo.id)]);
         if (editando?.id === dividindo.id) fecharModal();
       }
@@ -461,9 +463,15 @@ export default function Lancamentos() {
                         {cmv && (
                           <div style={{ marginTop: 4, display: 'flex', gap: 8, fontSize: 11 }}>
                             <span style={{ background: '#f03e3e18', color: 'var(--saida)', borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>CMV {fmt(cmv.valor)}</span>
-                            <span style={{ color: (l.valor - cmv.valor) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-                              Lucro {fmt(l.valor - cmv.valor)} · Margem {l.valor > 0 ? ((l.valor - cmv.valor) / l.valor * 100).toFixed(2) : 0}%
-                            </span>
+                            {(() => {
+                              const rec   = parseFloat(l.valorRecebido ?? l.valor);
+                              const lucro = rec - cmv.valor;
+                              return (
+                                <span style={{ color: lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+                                  Lucro {fmt(lucro)} · Margem {rec > 0 ? (lucro / rec * 100).toFixed(2) : 0}%
+                                </span>
+                              );
+                            })()}
                           </div>
                         )}
                       </td>
