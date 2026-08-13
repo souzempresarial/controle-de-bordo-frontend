@@ -80,8 +80,8 @@ export default function Dashboard() {
   const recLiq       = fat - deducoes;
   const deducoesPrev = lprev.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
   const recLiqPrev   = fatPrev - deducoesPrev;
-  const gastos     = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
-  const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)').reduce((a, l) => a + l.valor, 0);
+  const gastos     = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)' && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const gastosPrev = lprev.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)' && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
 
   const margBruta     = fat > 0     ? ((recLiq - cmvMes) / fat * 100) : 0;
   const margBrutaPrev = fatPrev > 0 ? ((recLiqPrev - cmvPrev) / fatPrev * 100) : 0;

@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
 
       if (lansRes.status === 'rejected' || ctsRes.status === 'rejected') {
         setErroEntrar('Não foi possível carregar os dados do cliente. Verifique sua conexão e tente novamente.');
+        throw new Error('Falha ao carregar dados do cliente');
       }
 
       const lans     = lansRes.status  === 'fulfilled' ? lansRes.value  : [];
@@ -59,7 +60,7 @@ export function AppProvider({ children }) {
     if (clienteJson) {
       try {
         const cliente = JSON.parse(clienteJson);
-        entrarCliente(cliente);
+        entrarCliente(cliente).catch(() => {});
       } catch {
         sessionStorage.removeItem('sf_cliente_json');
       }

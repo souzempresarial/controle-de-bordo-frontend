@@ -8,14 +8,14 @@ import './Financeiro.css';
 // ── DRE CALCULATION ──────────────────────────────────────────────────────────
 function calcDREMes(lancamentos, pfx) {
   const lm  = lancamentos.filter(l => l.data.startsWith(pfx));
-  const ent = (cat, sub) => lm.filter(l => l.tipo === 'Entrada' && l.categoria === cat && (!sub || l.subcategoria === sub)).reduce((a,l) => a+l.valor, 0);
-  const sai = (cat)      => lm.filter(l => l.tipo === 'Saída'   && l.categoria === cat).reduce((a,l) => a+l.valor, 0);
+  const ent = (cat, sub) => lm.filter(l => l.tipo === 'Entrada' && l.categoria === cat && (!sub || l.subcategoria === sub) && l.status !== 'Pendente').reduce((a,l) => a+l.valor, 0);
+  const sai = (cat)      => lm.filter(l => l.tipo === 'Saída'   && l.categoria === cat && l.status !== 'Pendente').reduce((a,l) => a+l.valor, 0);
   const qua = (cat)      => lm.filter(l => l.categoria === cat).reduce((a,l) => a+l.valor, 0);
 
   const subscricao  = ent('Aparelhos') + ent('Acessórios') + ent('Assistência Técnica') + ent('Outros Produtos');
   const recNaoOp    = ent('Receitas Não-Operacionais');
   const recBruta    = subscricao + recNaoOp;
-  const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
+  const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null && l.status !== 'Pendente').reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
   const deducoes    = sai('Deduções das Vendas') + deducoesDiretas;
   const recLiquida  = recBruta - deducoes;
   const cmvInd      = sai('Custos Variáveis Indiretos');
