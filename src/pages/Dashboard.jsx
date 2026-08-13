@@ -336,10 +336,11 @@ export default function Dashboard() {
       const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
       await Promise.allSettled(orfaos.map(o => API.excluirLancamento(clienteAtivo.id, o.id)));
       setLancamentos(sem.filter(l => !l.isCMV || pais.has(l.grupoId)));
+      setConfirmando(null);
     } catch (err) {
       console.error(err);
+      setErroForm(err.message || 'Erro ao excluir lançamento');
     }
-    setConfirmando(null);
   }
 
   const isEntrada = form.tipo === 'Entrada';
@@ -641,7 +642,7 @@ export default function Dashboard() {
                     <input type="number" step="0.01" placeholder="Deixe vazio se não houver upgrade" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
                   </div>
                 )}
-                {isEntrada && form.valorUpgrade > 0 && (
+                {isEntrada && parseFloat(form.valorUpgrade) > 0 && (
                   <div className="field">
                     <label>Qtd. de Upgrades</label>
                     <input type="number" min="1" placeholder="1" value={form.qtdUpgrade} onChange={e => setField('qtdUpgrade', e.target.value)} />
