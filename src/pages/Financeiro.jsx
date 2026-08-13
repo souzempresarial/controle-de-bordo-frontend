@@ -72,10 +72,16 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
   }, [ano, metasCache]);
 
   async function salvarManual(mesIdx, campo, valor) {
-    const mk = `${ano}-${String(mesIdx + 1).padStart(2, '0')}`;
-    const v  = parseFloat(valor) || 0;
-    setMetasCache(prev => ({ ...prev, [mk]: { ...(prev[mk] || {}), [campo]: v } }));
-    try { await API.salvarMeta(clienteAtivo.id, { mes_chave: mk, campo, valor: v }); } catch(e) { console.error(e); }
+    const mk       = `${ano}-${String(mesIdx + 1).padStart(2, '0')}`;
+    const v        = parseFloat(valor) || 0;
+    const anterior = metasCache;
+    setMetasCache(mc => ({ ...mc, [mk]: { ...(mc[mk] || {}), [campo]: v } }));
+    try {
+      await API.salvarMeta(clienteAtivo.id, { mes_chave: mk, campo, valor: v });
+    } catch(e) {
+      console.error(e);
+      setMetasCache(anterior);
+    }
   }
 
   const mv = useMemo(() =>
@@ -359,10 +365,17 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   );
 
   async function salvarSaldoInicial() {
-    const valor = parseFloat(siValor) || 0;
-    const mes   = parseInt(siMes);
+    const valor   = parseFloat(siValor) || 0;
+    const mes     = parseInt(siMes);
+    const prevSI  = saldoInicial;
+    const prevMes = saldoMes;
     setSI(valor); setSIMes(mes);
-    try { await API.salvarSaldo(clienteAtivo.id, ano, { valor, mes }); } catch(e) { console.error(e); }
+    try {
+      await API.salvarSaldo(clienteAtivo.id, ano, { valor, mes });
+    } catch(e) {
+      console.error(e);
+      setSI(prevSI); setSIMes(prevMes);
+    }
     setModalSI(false);
   }
 

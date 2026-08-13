@@ -9,15 +9,21 @@ export function AppProvider({ children }) {
   const [contas, setContas]             = useState([]);
   const [metasCache, setMetasCache]     = useState({});
   const [loading, setLoading]           = useState(false);
+  const [erroEntrar, setErroEntrar]     = useState('');
 
   const entrarCliente = useCallback(async (cliente) => {
     setLoading(true);
+    setErroEntrar('');
     try {
       const [lansRes, ctsRes, metasRes] = await Promise.allSettled([
         API.listarLancamentos(cliente.id),
         API.listarContas(cliente.id),
         API.listarMetas(cliente.id),
       ]);
+
+      if (lansRes.status === 'rejected' || ctsRes.status === 'rejected') {
+        setErroEntrar('Não foi possível carregar os dados do cliente. Verifique sua conexão e tente novamente.');
+      }
 
       const lans     = lansRes.status  === 'fulfilled' ? lansRes.value  : [];
       const cts      = ctsRes.status   === 'fulfilled' ? ctsRes.value   : [];
@@ -65,7 +71,7 @@ export function AppProvider({ children }) {
       clienteAtivo, lancamentos, setLancamentos,
       contas, setContas,
       metasCache, setMetasCache,
-      loading, entrarCliente, sairCliente,
+      loading, erroEntrar, entrarCliente, sairCliente,
     }}>
       {children}
     </AppContext.Provider>

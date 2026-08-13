@@ -18,7 +18,7 @@ export default function Ranking() {
     setLoading(true); setErro('');
     API.ranking(mes || null)
       .then(setDados)
-      .catch(err => setErro(err.message))
+      .catch(() => setErro('Não foi possível carregar o ranking. Tente novamente.'))
       .finally(() => setLoading(false));
   }, [mes]);
 
