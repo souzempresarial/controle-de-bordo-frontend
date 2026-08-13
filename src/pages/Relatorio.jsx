@@ -170,7 +170,7 @@ export default function Relatorio() {
   );
 
   const margemMes  = d.fat > 0 ? d.lucLiq / d.fat * 100 : null;
-  const custoAtual = d.cmvTotal + d.gastos;
+  const custoAtual = d.fat - d.lucLiq; // mesmo conjunto do lucroLiq: fat - (deducoes + cmv + sga + naoOp)
 
   const mesAtual   = parseInt(dataFim.slice(5, 7)) - 1;
   const prevFat    = mesAtual > 0 ? mv[mesAtual - 1].fat : 0;

@@ -155,7 +155,8 @@ export default function Lancamentos() {
   function fecharModal() { setEditando(null); setEditandoCMV(null); setForm(null); }
 
   async function salvar() {
-    if (parseFloat(form.valor || 0) < 0) { setErroForm('Valor não pode ser negativo'); return; }
+    const valorNum = parseFloat(form.valor);
+    if (isNaN(valorNum) || valorNum < 0) { setErroForm('Informe um valor válido e não negativo'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
     setSalvando(true); setErroForm('');
     try {
@@ -170,6 +171,7 @@ export default function Lancamentos() {
       let atualizadoCMV = null;
       let novoCMV = null;
 
+      let cmvExcluido = false;
       if (isEntrada && form.cmvValor && parseFloat(form.cmvValor) > 0) {
         if (editandoCMV) {
           grupoId = editando.grupoId || editandoCMV.grupoId || ('g' + Date.now());
@@ -194,18 +196,30 @@ export default function Lancamentos() {
             grupo_id: grupoId, is_cmv: true,
           });
         }
+      } else if (editandoCMV) {
+        // usuário removeu CMV — exclui do banco e desvincula grupo
+        await API.excluirLancamento(clienteAtivo.id, editandoCMV.id);
+        grupoId = null;
+        cmvExcluido = true;
       }
 
-      const atualizado = await API.editarLancamento(clienteAtivo.id, editando.id, {
-        data: form.data, tipo: form.tipo, valor: valorBruto,
-        categoria: form.categoria, subcategoria: form.subcategoria,
-        descricao: form.descricao, pagamento: form.pagamento,
-        status: form.status, obs: form.obs,
-        quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
-        valor_recebido: valorRecebido,
-        grupo_id: grupoId,
-        valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
-      });
+      let atualizado;
+      try {
+        atualizado = await API.editarLancamento(clienteAtivo.id, editando.id, {
+          data: form.data, tipo: form.tipo, valor: valorBruto,
+          categoria: form.categoria, subcategoria: form.subcategoria,
+          descricao: form.descricao, pagamento: form.pagamento,
+          status: form.status, obs: form.obs,
+          quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
+          valor_recebido: valorRecebido,
+          grupo_id: grupoId,
+          valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
+        });
+      } catch (err) {
+        // rollback novoCMV criado nesta operação se o lançamento principal falhou
+        if (novoCMV) await API.excluirLancamento(clienteAtivo.id, novoCMV.id).catch(() => {});
+        throw err;
+      }
 
       setLancamentos(prev => {
         let lista = prev.map(l => {
@@ -214,6 +228,7 @@ export default function Lancamentos() {
           return l;
         });
         if (novoCMV) lista = [novoCMV, ...lista];
+        if (cmvExcluido) lista = lista.filter(l => l.id !== editandoCMV.id);
         return lista;
       });
       fecharModal();
@@ -237,7 +252,7 @@ export default function Lancamentos() {
             await API.excluirLancamento(clienteAtivo.id, cmvPar.id).catch(() => {});
             removidos.add(cmvPar.id);
           }
-        } catch { /* continua para o próximo */ }
+        } catch (err) { console.error('[excluirTodos] falha ao excluir:', err.message); }
       }
     } finally {
       if (removidos.size) setLancamentos(prev => prev.filter(l => !removidos.has(l.id)));
@@ -339,7 +354,13 @@ export default function Lancamentos() {
           });
           criados.push(novo);
         }
-        await API.excluirLancamento(clienteAtivo.id, dividindo.id);
+        try {
+          await API.excluirLancamento(clienteAtivo.id, dividindo.id);
+        } catch (err) {
+          // rollback: exclui as partes já criadas para evitar duplicação
+          await Promise.allSettled(criados.map(c => API.excluirLancamento(clienteAtivo.id, c.id)));
+          throw err;
+        }
         setLancamentos(prev => [...criados, ...prev.filter(l => l.id !== dividindo.id)]);
         if (editando?.id === dividindo.id) fecharModal();
       }
@@ -363,7 +384,7 @@ export default function Lancamentos() {
           descricao: t.descricao || '', status: 'Confirmado',
         });
         criados.push(novo);
-      } catch { falhas++; }
+      } catch (err) { console.error('[importarExtrato] falha na linha:', t, err.message); falhas++; }
     }
     if (criados.length > 0) {
       setLancamentos(prev => [...criados, ...prev]);

@@ -31,7 +31,7 @@ export default function RedefinirSenha() {
       setSucesso(true);
       setTimeout(() => navigate('/login', { replace: true }), 3000);
     } catch (err) {
-      setErro(err.message);
+      setErro(err.message || 'Erro ao redefinir senha. Tente novamente.');
     } finally {
       setLoading(false);
     }

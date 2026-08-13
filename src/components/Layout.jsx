@@ -28,7 +28,11 @@ export default function Layout({ children, usuario, onLogout }) {
     try {
       const info = await API.minhaInfo();
       setPerfilForm({ nome: info.nome || '', email: info.email || '', senhaAtual: '', novaSenha: '' });
-    } catch { setPerfilForm({ nome: usuario?.nome || '', email: '', senhaAtual: '', novaSenha: '' }); }
+    } catch (err) {
+      console.error('[abrirPerfil]', err.message);
+      setPerfilErro('Não foi possível carregar seus dados. Tente novamente.');
+      setPerfilForm({ nome: usuario?.nome || '', email: '', senhaAtual: '', novaSenha: '' });
+    }
     setPerfilAberto(true);
   }
 

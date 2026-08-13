@@ -13,7 +13,7 @@ export default function VerificarEmail() {
     if (!token) { setStatus('erro'); setMsg('Link inválido.'); return; }
     API.verificarEmail(token)
       .then(data => { setStatus('ok'); setMsg(data.mensagem || 'E-mail verificado!'); })
-      .catch(err => { setStatus('erro'); setMsg(err.message); });
+      .catch(err => { setStatus('erro'); setMsg(err.message || 'Erro inesperado. Tente novamente.'); });
   }, []);
 
   return (
