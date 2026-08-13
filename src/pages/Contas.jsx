@@ -29,6 +29,15 @@ function calcPMT(pv, n, iMensal) {
   return pv * (iMensal * Math.pow(1 + iMensal, n)) / (Math.pow(1 + iMensal, n) - 1);
 }
 
+// Soma N meses sem overflow de dia (ex: 31/jan + 1 mês = 28/fev, não 3/mar)
+function addMeses(dateStr, n) {
+  const base = new Date(dateStr + 'T00:00:00');
+  const diaOriginal = base.getDate();
+  const ultimoDia = new Date(base.getFullYear(), base.getMonth() + n + 1, 0).getDate();
+  return new Date(base.getFullYear(), base.getMonth() + n, Math.min(diaOriginal, ultimoDia))
+    .toISOString().split('T')[0];
+}
+
 export default function Contas() {
   const { contas, setContas, lancamentos, setLancamentos, clienteAtivo } = useApp();
 
@@ -142,34 +151,39 @@ export default function Contas() {
 
       setSalvando(true); setErroForm('');
       try {
-        const firstDate = new Date(form.primeiraParcela + 'T00:00:00');
         const iMensal = (parseFloat(form.taxaJuros) || 0) / 100;
         const novas = [];
         let saldo = parseFloat(form.valor);
+        let erroIdx = -1;
         for (let idx = 0; idx < n; idx++) {
-          const d = new Date(firstDate);
-          d.setMonth(d.getMonth() + idx);
           const juros = iMensal > 0 ? saldo * iMensal : 0;
           const principal = valorParcela - juros;
           saldo -= principal;
-          const nova = await API.criarConta(clienteAtivo.id, {
-            tipo: 'pagar',
-            descricao: `${form.descricao.trim()} — Parcela ${idx + 1}/${n}`,
-            valor: parseFloat(valorParcela.toFixed(2)),
-            vencimento: d.toISOString().split('T')[0],
-            categoria: form.categoria,
-            subcategoria: form.subcategoria,
-            recorrente: false,
-            status: 'pendente',
-            valor_juros: iMensal > 0 ? parseFloat(juros.toFixed(2)) : null,
-          });
-          novas.push(nova);
+          try {
+            const nova = await API.criarConta(clienteAtivo.id, {
+              tipo: 'pagar',
+              descricao: `${form.descricao.trim()} — Parcela ${idx + 1}/${n}`,
+              valor: parseFloat(valorParcela.toFixed(2)),
+              vencimento: addMeses(form.primeiraParcela, idx),
+              categoria: form.categoria,
+              subcategoria: form.subcategoria,
+              recorrente: false,
+              status: 'pendente',
+              valor_juros: iMensal > 0 ? parseFloat(juros.toFixed(2)) : null,
+            });
+            novas.push(nova);
+          } catch {
+            erroIdx = idx + 1;
+            break;
+          }
         }
-        setContas(prev => [...prev, ...novas]);
-        showToast(`${n} parcelas criadas com sucesso`);
-        fecharModal();
-      } catch (err) {
-        setErroForm(err.message || 'Erro ao salvar');
+        if (novas.length) setContas(prev => [...prev, ...novas]);
+        if (erroIdx >= 0) {
+          setErroForm(`Criadas ${novas.length}/${n} parcelas. A parcela ${erroIdx} falhou — verifique antes de tentar novamente.`);
+        } else {
+          showToast(`${n} parcelas criadas com sucesso`);
+          fecharModal();
+        }
       } finally {
         setSalvando(false);
       }
@@ -260,13 +274,21 @@ export default function Contas() {
       setContas(prev => prev.map(x => x.id === c.id ? { ...x, status: 'quitado' } : x));
 
       if (c.recorrente && c.periodicidade && c.vencimento) {
-        const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
-        if (c.periodicidade === 'mensal')  d.setMonth(d.getMonth() + 1);
-        else if (c.periodicidade === 'semanal') d.setDate(d.getDate() + 7);
-        else if (c.periodicidade === 'anual')   d.setFullYear(d.getFullYear() + 1);
+        let proximaData;
+        const venc = String(c.vencimento).slice(0, 10);
+        if (c.periodicidade === 'mensal') {
+          proximaData = addMeses(venc, 1);
+        } else if (c.periodicidade === 'semanal') {
+          const d = new Date(venc + 'T00:00:00'); d.setDate(d.getDate() + 7);
+          proximaData = d.toISOString().split('T')[0];
+        } else if (c.periodicidade === 'anual') {
+          proximaData = addMeses(venc, 12);
+        } else {
+          proximaData = addMeses(venc, 1);
+        }
         const novaConta = await API.criarConta(clienteAtivo.id, {
           tipo: c.tipo, descricao: c.descricao, valor: c.valor,
-          vencimento: d.toISOString().split('T')[0],
+          vencimento: proximaData,
           categoria: c.categoria, subcategoria: c.subcategoria || '',
           recorrente: true, periodicidade: c.periodicidade,
         });
@@ -283,9 +305,7 @@ export default function Contas() {
 
   async function adiar(c) {
     try {
-      const d = new Date(String(c.vencimento).slice(0, 10) + 'T00:00:00');
-      d.setMonth(d.getMonth() + 1);
-      const novaData = d.toISOString().split('T')[0];
+      const novaData = addMeses(String(c.vencimento).slice(0, 10), 1);
       await API.editarConta(clienteAtivo.id, c.id, { ...c, vencimento: novaData });
       setContas(prev => prev.map(x => x.id === c.id ? { ...x, vencimento: novaData } : x));
       showToast('Conta adiada para ' + fmtData(novaData));
