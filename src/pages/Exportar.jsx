@@ -29,15 +29,14 @@ export default function Exportar() {
   const metricas = useMemo(() => {
     const lm = filtrados;
 
-    const entradas  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
+    const entradas  = lm.filter(l => l.tipo === 'Entrada' && ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos','Receitas Não-Operacionais'].includes(l.categoria) && l.status !== 'Pendente');
     const fat       = entradas.reduce((a, l) => a + l.valor, 0);
     const dedInline = entradas.filter(l => l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
-    const upInline  = entradas.filter(l => l.valorUpgrade > 0).reduce((a, l) => a + l.valorUpgrade, 0);
     const cmv       = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
     const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const sga       = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const naoOp     = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-    const lucroLiq  = fat - cmv - deducoes - sga - naoOp - dedInline - upInline;
+    const lucroLiq  = fat - cmv - deducoes - sga - naoOp - dedInline;
     const margem    = fat > 0 ? (lucroLiq / fat * 100) : 0;
     const custoTotal = cmv + deducoes + sga + naoOp;
 
