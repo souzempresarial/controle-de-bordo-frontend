@@ -156,7 +156,7 @@ export default function Lancamentos() {
 
   async function salvar() {
     const valorNum = parseFloat(form.valor);
-    if (isNaN(valorNum) || valorNum < 0) { setErroForm('Informe um valor válido e não negativo'); return; }
+    if (isNaN(valorNum) || valorNum < 0) { setErroForm('Informe um valor válido (mínimo R$ 0,00)'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }
     setSalvando(true); setErroForm('');
     try {
