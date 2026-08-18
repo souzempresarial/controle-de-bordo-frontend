@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
+import PasswordInput from '../components/PasswordInput';
 import './Login.css';
 
 export default function RedefinirSenha() {
@@ -58,11 +59,11 @@ export default function RedefinirSenha() {
           <form onSubmit={handleSubmit} className="login-form">
             <div className="field">
               <label>Nova senha</label>
-              <input type="password" placeholder="Mínimo 6 caracteres" value={novaSenha} onChange={e => setNovaSenha(e.target.value)} />
+              <PasswordInput placeholder="Mínimo 6 caracteres" value={novaSenha} onChange={e => setNovaSenha(e.target.value)} />
             </div>
             <div className="field">
               <label>Confirmar senha</label>
-              <input type="password" placeholder="••••••••" value={confirma} onChange={e => setConfirma(e.target.value)} />
+              <PasswordInput placeholder="••••••••" value={confirma} onChange={e => setConfirma(e.target.value)} />
             </div>
             {erro && <div className="login-erro">{erro}</div>}
             <button type="submit" disabled={loading}>{loading ? 'Salvando...' : 'Salvar nova senha'}</button>

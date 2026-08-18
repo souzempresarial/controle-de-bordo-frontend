@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import { API } from '../services/api';
+import PasswordInput from './PasswordInput';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
@@ -181,11 +182,11 @@ export default function Layout({ children, usuario, onLogout }) {
               </div>
               <div className="field">
                 <label>Senha atual <span style={{ fontSize: 11, color: 'var(--text2)' }}>(obrigatório para alterar e-mail ou senha)</span></label>
-                <input type="password" placeholder="••••••••" value={perfilForm.senhaAtual} onChange={e => setPerfilForm(f => ({ ...f, senhaAtual: e.target.value }))} />
+                <PasswordInput placeholder="••••••••" value={perfilForm.senhaAtual} onChange={e => setPerfilForm(f => ({ ...f, senhaAtual: e.target.value }))} />
               </div>
               <div className="field">
                 <label>Nova senha <span style={{ fontSize: 11, color: 'var(--text2)' }}>(deixe vazio para não alterar)</span></label>
-                <input type="password" placeholder="Mínimo 6 caracteres" value={perfilForm.novaSenha} onChange={e => setPerfilForm(f => ({ ...f, novaSenha: e.target.value }))} />
+                <PasswordInput placeholder="Mínimo 6 caracteres" value={perfilForm.novaSenha} onChange={e => setPerfilForm(f => ({ ...f, novaSenha: e.target.value }))} />
               </div>
               {perfilErro && <div style={{ color: 'var(--saida)', fontSize: 13 }}>{perfilErro}</div>}
               {perfilMsg  && <div style={{ color: 'var(--entrada)', fontSize: 13 }}>{perfilMsg}</div>}

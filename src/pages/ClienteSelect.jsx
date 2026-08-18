@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
+import PasswordInput from '../components/PasswordInput';
 import './ClienteSelect.css';
 
 const CORES = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
@@ -352,7 +353,7 @@ export default function ClienteSelect({ onLogout }) {
                   </div>
                   <div className="field">
                     <label>Senha</label>
-                    <input type="password" placeholder="••••••••" value={formUsuario.senha} onChange={e => setFormUsuario(f => ({ ...f, senha: e.target.value }))} />
+                    <PasswordInput placeholder="••••••••" value={formUsuario.senha} onChange={e => setFormUsuario(f => ({ ...f, senha: e.target.value }))} />
                   </div>
                   <div className="field">
                     <label>Papel</label>
@@ -402,8 +403,7 @@ export default function ClienteSelect({ onLogout }) {
             <div className="modal-body">
               <div className="field">
                 <label>Nova Senha</label>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Mínimo 6 caracteres"
                   value={novaSenha}
                   onChange={e => setNovaSenha(e.target.value)}
