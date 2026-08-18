@@ -196,7 +196,7 @@ export default function Contas() {
     const dados = {
       tipo: form.tipo, descricao: form.descricao.trim(), valor: parseFloat(form.valor),
       vencimento: form.vencimento, categoria: form.categoria, subcategoria: form.subcategoria,
-      recorrente: form.tipo === 'pagar' ? form.recorrente : false,
+      recorrente: form.recorrente,
       periodicidade: form.recorrente ? form.periodicidade : null,
       status: 'pendente',
     };
@@ -708,7 +708,7 @@ export default function Contas() {
                 )}
 
                 {/* Recorrência só no modo normal */}
-                {!isEmprestimo && form.tipo === 'pagar' && (
+                {!isEmprestimo && (
                   <>
                     <div className="field span2" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                       <input type="checkbox" id="recorrente" checked={form.recorrente} onChange={e => setField('recorrente', e.target.checked)} />
