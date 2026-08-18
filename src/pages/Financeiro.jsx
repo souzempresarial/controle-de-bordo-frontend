@@ -297,6 +297,7 @@ const DFC_GRUPOS = [
     grupos: [
       { label: 'RECEITAS OPERACIONAIS',     cats: ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos'] },
       { label: 'RECEITAS NÃO-OPERACIONAIS', cats: ['Receitas Não-Operacionais'] },
+      { label: 'APORTES E TRANSFERÊNCIAS',  cats: ['Aportes e Transferências'] },
     ],
   },
   {
