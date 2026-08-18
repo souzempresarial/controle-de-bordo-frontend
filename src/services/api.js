@@ -24,7 +24,7 @@ async function apiFetch(path, options = {}) {
     ...options,
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && path !== '/auth/login') {
     if (!_redirecionandoLogin) {
       _redirecionandoLogin = true;
       sessionStorage.removeItem('sf_papel');
