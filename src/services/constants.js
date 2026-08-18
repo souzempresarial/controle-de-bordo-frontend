@@ -1,6 +1,6 @@
 ﻿export const CATEGORIAS_ENTRADA = {
   '— Receitas Operacionais —': null,
-  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Fonte Turbo','Outro'],
+  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Fonte Turbo','Upgrade','Outro'],
   'Acessórios':            ['Acessórios Geral','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
   'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Outro'],
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
@@ -12,7 +12,7 @@
 
 export const CATEGORIAS_SAIDA = {
   '— Custos (CMV) —': null,
-  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
   '— Fornecedores (Estoque) —': null,
   'Fornecedores (Estoque)':['Aparelhos','Aparelhos (Upgrade)','Pix Fornecedor','Acessórios','Embalagens','Brindes','Assistência Técnica','Reparo','Boleto','Outro'],
   '— Deduções das Vendas —': null,
@@ -34,7 +34,7 @@ export const CATEGORIAS_SAIDA = {
 };
 
 export const CATEGORIAS_CMV = {
-  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
 };
 
 export const CATEGORIAS_TRANSF = {
