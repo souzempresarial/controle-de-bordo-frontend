@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { API } from './services/api';
 import { AppProvider } from './context/AppContext';
 import Login from './pages/Login';
-import ClienteSelect from './pages/ClienteSelect';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Lancamentos from './pages/Lancamentos';
@@ -93,23 +92,11 @@ export default function App() {
             element={
               usuario
                 ? <Navigate to={
-                    papel === 'admin' ? '/clientes' :
+                    papel === 'admin' ? '/ranking' :
                     papel === 'funcionario' ? (getPrimeiraPermissaoFuncionario() || '/dashboard') :
                     '/dashboard'
                   } replace />
                 : <Login onLogin={handleLogin} />
-            }
-          />
-
-          {/* Seleção de clientes — só admin */}
-          <Route
-            path="/clientes"
-            element={
-              <PrivateRoute usuario={usuario}>
-                {papel !== 'admin'
-                  ? <Navigate to="/dashboard" replace />
-                  : <ClienteSelect onLogout={handleLogout} />}
-              </PrivateRoute>
             }
           />
 
@@ -129,7 +116,7 @@ export default function App() {
               !usuario
                 ? <Navigate to="/login" replace />
                 : papel === 'admin'
-                ? <Navigate to="/clientes" replace />
+                ? <Navigate to="/ranking" replace />
                 : papel === 'funcionario'
                 ? <Navigate to={getPrimeiraPermissaoFuncionario() || '/dashboard'} replace />
                 : <Navigate to="/dashboard" replace />

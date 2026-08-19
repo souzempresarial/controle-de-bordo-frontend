@@ -7,7 +7,7 @@ import PasswordInput from './PasswordInput';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
-  const { clienteAtivo, sairCliente } = useApp();
+  const { clienteAtivo } = useApp();
   const navigate = useNavigate();
   const { tema, toggleTema } = useTheme();
   const [sidebarAberta, setSidebarAberta] = useState(false);
@@ -58,12 +58,6 @@ export default function Layout({ children, usuario, onLogout }) {
   }
 
   function fecharSidebar() { setSidebarAberta(false); }
-
-  function handleVoltarClientes() {
-    sairCliente();
-    fecharSidebar();
-    navigate('/clientes');
-  }
 
   function handleLogout() {
     onLogout();
@@ -150,10 +144,6 @@ export default function Layout({ children, usuario, onLogout }) {
               <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
               Ranking
             </NavLink>
-            <button className="nav-btn" onClick={handleVoltarClientes}>
-              <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              Trocar Cliente
-            </button>
           </>
         )}
       </nav>
