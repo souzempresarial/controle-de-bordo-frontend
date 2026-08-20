@@ -5,7 +5,13 @@ import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../se
 import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
 
-const formVazio = (l, cmv) => ({
+const BANCOS = [
+  'Banco do Brasil', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
+  'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
+  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone',
+];
+
+const formVazio = (l, cmv, bancoAtivo) => ({
   data: l.data || hoje(),
   tipo: l.tipo,
   valor: l.valor,
@@ -19,6 +25,7 @@ const formVazio = (l, cmv) => ({
   deducao: l.valorRecebido != null ? String(parseFloat(l.valor) - parseFloat(l.valorRecebido)) : '',
   valorUpgrade: l.valorUpgrade != null && l.valorUpgrade > 0 ? String(l.valorUpgrade) : '',
   qtdUpgrade:   l.qtdUpgrade   != null && l.qtdUpgrade   > 0 ? String(l.qtdUpgrade)   : '',
+  banco:    l.banco || bancoAtivo || '',
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
@@ -53,6 +60,8 @@ export default function Lancamentos() {
   const [extratoInicio, setExtratoInicio] = useState('');
   const [extratoFim, setExtratoFim]       = useState('');
 
+  const [bancoAtivo, setBancoAtivo] = useState('');
+
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
   const [dividirPartes, setDividirPartes]   = useState([]);
@@ -68,6 +77,12 @@ export default function Lancamentos() {
     if (sortCol !== col) return ' ↕';
     return sortDir === 'asc' ? ' ↑' : ' ↓';
   }
+
+  const bancosOrdenados = useMemo(() => {
+    const freq = {};
+    lancamentos.forEach(l => { if (l.banco) freq[l.banco] = (freq[l.banco] || 0) + 1; });
+    return [...BANCOS].sort((a, b) => (freq[b] || 0) - (freq[a] || 0));
+  }, [lancamentos]);
 
   const todasCats  = useMemo(() => [...new Set(lancamentos.map(l => l.categoria))].filter(Boolean).sort(), [lancamentos]);
   const todasSubs  = useMemo(() => {
@@ -148,11 +163,14 @@ export default function Lancamentos() {
         );
     setEditando(l);
     setEditandoCMV(cmv || null);
-    setForm(formVazio(l, cmv));
+    setForm(formVazio(l, cmv, bancoAtivo));
     setErroForm('');
   }
 
-  function fecharModal() { setEditando(null); setEditandoCMV(null); setForm(null); }
+  function fecharModal() {
+    if (form?.banco) setBancoAtivo(form.banco);
+    setEditando(null); setEditandoCMV(null); setForm(null);
+  }
 
   async function salvar() {
     const valorNum = parseFloat(form.valor);
@@ -214,6 +232,7 @@ export default function Lancamentos() {
           valor_recebido: valorRecebido,
           grupo_id: grupoId,
           valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
+          banco: form.banco || null,
         });
       } catch (err) {
         // rollback novoCMV criado nesta operação se o lançamento principal falhou
@@ -458,7 +477,7 @@ export default function Lancamentos() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  {[['data','Data'],['tipo','Tipo'],['categoria','Categoria'],['subcategoria','Subcategoria'],['descricao','Descrição'],['pagamento','Pagamento'],['status','Status']].map(([col, label]) => (
+                  {[['data','Data'],['tipo','Tipo'],['categoria','Categoria'],['subcategoria','Subcategoria'],['descricao','Descrição'],['banco','Banco'],['pagamento','Pagamento'],['status','Status']].map(([col, label]) => (
                     <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
                       {label}{sortIcon(col)}
                     </th>
@@ -496,6 +515,7 @@ export default function Lancamentos() {
                           </div>
                         )}
                       </td>
+                      <td style={{ color: 'var(--text2)' }}>{l.banco || '—'}</td>
                       <td style={{ color: 'var(--text2)' }}>{l.pagamento || '—'}</td>
                       <td><span style={{ fontSize: 11, color: l.status === 'Pendente' ? 'var(--warn)' : 'var(--text2)' }}>{l.status}</span></td>
                       <td style={{ textAlign: 'right', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -567,6 +587,13 @@ export default function Lancamentos() {
                 <div className="field span2">
                   <label>Descrição</label>
                   <input type="text" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Banco</label>
+                  <select value={form.banco} onChange={e => setField('banco', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {bancosOrdenados.map(b => <option key={b}>{b}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label>Pagamento</label>
