@@ -38,17 +38,29 @@ export default function Ranking() {
       .finally(() => setLoading(false));
   }, [mes]);
 
-  const ordenadosDRE = [...dados].sort((a, b) => b.lucroLiq - a.lucroLiq);
-  const ordenadosDFC = [...dados].sort((a, b) => b.geracaoCaixa - a.geracaoCaixa);
+  // compatibilidade com backend antigo (faturamento/lucro) e novo (receita/lucroLiq)
+  const norm = d => ({
+    ...d,
+    receita:      d.receita      ?? d.faturamento ?? 0,
+    lucroLiq:     d.lucroLiq     ?? d.lucro       ?? 0,
+    lucroBruto:   d.lucroBruto   ?? (( (d.receita ?? d.faturamento ?? 0) - (d.cmv ?? 0) - (d.deducoes ?? 0) )),
+    dfcEntradas:  d.dfcEntradas  ?? d.faturamento ?? 0,
+    dfcSaidas:    d.dfcSaidas    ?? d.saidas      ?? 0,
+    geracaoCaixa: d.geracaoCaixa ?? d.caixa       ?? 0,
+  });
+  const lista_norm = dados.map(norm);
+
+  const ordenadosDRE = [...lista_norm].sort((a, b) => b.lucroLiq - a.lucroLiq);
+  const ordenadosDFC = [...lista_norm].sort((a, b) => b.geracaoCaixa - a.geracaoCaixa);
   const lista = aba === 'dre' ? ordenadosDRE : ordenadosDFC;
 
-  const maxDRE = Math.max(...dados.map(d => d.lucroLiq), 1);
-  const maxDFC = Math.max(...dados.map(d => d.geracaoCaixa), 1);
+  const maxDRE = Math.max(...lista_norm.map(d => d.lucroLiq), 1);
+  const maxDFC = Math.max(...lista_norm.map(d => d.geracaoCaixa), 1);
 
-  const totalReceita    = dados.reduce((s, d) => s + d.receita, 0);
-  const totalLucro      = dados.reduce((s, d) => s + d.lucroLiq, 0);
-  const totalCaixaEntr  = dados.reduce((s, d) => s + d.dfcEntradas, 0);
-  const totalGeracaoCx  = dados.reduce((s, d) => s + d.geracaoCaixa, 0);
+  const totalReceita    = lista_norm.reduce((s, d) => s + d.receita, 0);
+  const totalLucro      = lista_norm.reduce((s, d) => s + d.lucroLiq, 0);
+  const totalCaixaEntr  = lista_norm.reduce((s, d) => s + d.dfcEntradas, 0);
+  const totalGeracaoCx  = lista_norm.reduce((s, d) => s + d.geracaoCaixa, 0);
   const lucratividadeMedia = totalReceita > 0 ? (totalLucro / totalReceita * 100) : 0;
 
   return (

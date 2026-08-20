@@ -23,11 +23,17 @@ function calcularTotais(lista) {
   return { entradas, saidas, saldo: entradas - saidas };
 }
 
-const formVazio = () => ({
+const BANCOS = [
+  'Banco do Brasil', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
+  'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
+  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone',
+];
+
+const formVazio = (bancoDefault = '') => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
   subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
   deducao: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
-  valorUpgrade: '', qtdUpgrade: '',
+  valorUpgrade: '', qtdUpgrade: '', banco: bancoDefault,
 });
 
 export default function Dashboard() {
@@ -45,6 +51,7 @@ export default function Dashboard() {
   const [salvando, setSalvando]       = useState(false);
   const [erroForm, setErroForm]       = useState('');
   const [confirmando, setConfirmando] = useState(null);
+  const [bancoAtivo, setBancoAtivo]   = useState('');
 
   const cats    = getCatsPorTipo(form.tipo);
   const subcats = getSubcats(form.categoria);
@@ -53,6 +60,12 @@ export default function Dashboard() {
 
   const periodo = `${ano}-${mes}`;
   const prevMes = mesAnterior(periodo);
+
+  const bancosOrdenados = useMemo(() => {
+    const freq = {};
+    lancamentos.forEach(l => { if (l.banco) freq[l.banco] = (freq[l.banco] || 0) + 1; });
+    return [...BANCOS].sort((a, b) => (freq[b] || 0) - (freq[a] || 0));
+  }, [lancamentos]);
 
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -172,7 +185,7 @@ export default function Dashboard() {
 
   function abrirNovo() {
     setEditandoId(null);
-    setForm(formVazio());
+    setForm(formVazio(bancoAtivo));
     setErroForm('');
     setModalAberto(true);
   }
@@ -203,12 +216,16 @@ export default function Dashboard() {
       cmvValor: cmv ? cmv.valor : '',
       cmvCat:   cmv ? (cmv.categoria || '') : '',
       cmvSub:   cmv ? (cmv.subcategoria || '') : '',
+      banco:    l.banco || bancoAtivo || '',
     });
     setErroForm('');
     setModalAberto(true);
   }
 
-  function fecharModal() { setModalAberto(false); setEditandoId(null); setEditandoCMV(null); }
+  function fecharModal() {
+    if (form?.banco) setBancoAtivo(form.banco);
+    setModalAberto(false); setEditandoId(null); setEditandoCMV(null);
+  }
 
   async function salvar() {
     if (parseFloat(form.valor || 0) < 0) { setErroForm('Valor não pode ser negativo'); return; }
@@ -260,6 +277,7 @@ export default function Dashboard() {
           quantidade: isEnt ? (parseInt(form.quantidade) || null) : null,
           valor_recebido: valorRecebido, grupo_id: grupoId,
           valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
+          banco: form.banco || null,
         });
 
         setLancamentos(prev => {
@@ -292,6 +310,7 @@ export default function Dashboard() {
           quantidade, valor_recebido: valorRecebido, grupo_id: grupoId,
           is_cmv: isCmvDireto || undefined,
           valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
+          banco: form.banco || null,
         });
 
         let novosLans = [novo];
@@ -310,8 +329,9 @@ export default function Dashboard() {
 
 
         setLancamentos(prev => [...novosLans, ...prev]);
+        setBancoAtivo(form.banco || '');
         setForm(f => ({
-          ...formVazio(),
+          ...formVazio(f.banco),
           data: f.data,
           tipo: f.tipo,
           pagamento: f.pagamento,
@@ -621,6 +641,13 @@ export default function Dashboard() {
                 <div className="field span2">
                   <label>Descrição</label>
                   <input type="text" placeholder="Descrição do lançamento" value={form.descricao} onChange={e => setField('descricao', e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Banco</label>
+                  <select value={form.banco} onChange={e => setField('banco', e.target.value)}>
+                    <option value="">— selecione —</option>
+                    {bancosOrdenados.map(b => <option key={b}>{b}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label>Pagamento</label>
