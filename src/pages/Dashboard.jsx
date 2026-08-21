@@ -46,10 +46,11 @@ export default function Dashboard() {
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId]   = useState(null);
-  const [editandoCMV, setEditandoCMV] = useState(null);
-  const [form, setForm]               = useState(formVazio);
-  const [salvando, setSalvando]       = useState(false);
-  const [erroForm, setErroForm]       = useState('');
+  const [editandoCMV, setEditandoCMV]         = useState(null);
+  const [form, setForm]                       = useState(formVazio);
+  const [salvando, setSalvando]               = useState(false);
+  const [erroForm, setErroForm]               = useState('');
+  const [confirmarDuplicata, setConfirmarDuplicata] = useState(null);
   const [confirmando, setConfirmando] = useState(null);
   const [bancoAtivo, setBancoAtivo]   = useState('');
 
@@ -231,7 +232,7 @@ export default function Dashboard() {
 
   function fecharModal() {
     if (form?.banco) setBancoAtivo(form.banco);
-    setModalAberto(false); setEditandoId(null); setEditandoCMV(null);
+    setModalAberto(false); setEditandoId(null); setEditandoCMV(null); setConfirmarDuplicata(null);
   }
 
   async function salvar() {
@@ -299,6 +300,22 @@ export default function Dashboard() {
           return lista;
         });
       } else {
+        // Verificar duplicata antes de criar
+        if (!confirmarDuplicata) {
+          const valorNum = parseFloat(form.valor) || 0;
+          const dup = lancamentos.find(l =>
+            l.data === form.data &&
+            Math.abs(parseFloat(l.valor) - valorNum) < 0.01 &&
+            !l.isCMV && l.tipo === form.tipo
+          );
+          if (dup) {
+            setConfirmarDuplicata(dup);
+            setSalvando(false);
+            return;
+          }
+        }
+        setConfirmarDuplicata(null);
+
         const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
 
         const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
@@ -718,10 +735,19 @@ export default function Dashboard() {
               )}
 
               {erroForm && <div className="form-erro">{erroForm}</div>}
+              {confirmarDuplicata && (
+                <div style={{ background: 'var(--warn-bg, #fef9c3)', border: '1px solid #ca8a04', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#78350f' }}>
+                  ⚠️ Já existe um lançamento de <strong>{confirmarDuplicata.tipo === 'Entrada' ? '+' : '-'}R$ {parseFloat(confirmarDuplicata.valor).toFixed(2).replace('.', ',')}</strong> em <strong>{fmtData(confirmarDuplicata.data)}</strong> ({confirmarDuplicata.descricao || confirmarDuplicata.categoria}). Pode ser duplicata.
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button className="btn btn-sm btn-primary" onClick={salvar}>Salvar mesmo assim</button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setConfirmarDuplicata(null)}>Cancelar</button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
-              <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
+              <button className="btn btn-primary" onClick={salvar} disabled={salvando || !!confirmarDuplicata}>
                 {salvando ? 'Salvando...' : editandoId ? 'Salvar Alterações' : 'Adicionar'}
               </button>
             </div>

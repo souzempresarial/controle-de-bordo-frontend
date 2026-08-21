@@ -313,7 +313,16 @@ export default function Lancamentos() {
       const res = await API.processarExtrato(clienteAtivo.id, arquivo, extratoInicio || null, extratoFim || null);
       if (res.erro) throw new Error(res.erro);
       const sorted = (res.transacoes || []).slice().sort((a, b) => a.data.localeCompare(b.data));
-      setExtratoLinhas(sorted.map((t, i) => ({ ...t, _id: i })));
+      const tokens = s => (s || '').toLowerCase().replace(/[^a-z0-9\s]/gi, '').split(/\s+/).filter(w => w.length > 3);
+      setExtratoLinhas(sorted.map((t, i) => {
+        const tValor = parseFloat(t.valor);
+        const dup = lancamentos.some(l =>
+          l.data === t.data &&
+          Math.abs(parseFloat(l.valor) - tValor) < 0.01 &&
+          tokens(l.descricao).some(w => tokens(t.descricao).includes(w))
+        );
+        return { ...t, _id: i, _duplicata: dup };
+      }));
     } catch (err) { setExtratoErro(err.message); }
     finally { setExtratoProc(false); e.target.value = ''; }
   }
@@ -757,7 +766,14 @@ export default function Lancamentos() {
               {extratoErro && <p style={{ color: 'var(--saida)', fontSize: 13 }}>{extratoErro}</p>}
               {extratoLinhas.length > 0 && (
                 <>
-                  <p style={{ fontSize: 13, color: 'var(--text2)' }}>{extratoLinhas.length} transações encontradas. Revise antes de importar:</p>
+                  <p style={{ fontSize: 13, color: 'var(--text2)' }}>
+                    {extratoLinhas.length} transações encontradas. Revise antes de importar.
+                    {extratoLinhas.some(l => l._duplicata) && (
+                      <span style={{ marginLeft: 8, color: '#ca8a04', fontWeight: 600 }}>
+                        ⚠️ {extratoLinhas.filter(l => l._duplicata).length} possível(is) duplicata(s) — remova com ✕ se já existir.
+                      </span>
+                    )}
+                  </p>
                   <div style={{ overflowX: 'auto', maxHeight: 400, overflowY: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
@@ -773,14 +789,17 @@ export default function Lancamentos() {
                       </thead>
                       <tbody>
                         {extratoLinhas.map(l => (
-                          <tr key={l._id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <tr key={l._id} style={{ borderBottom: '1px solid var(--border)', background: l._duplicata ? 'rgba(202,138,4,0.08)' : undefined }}>
                             <td style={{ padding: '6px 10px' }}>
                               <input type="date" value={l.data} onChange={e => editarLinha(l._id, 'data', e.target.value)}
                                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 4px', fontSize: 12 }} />
                             </td>
                             <td style={{ padding: '6px 10px' }}>
-                              <input value={l.descricao} onChange={e => editarLinha(l._id, 'descricao', e.target.value)}
-                                style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {l._duplicata && <span title="Possível duplicata" style={{ color: '#ca8a04', fontSize: 13, flexShrink: 0 }}>⚠️</span>}
+                                <input value={l.descricao} onChange={e => editarLinha(l._id, 'descricao', e.target.value)}
+                                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
+                              </div>
                             </td>
                             <td style={{ padding: '6px 10px' }}>
                               <select value={l.tipo} onChange={e => editarLinha(l._id, 'tipo', e.target.value)}
