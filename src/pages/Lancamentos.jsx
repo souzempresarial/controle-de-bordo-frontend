@@ -8,7 +8,7 @@ import './Lancamentos.css';
 const BANCOS = [
   'Banco do Brasil', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
   'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
-  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone',
+  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone', 'SumUp',
 ];
 
 const formVazio = (l, cmv, bancoAtivo) => ({
@@ -59,6 +59,7 @@ export default function Lancamentos() {
   const [extratoErro, setExtratoErro]     = useState('');
   const [extratoInicio, setExtratoInicio] = useState('');
   const [extratoFim, setExtratoFim]       = useState('');
+  const [extratoBanco, setExtratoBanco]   = useState('');
 
   const [bancoAtivo, setBancoAtivo] = useState('');
 
@@ -296,6 +297,10 @@ export default function Lancamentos() {
   async function processarArquivo(e) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
+    // Auto-detecta banco pelo nome do arquivo
+    const nomeArq = arquivo.name.toLowerCase();
+    const bancoDetectado = BANCOS.find(b => nomeArq.includes(b.toLowerCase().replace(/\s/g, '')));
+    if (bancoDetectado && !extratoBanco) setExtratoBanco(bancoDetectado);
     setExtratoProc(true); setExtratoErro(''); setExtratoLinhas([]);
     try {
       const res = await API.processarExtrato(clienteAtivo.id, arquivo, extratoInicio || null, extratoFim || null);
@@ -401,6 +406,7 @@ export default function Lancamentos() {
           tipo: t.tipo, valor: parseFloat(t.valor), data: t.data,
           categoria: t.categoria_sugerida || '', subcategoria: t.subcategoria_sugerida || '',
           descricao: t.descricao || '', status: 'Confirmado',
+          banco: extratoBanco || null,
         });
         criados.push(novo);
       } catch (err) { console.error('[importarExtrato] falha na linha:', t, err.message); falhas++; }
@@ -414,7 +420,7 @@ export default function Lancamentos() {
     if (falhas > 0) {
       setExtratoErro(`${criados.length} importado(s) com sucesso. ${falhas} falhou(aram) — verifique e tente novamente.`);
     } else {
-      setExtratoModal(false); setExtratoLinhas([]);
+      setExtratoModal(false); setExtratoLinhas([]); setExtratoBanco('');
     }
     setExtratoImp(false);
   }
@@ -723,6 +729,14 @@ export default function Lancamentos() {
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <p style={{ fontSize: 13, color: 'var(--text2)' }}>Envie o PDF ou imagem do extrato. A IA vai ler e categorizar as transações automaticamente.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--text2)' }}>Banco:</span>
+                <select value={extratoBanco} onChange={e => setExtratoBanco(e.target.value)} disabled={extratoProc}
+                  style={{ fontSize: 13, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text)' }}>
+                  <option value="">— selecione —</option>
+                  {BANCOS.map(b => <option key={b}>{b}</option>)}
+                </select>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: 'var(--text2)' }}>Período (opcional):</span>
                 <input type="date" value={extratoInicio} onChange={e => setExtratoInicio(e.target.value)} disabled={extratoProc} style={{ fontSize: 13 }} />

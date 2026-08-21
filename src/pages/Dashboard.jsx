@@ -26,7 +26,7 @@ function calcularTotais(lista) {
 const BANCOS = [
   'Banco do Brasil', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
   'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
-  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone',
+  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone', 'SumUp',
 ];
 
 const formVazio = (bancoDefault = '') => ({
