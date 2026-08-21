@@ -156,12 +156,19 @@ export default function Lancamentos() {
   }
 
   function abrirEditar(l) {
-    const cmv = l.tipo !== 'Entrada' ? null : l.grupoId
-      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
-      : lancamentos.find(x =>
-          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
-          (x.isCMV || (x.descricao || '').startsWith('CMV'))
-        );
+    const cmv = l.tipo !== 'Entrada' ? null : (() => {
+      if (l.grupoId) {
+        const byGrupo = lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'));
+        if (byGrupo) return byGrupo;
+      }
+      const byObs = lancamentos.find(x => x.id !== l.id && (x.obs || '').includes('#' + String(l.id).padStart(3, '0')));
+      if (byObs) return byObs;
+      if (!l.grupoId) return lancamentos.find(x =>
+        x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
+        (x.isCMV || (x.descricao || '').startsWith('CMV'))
+      ) || null;
+      return null;
+    })();
     setEditando(l);
     setEditandoCMV(cmv || null);
     setForm(formVazio(l, cmv, bancoAtivo));

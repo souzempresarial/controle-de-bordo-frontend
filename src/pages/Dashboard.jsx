@@ -191,12 +191,19 @@ export default function Dashboard() {
   }
 
   function abrirEditar(l) {
-    const cmv = l.tipo !== 'Entrada' ? null : l.grupoId
-      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
-      : lancamentos.find(x =>
-          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
-          (x.isCMV || (x.descricao || '').startsWith('CMV'))
-        );
+    const cmv = l.tipo !== 'Entrada' ? null : (() => {
+      if (l.grupoId) {
+        const byGrupo = lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'));
+        if (byGrupo) return byGrupo;
+      }
+      const byObs = lancamentos.find(x => x.id !== l.id && (x.obs || '').includes('#' + String(l.id).padStart(3, '0')));
+      if (byObs) return byObs;
+      if (!l.grupoId) return lancamentos.find(x =>
+        x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
+        (x.isCMV || (x.descricao || '').startsWith('CMV'))
+      ) || null;
+      return null;
+    })();
     setEditandoId(l.id);
     setEditandoCMV(cmv || null);
     setForm({
@@ -248,12 +255,14 @@ export default function Dashboard() {
 
         if (isEnt && form.cmvValor && parseFloat(form.cmvValor) > 0) {
           if (editandoCMV) {
+            grupoId = editando?.grupoId || editandoCMV.grupoId || ('g' + Date.now());
             atualizadoCMV = await API.editarLancamento(clienteAtivo.id, editandoCMV.id, {
               data: form.data, tipo: 'Saída', valor: parseFloat(form.cmvValor),
               categoria: form.cmvCat || editandoCMV.categoria,
               subcategoria: form.cmvSub || editandoCMV.subcategoria,
               descricao: editandoCMV.descricao, pagamento: form.pagamento,
               status: form.status, obs: editandoCMV.obs,
+              grupo_id: grupoId, is_cmv: true,
             });
           } else {
             grupoId = grupoId || ('g' + Date.now());
