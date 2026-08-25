@@ -35,10 +35,11 @@ export default function Lancamentos() {
   const { lancamentos, setLancamentos, clienteAtivo } = useApp();
 
   const [busca, setBusca]           = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('');
-  const [filtroCat, setFiltroCat]   = useState('');
-  const [filtroSub, setFiltroSub]   = useState('');
-  const [filtroMes, setFiltroMes]   = useState('');
+  const [filtroTipo, setFiltroTipo]   = useState('');
+  const [filtroCat, setFiltroCat]     = useState('');
+  const [filtroSub, setFiltroSub]     = useState('');
+  const [filtroMes, setFiltroMes]     = useState('');
+  const [filtroBanco, setFiltroBanco] = useState('');
 
   const [editando, setEditando]         = useState(null);
   const [editandoCMV, setEditandoCMV]   = useState(null);
@@ -90,7 +91,8 @@ export default function Lancamentos() {
     const base = filtroCat ? lancamentos.filter(l => l.categoria === filtroCat) : lancamentos;
     return [...new Set(base.map(l => l.subcategoria))].filter(Boolean).sort();
   }, [lancamentos, filtroCat]);
-  const todosMeses = useMemo(() => [...new Set(lancamentos.map(l => l.data.slice(0,7)))].sort().reverse(), [lancamentos]);
+  const todosMeses  = useMemo(() => [...new Set(lancamentos.map(l => l.data.slice(0,7)))].sort().reverse(), [lancamentos]);
+  const todosBancos = useMemo(() => [...new Set(lancamentos.map(l => l.banco).filter(Boolean))].sort(), [lancamentos]);
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
 
@@ -99,7 +101,8 @@ export default function Lancamentos() {
     if (filtroTipo) lista = lista.filter(l => l.tipo === filtroTipo);
     if (filtroCat)  lista = lista.filter(l => l.categoria === filtroCat);
     if (filtroSub)  lista = lista.filter(l => l.subcategoria === filtroSub);
-    if (filtroMes)  lista = lista.filter(l => l.data.startsWith(filtroMes));
+    if (filtroMes)   lista = lista.filter(l => l.data.startsWith(filtroMes));
+    if (filtroBanco) lista = lista.filter(l => l.banco === filtroBanco);
     if (busca) {
       const b = busca.toLowerCase();
       lista = lista.filter(l =>
@@ -110,7 +113,7 @@ export default function Lancamentos() {
       );
     }
     return lista;
-  }, [semCMV, filtroTipo, filtroCat, filtroSub, filtroMes, busca]);
+  }, [semCMV, filtroTipo, filtroCat, filtroSub, filtroMes, filtroBanco, busca]);
 
   const filtradosOrdenados = useMemo(() => {
     return [...filtrados].sort((a, b) => {
@@ -458,6 +461,10 @@ export default function Lancamentos() {
           <select className="filter-select" value={filtroSub} onChange={e => setFiltroSub(e.target.value)}>
             <option value="">Todas subcategorias</option>
             {todasSubs.map(s => <option key={s}>{s}</option>)}
+          </select>
+          <select className="filter-select" value={filtroBanco} onChange={e => setFiltroBanco(e.target.value)}>
+            <option value="">Todos os bancos</option>
+            {todosBancos.map(b => <option key={b}>{b}</option>)}
           </select>
           <select className="filter-select" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
             <option value="">Todos os meses</option>
