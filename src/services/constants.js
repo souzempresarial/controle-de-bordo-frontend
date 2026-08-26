@@ -1,7 +1,7 @@
 ﻿export const CATEGORIAS_ENTRADA = {
   '— Receitas Operacionais —': null,
   'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Fonte Turbo','Upgrade','Outro'],
-  'Acessórios':            ['Acessórios Geral','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
+  'Acessórios':            ['Acessórios Geral','Brindes','Premium','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
   'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Outro'],
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
   '— Receitas Não-Operacionais —': null,
