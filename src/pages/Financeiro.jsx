@@ -939,7 +939,9 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const caixaLiq  = entCaixa - saiCaixa;
     const projCaixa = diasPassados > 0 ? caixaLiq / diasPassados * diasNoMes : caixaLiq;
 
-    return { fat, lucroLiq, uni, ticket, fatAcess, fatAssist, caixaLiq, projCaixa, diasNoMes, diasPassados, diasRestantes, projFat, projLucro, projUni, projTicket, ritmo };
+    const totalSaidas = lm.filter(l => l.tipo === 'Saída' && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Fornecedores (Estoque)' && l.status !== 'Pendente').reduce((a,l) => a + l.valor, 0);
+
+    return { fat, lucroLiq, uni, ticket, fatAcess, fatAssist, caixaLiq, projCaixa, diasNoMes, diasPassados, diasRestantes, projFat, projLucro, projUni, projTicket, ritmo, totalSaidas };
   }, [lancamentos, pfx, anoN, mesN]);
 
   const MetricCard = ({ titulo, campo, atual, proj: projVal, cor, isMoney = true }) => {
@@ -971,6 +973,39 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     );
   };
 
+  const TetoCustosCard = () => {
+    const teto  = getMeta('teto_gastos');
+    const gasto = proj.totalSaidas;
+    const pct   = teto > 0 ? Math.min(100, gasto / teto * 100) : 0;
+    const cor   = pct >= 100 ? '#f03e3e' : pct >= 80 ? '#f59e0b' : '#22c55e';
+
+    return (
+      <div className="table-panel" style={{ padding: '16px 20px', borderLeft: teto > 0 && pct >= 80 ? `4px solid ${cor}` : undefined }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: .5 }}>Teto de Gastos</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setEditando({ campo: 'teto_gastos', titulo: 'Teto de Gastos' }); setMetaValor(teto || ''); }}>✏️ Definir</button>
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: teto > 0 ? cor : 'var(--text)' }}>{fmt(gasto)}</div>
+        {teto > 0 ? (
+          <>
+            <div style={{ position: 'relative', height: 14, background: 'var(--surface2)', borderRadius: 7, overflow: 'hidden', margin: '10px 0 4px' }}>
+              <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pct}%`, background: cor, borderRadius: 7, transition: 'width .3s' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text2)' }}>
+              <span>Gasto: <strong style={{ color: cor }}>{fmt(gasto)}</strong></span>
+              <span>{pct.toFixed(0)}% do teto</span>
+              <span>Teto: <strong>{fmt(teto)}</strong></span>
+            </div>
+            {pct >= 100 && <div style={{ marginTop: 6, fontSize: 12, color: '#f03e3e', fontWeight: 600 }}>⚠️ Teto atingido!</div>}
+            {pct >= 80 && pct < 100 && <div style={{ marginTop: 6, fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>⚠️ {(100 - pct).toFixed(0)}% restante do teto</div>}
+          </>
+        ) : (
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 8 }}>Defina um teto para controlar os gastos do mês.</div>
+        )}
+      </div>
+    );
+  };
+
   const ritmoCor = proj.projFat >= (getMeta('meta_fat') || proj.projFat) ? '#22c55e' : proj.projFat >= (getMeta('meta_fat') || proj.projFat) * 0.8 ? '#f59e0b' : '#f03e3e';
 
   return (
@@ -996,6 +1031,7 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
         <MetricCard titulo="Fat. Acessórios"     campo="meta_acess"   atual={proj.fatAcess}  proj={proj.fat > 0 ? proj.projFat * (proj.fatAcess / proj.fat) : proj.fatAcess}  cor="#06b6d4" />
         <MetricCard titulo="Fat. Assistência"   campo="meta_assist"  atual={proj.fatAssist} proj={proj.fat > 0 ? proj.projFat * (proj.fatAssist / proj.fat) : proj.fatAssist} cor="#f59e0b" />
         <MetricCard titulo="Geração de Caixa"  campo="meta_caixa"  atual={proj.caixaLiq}  proj={proj.projCaixa}  cor={proj.caixaLiq >= 0 ? '#22c55e' : '#f03e3e'} />
+        <TetoCustosCard />
       </div>
 
       {editando && (
