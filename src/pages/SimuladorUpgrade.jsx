@@ -91,6 +91,11 @@ const TRADEIN_DEF = [
 
 const AVARIAS_DEF = { bateria: 120, tela: 250, traseira: 150 };
 const CFG_DEF     = { comissaoFixa: 20, taxaVariavel: 10, margemMinima: 500 };
+const GRADES_DEF  = [
+  { id: 'A', nome: 'Grade A', descricao: 'Perfeito — sem riscos, bateria >85%, peças originais', pct: 100 },
+  { id: 'B', nome: 'Grade B', descricao: 'Bom — riscos leves, bateria 75–85%, sem danos graves', pct: 80  },
+  { id: 'C', nome: 'Grade C', descricao: 'Regular — riscos visíveis, bateria <75% ou danos',    pct: 60  },
+];
 
 const TAXAS = [
   { label: 'Débito (1.5%)',          pct: 1.5  },
@@ -111,21 +116,24 @@ export default function SimuladorUpgrade() {
   const [modelos, setModelos] = useState(() => ls('sim_modelos', MODELOS_DEF));
   const [tradeIn, setTradeIn] = useState(() => ls('sim_tradein', TRADEIN_DEF));
   const [avDef, setAvDef]     = useState(() => ls('sim_avarias', AVARIAS_DEF));
+  const [grades, setGrades]   = useState(() => ls('sim_grades', GRADES_DEF));
 
   // Upgrade tab
-  const [modelo, setModelo]         = useState('');
-  const [temTroca, setTemTroca]     = useState(false);
-  const [mTroca, setMTroca]         = useState('');
-  const [avarias, setAvarias]       = useState({ bateria: false, tela: false, traseira: false });
+  const [modelo, setModelo]           = useState('');
+  const [temTroca, setTemTroca]       = useState(false);
+  const [mTroca, setMTroca]           = useState('');
+  const [gradeId, setGradeId]         = useState('A');
+  const [avarias, setAvarias]         = useState({ bateria: false, tela: false, traseira: false });
   const [voltaManual, setVoltaManual] = useState(false);
-  const [voltaVal, setVoltaVal]     = useState('');
+  const [voltaVal, setVoltaVal]       = useState('');
 
   // Cartão tab
   const [taxaIdx, setTaxaIdx]     = useState(1);
   const [taxaCustom, setTaxaCustom] = useState('');
 
-  const mData  = modelos.find(m => m.modelo === modelo);
-  const tiData = tradeIn.find(m => m.modelo === mTroca);
+  const mData     = modelos.find(m => m.modelo === modelo);
+  const tiData    = tradeIn.find(m => m.modelo === mTroca);
+  const gradeData = grades.find(g => g.id === gradeId) ?? grades[0];
 
   const avTotal = temTroca
     ? (avarias.bateria  ? avDef.bateria  : 0)
@@ -133,7 +141,8 @@ export default function SimuladorUpgrade() {
     + (avarias.traseira ? avDef.traseira : 0)
     : 0;
 
-  const tiVal     = temTroca && tiData ? tiData.valor : 0;
+  const tiBase    = temTroca && tiData ? tiData.valor : 0;
+  const tiVal     = Math.round(tiBase * ((gradeData?.pct ?? 100) / 100));
   const preco     = mData?.preco ?? 0;
   const cmv       = mData?.cmv   ?? 0;
   const voltaAuto = temTroca ? Math.max(0, preco - tiVal + avTotal) : preco;
@@ -159,15 +168,16 @@ export default function SimuladorUpgrade() {
 
   function resetVolta() { setVoltaManual(false); setVoltaVal(''); }
   function handleModelo(v)  { setModelo(v); resetVolta(); }
-  function handleTroca(v)   { setTemTroca(v); resetVolta(); if (!v) setMTroca(''); }
+  function handleTroca(v)   { setTemTroca(v); resetVolta(); if (!v) { setMTroca(''); setGradeId('A'); } }
   function handleAv(k, v)   { setAvarias(a => ({ ...a, [k]: v })); resetVolta(); }
   function handleVolta(v)   { setVoltaVal(v); setVoltaManual(true); }
 
-  function salvarCfg(newCfg, newM, newTi, newAv) {
-    setCfg(newCfg);         lsSet('sim_cfg', newCfg);
-    setModelos(newM);       lsSet('sim_modelos', newM);
-    setTradeIn(newTi);      lsSet('sim_tradein', newTi);
-    setAvDef(newAv);        lsSet('sim_avarias', newAv);
+  function salvarCfg(newCfg, newM, newTi, newAv, newGrades) {
+    setCfg(newCfg);           lsSet('sim_cfg', newCfg);
+    setModelos(newM);         lsSet('sim_modelos', newM);
+    setTradeIn(newTi);        lsSet('sim_tradein', newTi);
+    setAvDef(newAv);          lsSet('sim_avarias', newAv);
+    setGrades(newGrades);     lsSet('sim_grades', newGrades);
     setShowCfg(false);
   }
 
@@ -223,7 +233,30 @@ export default function SimuladorUpgrade() {
                 </div>
 
                 <div className="sim-field">
-                  <label className="sim-label">AVARIAS</label>
+                  <label className="sim-label">CONDIÇÃO DO APARELHO</label>
+                  <div className="sim-grades">
+                    {grades.map(g => (
+                      <button key={g.id} className={`sim-grade-btn ${gradeId === g.id ? 'active' : ''}`}
+                        onClick={() => { setGradeId(g.id); resetVolta(); }}>
+                        <span className="sim-grade-id">{g.id}</span>
+                        <span className="sim-grade-nome">{g.nome}</span>
+                        <span className="sim-grade-pct">{g.pct}%</span>
+                      </button>
+                    ))}
+                  </div>
+                  {gradeData && (
+                    <div className="sim-hint">{gradeData.descricao}</div>
+                  )}
+                  {tiData && gradeData && gradeData.pct < 100 && (
+                    <div className="sim-hint">
+                      Trade-in ajustado: <strong>{fmt(tiVal)}</strong>
+                      <span style={{ color: 'var(--saida)', marginLeft: 6 }}>(-{fmt(tiBase - tiVal)})</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="sim-field">
+                  <label className="sim-label">AVARIAS ADICIONAIS</label>
                   {[
                     { k: 'bateria',  label: 'Troca de bateria'  },
                     { k: 'tela',     label: 'Troca de tela'     },
@@ -381,7 +414,7 @@ export default function SimuladorUpgrade() {
 
       {showCfg && (
         <ConfigModal
-          cfg={cfg} modelos={modelos} tradeIn={tradeIn} avDef={avDef}
+          cfg={cfg} modelos={modelos} tradeIn={tradeIn} avDef={avDef} grades={grades}
           onSave={salvarCfg} onClose={() => setShowCfg(false)}
         />
       )}
@@ -389,15 +422,17 @@ export default function SimuladorUpgrade() {
   );
 }
 
-function ConfigModal({ cfg, modelos, tradeIn, avDef, onSave, onClose }) {
+function ConfigModal({ cfg, modelos, tradeIn, avDef, grades, onSave, onClose }) {
   const [c,  setC]  = useState({ ...cfg });
   const [m,  setM]  = useState(modelos.map(x => ({ ...x })));
   const [ti, setTi] = useState(tradeIn.map(x => ({ ...x })));
   const [av, setAv] = useState({ ...avDef });
+  const [gr, setGr] = useState(grades.map(x => ({ ...x })));
   const [tab, setTab] = useState('comissao');
 
   const tabs = [
     ['comissao', 'Comissão'],
+    ['grades',   'Grades'],
     ['precos',   'Preços de Venda'],
     ['tradein',  'Trade-in'],
     ['avarias',  'Avarias'],
@@ -444,6 +479,48 @@ function ConfigModal({ cfg, modelos, tradeIn, avDef, onSave, onClose }) {
                 </div>
               </div>
             </div>
+          )}
+
+          {tab === 'grades' && (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>
+                Define o percentual aplicado ao valor de trade-in conforme a condição geral do aparelho.
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500 }}>ID</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500 }}>Nome</th>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500 }}>Descrição</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>% do valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gr.map((g, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '6px 8px', fontWeight: 700, color: 'var(--primary)' }}>{g.id}</td>
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="text" value={g.nome}
+                            onChange={e => setGr(arr => arr.map((x, j) => j === i ? { ...x, nome: e.target.value } : x))}
+                            style={{ width: 90, padding: '4px 6px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', color: 'var(--text)' }} />
+                        </td>
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="text" value={g.descricao}
+                            onChange={e => setGr(arr => arr.map((x, j) => j === i ? { ...x, descricao: e.target.value } : x))}
+                            style={{ width: '100%', minWidth: 160, padding: '4px 6px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', color: 'var(--text)' }} />
+                        </td>
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="number" step="1" min="0" max="100" value={g.pct}
+                            onChange={e => setGr(arr => arr.map((x, j) => j === i ? { ...x, pct: parseFloat(e.target.value) || 0 } : x))}
+                            style={{ width: 70, textAlign: 'right', padding: '4px 6px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', color: 'var(--text)' }} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {tab === 'precos' && (
@@ -535,12 +612,12 @@ function ConfigModal({ cfg, modelos, tradeIn, avDef, onSave, onClose }) {
 
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
           <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }}
-            onClick={() => { if (window.confirm('Restaurar todos os preços e modelos para o padrão?')) { setM(MODELOS_DEF.map(x => ({ ...x }))); setTi(TRADEIN_DEF.map(x => ({ ...x }))); setAv({ ...AVARIAS_DEF }); setC({ ...CFG_DEF }); } }}>
+            onClick={() => { if (window.confirm('Restaurar todos os preços e modelos para o padrão?')) { setM(MODELOS_DEF.map(x => ({ ...x }))); setTi(TRADEIN_DEF.map(x => ({ ...x }))); setAv({ ...AVARIAS_DEF }); setC({ ...CFG_DEF }); setGr(GRADES_DEF.map(x => ({ ...x }))); } }}>
             Restaurar padrões
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av)}>Salvar</button>
+            <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av, gr)}>Salvar</button>
           </div>
         </div>
       </div>
