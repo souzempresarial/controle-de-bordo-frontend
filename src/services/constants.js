@@ -1,18 +1,18 @@
 ﻿export const CATEGORIAS_ENTRADA = {
   '— Receitas Operacionais —': null,
-  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Fonte Turbo','Upgrade','Outro'],
-  'Acessórios':            ['Acessórios Geral','Brindes','Premium','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
+  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Upgrade','Outro'],
+  'Acessórios':            ['Acessórios Geral','Fonte Turbo','Brindes','Premium','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
   'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Outro'],
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
   '— Receitas Não-Operacionais —': null,
-  'Receitas Não-Operacionais': ['Blindagem','Seguro','Vendas Extras','Empréstimo','Investimento Externo','Aplicações Fora da Companhia','Outro'],
+  'Receitas Não-Operacionais': ['Blindagem','Seguro','Vendas Extras','Aplicações Fora da Companhia','Outro'],
   '— Aportes / Transferências —': null,
-  'Aportes e Transferências': ['Aporte do Sócio','Pix de Terceiro','Transferência Entre Contas','Devolução Recebida','Outro'],
+  'Aportes e Transferências': ['Aporte do Sócio','Empréstimo Recebido','Investimento Externo','Pix de Terceiro','Transferência Entre Contas','Devolução Recebida','Outro'],
 };
 
 export const CATEGORIAS_SAIDA = {
   '— Custos (CMV) —': null,
-  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
   '— Fornecedores (Estoque) —': null,
   'Fornecedores (Estoque)':['Aparelhos','Aparelhos (Upgrade)','Pix Fornecedor','Acessórios','Embalagens','Brindes','Assistência Técnica','Reparo','Boleto','Outro'],
   '— Deduções das Vendas —': null,
@@ -27,14 +27,14 @@ export const CATEGORIAS_SAIDA = {
   'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','Advogado','Consultoria','Outro'],
   'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Darf','Outro'],
   '— Não-Operacional —': null,
-  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Patrocínio','Momento Recreativo','Perda de Mercadoria','Outro'],
-  'Dívidas / Empréstimos': ['Outro'],
+  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Patrocínio','Momento Recreativo','Outro'],
+  'Dívidas / Empréstimos': ['Parcela de Empréstimo','Juros','Amortização','IOF','Multa','Cheque Especial','Cartão de Crédito PJ','Outro'],
   '— Investimento —': null,
   'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis','Outro'],
 };
 
 export const CATEGORIAS_CMV = {
-  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
 };
 
 export const CATEGORIAS_TRANSF = {

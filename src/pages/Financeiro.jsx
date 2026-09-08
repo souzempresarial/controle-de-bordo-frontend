@@ -12,35 +12,51 @@ function calcDREMes(lancamentos, pfx) {
   const sai = (cat)      => lm.filter(l => l.tipo === 'Saída'   && l.categoria === cat).reduce((a,l) => a+l.valor, 0);
   const qua = (cat)      => lm.filter(l => l.categoria === cat).reduce((a,l) => a+l.valor, 0);
 
-  const subscricao  = ent('Aparelhos') + ent('Acessórios') + ent('Assistência Técnica') + ent('Outros Produtos');
-  const recNaoOp    = ent('Receitas Não-Operacionais');
+  // receita por categoria (para drill-down no DRE)
+  const aparelhos   = ent('Aparelhos');
+  const acessorios  = ent('Acessórios');
+  const assistencia = ent('Assistência Técnica');
+  const outrosProd  = ent('Outros Produtos');
+  const subscricao  = aparelhos + acessorios + assistencia + outrosProd;
+
+  // "Aplicações Fora da Companhia" sai da receita e vai para resultado financeiro
+  const recFin      = ent('Receitas Não-Operacionais', 'Aplicações Fora da Companhia');
+  const recNaoOp    = ent('Receitas Não-Operacionais') - recFin;
   const recBruta    = subscricao + recNaoOp;
   const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
   const deducoes    = sai('Deduções das Vendas') + deducoesDiretas;
   const recLiquida  = recBruta - deducoes;
-  const cmvInd      = sai('Custos Variáveis Indiretos');
+
+  // CMV = apenas custos diretos
   const cmvDir      = qua('Custos Variáveis Diretos');
-  const cmvTotal    = cmvInd + cmvDir;
+  const cmvTotal    = cmvDir;
   const lucroBruto  = recLiquida - cmvTotal;
-  const margContrib = recBruta > 0 ? (lucroBruto / recBruta * 100) : null;
+
+  // CVI separado do CMV — entra na margem de contribuição
+  const custosVarInd = sai('Custos Variáveis Indiretos');
+  const contribuicao = lucroBruto - custosVarInd;
+  const margContrib  = recBruta > 0 ? (contribuicao / recBruta * 100) : null;
+
   const ocupacao    = sai('Despesas com Ocupação');
   const pessoal     = sai('Despesas com Pessoal');
   const variaveis   = sai('Despesas Variáveis');
   const softwares   = sai('Softwares / Tecnologias');
   const terceiros   = sai('Serviços Terceirizados');
-  const impostos   = sai('Impostos');
+  const impostos    = sai('Impostos');
   const sga         = ocupacao + pessoal + variaveis + softwares + terceiros + impostos;
   const pontoEq     = (margContrib && margContrib > 0) ? (sga / (margContrib / 100)) : null;
-  const ebitda      = lucroBruto - sga;
+  const ebitda      = contribuicao - sga;
   const margEbitda  = recBruta > 0 ? (ebitda / recBruta * 100) : null;
-  const recFin      = ent('Receitas Não-Operacionais', 'Aplicações Fora da Companhia');
+
+  // despJuros exclui Amortização (devolução de principal, não é despesa)
   const despJuros   = lm.filter(l => l.tipo === 'Saída' && l.categoria === 'Dívidas / Empréstimos' && l.subcategoria !== 'Amortização').reduce((a,l) => a+l.valor, 0);
   const despNaoOp   = sai('Saídas Não-Operacionais');
   const resFin      = recFin - despJuros - despNaoOp;
 
   return {
+    aparelhos, acessorios, assistencia, outrosProd,
     subscricao, recNaoOp, recBruta, deducoes, recLiquida,
-    cmvInd, cmvDir, cmvTotal, lucroBruto, margContrib, pontoEq,
+    cmvDir, cmvTotal, custosVarInd, lucroBruto, contribuicao, margContrib, pontoEq,
     ocupacao, pessoal, variaveis, softwares, terceiros, impostos, sga,
     ebitda, margEbitda, recFin, despJuros, despNaoOp, resFin,
   };
@@ -98,11 +114,13 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
   );
 
   const S = (k) => mv.reduce((a, v) => a + (v[k] || 0), 0);
-  const tRecBruta = S('recBruta'), tLucroBruto = S('lucroBruto');
-  const tSga      = S('sga'),      tEbitda     = S('ebitda');
-  const tLucroLiq = S('lucroLiq'), tRecLiq     = S('recLiquida');
-  const tCmv      = S('cmvTotal'), tResFin     = S('resFin');
-  const tLair     = S('lair');
+  const tRecBruta    = S('recBruta'),    tLucroBruto   = S('lucroBruto');
+  const tSga         = S('sga'),         tEbitda       = S('ebitda');
+  const tLucroLiq    = S('lucroLiq'),    tRecLiq       = S('recLiquida');
+  const tCmv         = S('cmvTotal'),    tResFin       = S('resFin');
+  const tLair        = S('lair');
+  const tContribuicao = S('contribuicao');
+  const tCustosVarInd = S('custosVarInd');
 
   const cm = mv[mesFiltro] || {};
   const cRecBruta   = cm.recBruta   || 0;
@@ -250,19 +268,23 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
             </thead>
             <tbody>
               <RowBig label="RECEITA BRUTA" vals={mv.map(v => v.recBruta)} tot={tRecBruta} />
-              <RowMed label="(+) Receita Operacional" vals={mv.map(v => v.subscricao)} tot={S('subscricao')} />
+              <RowExp label="(+) Aparelhos"           cat="Aparelhos"           vals={mv.map(v => v.aparelhos)}   tot={S('aparelhos')}   tipo="Entrada" />
+              <RowExp label="(+) Acessórios"          cat="Acessórios"          vals={mv.map(v => v.acessorios)}  tot={S('acessorios')}  tipo="Entrada" />
+              <RowExp label="(+) Assistência Técnica" cat="Assistência Técnica" vals={mv.map(v => v.assistencia)} tot={S('assistencia')} tipo="Entrada" />
+              <RowExp label="(+) Outros Produtos"     cat="Outros Produtos"     vals={mv.map(v => v.outrosProd)}  tot={S('outrosProd')}  tipo="Entrada" />
               <RowExp label="(+) Receitas Não-Operacionais" cat="Receitas Não-Operacionais" vals={mv.map(v => v.recNaoOp)} tot={S('recNaoOp')} tipo="Entrada" />
               <RowExp label="(-) Deduções das Vendas" cat="Deduções das Vendas" vals={mv.map(v => v.deducoes)} tot={S('deducoes')} neg />
               <RowBig label="(=) RECEITA LÍQUIDA" vals={mv.map(v => v.recLiquida)} tot={tRecLiq} />
               <RowBig label="(-) CMV — Custo de Mercadoria Vendida" vals={mv.map(v => v.cmvTotal)} tot={tCmv} neg />
-              <RowExp label="(-) Custos Variáveis Indiretos" cat="Custos Variáveis Indiretos" vals={mv.map(v => v.cmvInd)} tot={S('cmvInd')} neg />
               <RowExp label="(-) Custos Variáveis Diretos" cat="Custos Variáveis Diretos" vals={mv.map(v => v.cmvDir)} tot={S('cmvDir')} neg tipo={null} />
               <RowBig label="(=) LUCRO BRUTO" vals={mv.map(v => v.lucroBruto)} tot={tLucroBruto} />
-              <RowPct label="Margem de Contribuição (%)" vals={mv.map(v => v.margContrib)} tot={tRecBruta > 0 ? tLucroBruto / tRecBruta * 100 : null} />
+              <RowExp label="(-) Custos Variáveis Indiretos" cat="Custos Variáveis Indiretos" vals={mv.map(v => v.custosVarInd)} tot={tCustosVarInd} neg />
+              <RowBig label="(=) MARGEM DE CONTRIBUIÇÃO" vals={mv.map(v => v.contribuicao)} tot={tContribuicao} />
+              <RowPct label="Margem de Contribuição (%)" vals={mv.map(v => v.margContrib)} tot={tRecBruta > 0 ? tContribuicao / tRecBruta * 100 : null} />
               <tr className="row-pct">
                 <td style={{ paddingLeft: 8, fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>Ponto de Equilíbrio</td>
                 {mv.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{v.pontoEq !== null ? d(v.pontoEq) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>)}
-                <td style={{ textAlign: 'right' }}>{tLucroBruto > 0 && tRecBruta > 0 ? d(tSga / (tLucroBruto / tRecBruta)) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>
+                <td style={{ textAlign: 'right' }}>{tContribuicao > 0 && tRecBruta > 0 ? d(tSga / (tContribuicao / tRecBruta)) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>
               </tr>
               <RowBig label="(-) Despesas SG&A" vals={mv.map(v => v.sga)} tot={tSga} neg />
               <RowExp label="(-) Despesas com Ocupação"   cat="Despesas com Ocupação"   vals={mv.map(v => v.ocupacao)}  tot={S('ocupacao')}  neg />
@@ -388,6 +410,16 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   const totSai = mv.reduce((a,m) => a+m.sai, 0);
   const totSaldo = totEnt - totSai;
 
+  const saldoAcumulado = useMemo(() => {
+    let acum = saldoInicial;
+    return mv.map((m, i) => {
+      if (saldoInicial > 0 && i < saldoMes) return null;
+      acum += m.saldo;
+      return acum;
+    });
+  }, [mv, saldoInicial, saldoMes]);
+  const saldoFinalAno = saldoAcumulado.reduce((last, v) => v !== null ? v : last, null);
+
   return (
     <div>
       <div className="dfc-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -452,6 +484,17 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                 <td>SALDO DO MÊS</td>
                 {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.saldo)}</td>)}
                 <td style={{ textAlign: 'right' }}>{d(totSaldo)}</td>
+              </tr>
+              <tr className="row-med">
+                <td style={{ paddingLeft: 20, color: 'var(--text2)', fontStyle: 'italic' }}>Saldo Acumulado</td>
+                {saldoAcumulado.map((v, i) => (
+                  <td key={i} style={{ textAlign: 'right', fontStyle: 'italic' }}>
+                    {v !== null ? d(v) : <span style={{ color: 'var(--text2)' }}>—</span>}
+                  </td>
+                ))}
+                <td style={{ textAlign: 'right', fontStyle: 'italic' }}>
+                  {saldoFinalAno !== null ? d(saldoFinalAno) : <span style={{ color: 'var(--text2)' }}>—</span>}
+                </td>
               </tr>
               {DFC_GRUPOS.map(({ sep, grupos }) => (
                 <>
