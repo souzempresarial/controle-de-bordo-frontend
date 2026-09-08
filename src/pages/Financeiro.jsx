@@ -410,15 +410,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   const totSai = mv.reduce((a,m) => a+m.sai, 0);
   const totSaldo = totEnt - totSai;
 
-  const saldoAcumulado = useMemo(() => {
-    let acum = saldoInicial;
-    return mv.map((m, i) => {
-      if (saldoInicial > 0 && i < saldoMes) return null;
-      acum += m.saldo;
-      return acum;
-    });
-  }, [mv, saldoInicial, saldoMes]);
-  const saldoFinalAno = saldoAcumulado.reduce((last, v) => v !== null ? v : last, null);
 
   return (
     <div>
@@ -484,17 +475,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                 <td>SALDO DO MÊS</td>
                 {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.saldo)}</td>)}
                 <td style={{ textAlign: 'right' }}>{d(totSaldo)}</td>
-              </tr>
-              <tr className="row-med">
-                <td style={{ paddingLeft: 20, color: 'var(--text2)', fontStyle: 'italic' }}>Saldo Acumulado</td>
-                {saldoAcumulado.map((v, i) => (
-                  <td key={i} style={{ textAlign: 'right', fontStyle: 'italic' }}>
-                    {v !== null ? d(v) : <span style={{ color: 'var(--text2)' }}>—</span>}
-                  </td>
-                ))}
-                <td style={{ textAlign: 'right', fontStyle: 'italic' }}>
-                  {saldoFinalAno !== null ? d(saldoFinalAno) : <span style={{ color: 'var(--text2)' }}>—</span>}
-                </td>
               </tr>
               {DFC_GRUPOS.map(({ sep, grupos }) => (
                 <>
