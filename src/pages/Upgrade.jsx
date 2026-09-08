@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { fmt, fmtData, hoje } from '../services/utils';
+import SimuladorUpgrade from './SimuladorUpgrade';
 import './Upgrade.css';
 
 const STATUS_CFG = {
@@ -80,6 +81,7 @@ export default function Upgrade() {
   const [confirmExcluir, setConfirmExcluir]   = useState(null);
   const [confirmLimpar,  setConfirmLimpar]    = useState(false);
   const [limpando,       setLimpando]         = useState(false);
+  const [pagina, setPagina]                   = useState('estoque');
 
   useEffect(() => { if (clienteAtivo) carregar(); }, [clienteAtivo]);
 
@@ -363,15 +365,27 @@ export default function Upgrade() {
       <div className="up-header">
         <div>
           <h2>Controle de Upgrade</h2>
-          <p className="up-subtitle">Gestão de aparelhos em estoque</p>
+          <p className="up-subtitle">{pagina === 'estoque' ? 'Gestão de aparelhos em estoque' : 'Simulador de upgrade e comissão'}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }} onClick={() => setConfirmLimpar(true)}>
-            Limpar tudo
-          </button>
-          <button className="btn btn-primary" onClick={abrirNovo}>+ Novo Aparelho</button>
-        </div>
+        {pagina === 'estoque' && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }} onClick={() => setConfirmLimpar(true)}>
+              Limpar tudo
+            </button>
+            <button className="btn btn-primary" onClick={abrirNovo}>+ Novo Aparelho</button>
+          </div>
+        )}
       </div>
+
+      {/* Tabs */}
+      <div className="up-page-tabs">
+        <button className={`up-page-tab ${pagina === 'estoque'   ? 'active' : ''}`} onClick={() => setPagina('estoque')}>Controle de Estoque</button>
+        <button className={`up-page-tab ${pagina === 'simulador' ? 'active' : ''}`} onClick={() => setPagina('simulador')}>Simulador</button>
+      </div>
+
+      {pagina === 'simulador' && <SimuladorUpgrade />}
+
+      {pagina === 'estoque' && <>
 
       {/* Alert banner */}
       {resumo.urgente > 0 && (
@@ -436,6 +450,8 @@ export default function Upgrade() {
       )}
 
       {erro && <div style={{ color: 'var(--saida)', fontSize: 13 }}>{erro}</div>}
+
+      </>} {/* fim pagina === 'estoque' */}
 
       {/* Toast */}
       {toast && (
