@@ -29,6 +29,7 @@ const formVazio = (l, cmv, bancoAtivo) => ({
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
+  recebimentoAnterior: false,
 });
 
 export default function Lancamentos() {
@@ -63,6 +64,19 @@ export default function Lancamentos() {
   const [extratoBanco, setExtratoBanco]   = useState('');
 
   const [bancoAtivo, setBancoAtivo] = useState('');
+
+  // Mercado Phone
+  const [mpModal, setMpModal]         = useState(false);
+  const [mpChave, setMpChave]         = useState('');
+  const [mpConfigurado, setMpConfigurado] = useState(null); // null=carregando, true/false
+  const [mpInicio, setMpInicio]       = useState('');
+  const [mpFim, setMpFim]             = useState('');
+  const [mpBuscando, setMpBuscando]   = useState(false);
+  const [mpImportando, setMpImportando] = useState(false);
+  const [mpTransacoes, setMpTransacoes] = useState([]);
+  const [mpSelecionados, setMpSelecionados] = useState(new Set());
+  const [mpErro, setMpErro]           = useState('');
+  const [mpSucesso, setMpSucesso]     = useState('');
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -201,7 +215,7 @@ export default function Lancamentos() {
       let novoCMV = null;
 
       let cmvExcluido = false;
-      if (isEntrada && form.cmvValor && parseFloat(form.cmvValor) > 0) {
+      if (isEntrada && !form.recebimentoAnterior && form.cmvValor && parseFloat(form.cmvValor) > 0) {
         if (editandoCMV) {
           grupoId = editando.grupoId || editandoCMV.grupoId || ('g' + Date.now());
           atualizadoCMV = await API.editarLancamento(clienteAtivo.id, editandoCMV.id, {
@@ -239,7 +253,7 @@ export default function Lancamentos() {
           categoria: form.categoria, subcategoria: form.subcategoria,
           descricao: form.descricao, pagamento: form.pagamento,
           status: form.status, obs: form.obs,
-          quantidade: isEntrada ? (parseInt(form.quantidade) || null) : null,
+          quantidade: !isEntrada ? null : form.recebimentoAnterior ? 0 : (parseInt(form.quantidade) || null),
           valor_recebido: valorRecebido,
           grupo_id: grupoId,
           valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
@@ -443,12 +457,67 @@ export default function Lancamentos() {
     }
     setExtratoImp(false);
   }
+
+  async function abrirMpModal() {
+    setMpModal(true); setMpTransacoes([]); setMpErro(''); setMpSucesso(''); setMpChave('');
+    try {
+      const { configurado } = await API.mpStatus(clienteAtivo.id);
+      setMpConfigurado(configurado);
+    } catch { setMpConfigurado(false); }
+  }
+
+  async function mpSalvarChave() {
+    if (!mpChave.trim()) return;
+    try {
+      await API.mpSalvarChave(clienteAtivo.id, mpChave.trim());
+      setMpConfigurado(true); setMpChave('');
+    } catch (err) { setMpErro(err.message || 'Erro ao salvar chave'); }
+  }
+
+  async function mpBuscar() {
+    setMpBuscando(true); setMpErro(''); setMpTransacoes([]); setMpSucesso('');
+    try {
+      const { transacoes } = await API.mpPreview(clienteAtivo.id, mpInicio || null, mpFim || null);
+      setMpTransacoes(transacoes);
+      const novos = new Set(transacoes.filter(t => !t.jaImportado).map((_, i) => i));
+      setMpSelecionados(novos);
+    } catch (err) { setMpErro(err.message || 'Erro ao buscar vendas'); }
+    finally { setMpBuscando(false); }
+  }
+
+  function editarMpLinha(i, campo, valor) {
+    setMpTransacoes(prev => prev.map((t, idx) => {
+      if (idx !== i) return t;
+      const updated = { ...t, [campo]: valor };
+      if (campo === 'categoria') updated.subcategoria = '';
+      return updated;
+    }));
+  }
+
+  async function mpImportar() {
+    const selecionadas = mpTransacoes.filter((_, i) => mpSelecionados.has(i)).map(t => ({
+      ...t,
+      valorUpgrade: t.isUpgrade && parseFloat(t.valorUpgrade) > 0 ? parseFloat(t.valorUpgrade) : null,
+    }));
+    if (!selecionadas.length) return;
+    setMpImportando(true); setMpErro('');
+    try {
+      const { importados } = await API.mpImportar(clienteAtivo.id, selecionadas);
+      const novas = await API.listarLancamentos(clienteAtivo.id);
+      setLancamentos(novas);
+      setMpSucesso(`${importados} venda(s) importada(s) com sucesso!`);
+      setMpTransacoes([]);
+    } catch (err) { setMpErro(err.message || 'Erro ao importar'); }
+    finally { setMpImportando(false); }
+  }
+
   return (
     <div className="lancamentos-page">
       <div className="table-panel">
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
+          <button className="btn btn-ghost btn-sm" onClick={abrirMpModal} style={{ color: 'var(--primary)' }}>⬇ Mercado Phone</button>
           <input className="search-box" placeholder="🔍 Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
           <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
             <option value="">Todos os tipos</option>
@@ -632,19 +701,19 @@ export default function Lancamentos() {
                     <option>Débito</option><option>Boleto</option><option>Transferência</option><option>Outro</option>
                   </select>
                 </div>
-                {isEntrada && (
+                {isEntrada && !form.recebimentoAnterior && (
                   <div className="field">
                     <label>Quantidade</label>
                     <input type="number" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
                   </div>
                 )}
-                {isEntrada && (
+                {isEntrada && !form.recebimentoAnterior && (
                   <div className="field">
                     <label>Valor do Upgrade (R$)</label>
                     <input type="number" step="0.01" placeholder="Deixe vazio se não houver upgrade" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
                   </div>
                 )}
-                {isEntrada && form.valorUpgrade > 0 && (
+                {isEntrada && !form.recebimentoAnterior && form.valorUpgrade > 0 && (
                   <div className="field">
                     <label>Qtd. de Upgrades</label>
                     <input type="number" min="1" placeholder="1" value={form.qtdUpgrade} onChange={e => setField('qtdUpgrade', e.target.value)} />
@@ -657,6 +726,19 @@ export default function Lancamentos() {
               </div>
 
               {isEntrada && (
+                <div
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--surface2)', borderRadius:8, marginBottom:8, cursor:'pointer', userSelect:'none' }}
+                  onClick={() => setField('recebimentoAnterior', !form.recebimentoAnterior)}
+                >
+                  <input type="checkbox" checked={form.recebimentoAnterior || false} onChange={() => {}} style={{ cursor:'pointer', accentColor:'var(--primary)', width:16, height:16 }} />
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>CMV já registrado</div>
+                    <div style={{ color:'var(--text2)', fontSize:12 }}>Recebimento de venda anterior — não gerar novo custo</div>
+                  </div>
+                </div>
+              )}
+
+              {isEntrada && !form.recebimentoAnterior && (
                 <div className="cmv-section">
                   <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
                   <div className="form-grid">
@@ -972,6 +1054,277 @@ export default function Lancamentos() {
               >
                 {dividirSalvando ? 'Salvando...' : `Confirmar divisão (${dividirPartes.length} partes)`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Mercado Phone */}
+      {mpModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setMpModal(false)}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 12, display: 'flex', flexDirection: 'column',
+            width: '98vw', maxWidth: 1400, maxHeight: '92vh',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 24px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Importar do Mercado Phone</div>
+                {mpConfigurado === true && (
+                  <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>
+                    Selecione o período, revise as categorias e importe
+                  </div>
+                )}
+              </div>
+              {mpConfigurado === true && (
+                <span style={{ fontSize: 12, color: 'var(--text2)', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => setMpConfigurado(false)}>Trocar chave</span>
+              )}
+              <button className="modal-close" onClick={() => setMpModal(false)}>✕</button>
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '20px 24px', gap: 16 }}>
+
+              {/* Chave não configurada */}
+              {mpConfigurado === false && (
+                <div style={{ maxWidth: 500 }}>
+                  <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12 }}>
+                    Cole a chave de API do Mercado Phone para este cliente (começa com <code>mpk_</code>):
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input type="text" placeholder="mpk_..." value={mpChave} onChange={e => setMpChave(e.target.value)}
+                      style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 13 }} />
+                    <button className="btn btn-primary" onClick={mpSalvarChave} disabled={!mpChave.trim()}>Salvar</button>
+                  </div>
+                </div>
+              )}
+
+              {mpConfigurado === null && (
+                <p style={{ fontSize: 13, color: 'var(--text2)' }}>Verificando configuração...</p>
+              )}
+
+              {/* Configurado */}
+              {mpConfigurado === true && (
+                <>
+                  {/* Filtros de período */}
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div>
+                      <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data início</label>
+                      <input type="date" value={mpInicio} onChange={e => setMpInicio(e.target.value)}
+                        style={{ padding: '8px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 13 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data fim</label>
+                      <input type="date" value={mpFim} onChange={e => setMpFim(e.target.value)}
+                        style={{ padding: '8px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 13 }} />
+                    </div>
+                    <button className="btn btn-primary" onClick={mpBuscar} disabled={mpBuscando} style={{ alignSelf: 'flex-end' }}>
+                      {mpBuscando ? 'Buscando...' : 'Buscar vendas'}
+                    </button>
+                  </div>
+
+                  {/* Barra de resumo */}
+                  {mpTransacoes.length > 0 && (() => {
+                    const novas     = mpTransacoes.filter(t => !t.jaImportado);
+                    const selArr    = [...mpSelecionados].map(i => mpTransacoes[i]).filter(Boolean);
+                    const totalVal  = selArr.reduce((s, t) => s + (t.valor || 0), 0);
+                    const totalCmv  = selArr.reduce((s, t) => s + (t.cmvValor || 0), 0);
+                    const lucro     = totalVal - totalCmv;
+                    return (
+                      <div style={{ display: 'flex', gap: 0, background: 'var(--surface2)', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
+                        {[
+                          { label: 'Encontradas', val: mpTransacoes.length, color: 'var(--text)' },
+                          { label: 'Novas', val: novas.length, color: 'var(--primary)' },
+                          { label: 'Selecionadas', val: mpSelecionados.size, color: 'var(--text)' },
+                          { label: 'Receita selecionada', val: fmt(totalVal), color: 'var(--entrada)' },
+                          { label: 'CMV selecionado', val: fmt(totalCmv), color: 'var(--saida)' },
+                          { label: 'Lucro estimado', val: fmt(lucro), color: lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' },
+                        ].map(({ label, val, color }) => (
+                          <div key={label} style={{ flex: 1, padding: '12px 16px', borderRight: '1px solid var(--border)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Ações da tabela */}
+                  {mpTransacoes.length > 0 && (
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
+                      <button style={{ fontSize: 12, background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                        onClick={() => setMpSelecionados(new Set(mpTransacoes.map((_, i) => i).filter(i => !mpTransacoes[i].jaImportado)))}>
+                        Selecionar novas
+                      </button>
+                      <button style={{ fontSize: 12, background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 0 }}
+                        onClick={() => setMpSelecionados(new Set())}>
+                        Desmarcar todas
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Tabela */}
+                  {mpTransacoes.length > 0 && (
+                    <div style={{ flex: 1, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8, minHeight: 0 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0, zIndex: 1 }}>
+                            <th style={{ padding: '10px 12px', width: 40, borderBottom: '2px solid var(--border)' }}></th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 180 }}>Produto / Cliente</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 155 }}>Categoria</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 150 }}>Subcategoria</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 120 }}>Pagamento</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valor</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CMV</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margem</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 130 }}>Upgrade (R$)</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mpTransacoes.map((t, i) => {
+                            const margem = t.valor > 0 && t.cmvValor > 0
+                              ? ((t.valor - t.cmvValor) / t.valor * 100).toFixed(1) + '%'
+                              : '—';
+                            const selectStyle = {
+                              background: 'var(--surface2)', border: '1px solid var(--border)',
+                              borderRadius: 5, color: 'var(--text)', padding: '4px 6px',
+                              fontSize: 12, width: '100%', cursor: 'pointer',
+                            };
+                            return (
+                              <tr key={i} style={{
+                                borderBottom: '1px solid var(--border)',
+                                opacity: t.jaImportado ? 0.4 : 1,
+                                background: mpSelecionados.has(i) ? 'color-mix(in srgb, var(--primary) 6%, transparent)' : 'transparent',
+                                transition: 'background 0.1s',
+                              }}>
+                                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                  {t.jaImportado
+                                    ? <span style={{ fontSize: 14, color: 'var(--text2)' }}>✓</span>
+                                    : <input type="checkbox" checked={mpSelecionados.has(i)}
+                                        onChange={() => {
+                                          const s = new Set(mpSelecionados);
+                                          s.has(i) ? s.delete(i) : s.add(i);
+                                          setMpSelecionados(s);
+                                        }} style={{ cursor: 'pointer', width: 15, height: 15, accentColor: 'var(--primary)' }} />
+                                  }
+                                </td>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'var(--text2)', fontSize: 12 }}>{t.data}</td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  <div style={{ fontWeight: 600, fontSize: 13 }}>{t.descricao || '—'}</div>
+                                  {t.clienteNome && <div style={{ color: 'var(--text2)', fontSize: 11, marginTop: 1 }}>{t.clienteNome}</div>}
+                                  {t.vendedorNome && <div style={{ color: 'var(--text2)', fontSize: 11 }}>Vend: {t.vendedorNome}</div>}
+                                  {(t.tipoVendaOriginal || t.canalOriginal) && (
+                                    <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 600,
+                                      background: (t.tipoVendaOriginal || '').toLowerCase().includes('upgrade') ? 'color-mix(in srgb, var(--primary) 15%, transparent)' : 'var(--surface2)',
+                                      border: '1px solid var(--border)', borderRadius: 3, padding: '1px 5px',
+                                      color: (t.tipoVendaOriginal || '').toLowerCase().includes('upgrade') ? 'var(--primary)' : 'var(--text2)',
+                                      letterSpacing: '0.03em' }}>
+                                      {t.tipoVendaOriginal || t.canalOriginal}
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  {t.jaImportado
+                                    ? <span style={{ fontSize: 12 }}>{t.categoria}</span>
+                                    : <select value={t.categoria} onChange={e => editarMpLinha(i, 'categoria', e.target.value)} style={selectStyle}>
+                                        <option value="">— selecione —</option>
+                                        {Object.entries(getCatsPorTipo('Entrada')).filter(([,v]) => v !== null).map(([cat]) => (
+                                          <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                      </select>
+                                  }
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  {t.jaImportado
+                                    ? <span style={{ fontSize: 12, color: 'var(--text2)' }}>{t.subcategoria}</span>
+                                    : <select value={t.subcategoria} onChange={e => editarMpLinha(i, 'subcategoria', e.target.value)} style={selectStyle}>
+                                        <option value="">— sub —</option>
+                                        {getSubcats(t.categoria).map(s => <option key={s} value={s}>{s}</option>)}
+                                      </select>
+                                  }
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  {t.jaImportado
+                                    ? <span style={{ fontSize: 12, color: 'var(--text2)' }}>{t.pagamento || '—'}</span>
+                                    : <>
+                                        <select value={t.pagamento} onChange={e => editarMpLinha(i, 'pagamento', e.target.value)} style={selectStyle}>
+                                          <option value="">—</option>
+                                          <option>Dinheiro</option><option>Pix</option><option>Crédito</option>
+                                          <option>Débito</option><option>Boleto</option><option>Transferência</option><option>Outro</option>
+                                        </select>
+                                        <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2 }}>MP não informa pagamento</div>
+                                      </>
+                                  }
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right', color: t.valor > 0 ? 'var(--entrada)' : 'var(--text2)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                  {fmt(t.valor)}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--saida)', whiteSpace: 'nowrap' }}>
+                                  {t.cmvValor > 0 ? fmt(t.cmvValor) : <span style={{ color: 'var(--text2)' }}>—</span>}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600,
+                                  color: margem === '—' ? 'var(--text2)' : parseFloat(margem) >= 20 ? 'var(--entrada)' : parseFloat(margem) >= 10 ? '#ca8a04' : 'var(--saida)' }}>
+                                  {margem}
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  {!t.jaImportado && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <input type="checkbox" checked={!!(t.isUpgrade)} onChange={e => editarMpLinha(i, 'isUpgrade', e.target.checked)}
+                                        style={{ cursor: 'pointer', accentColor: 'var(--primary)', width: 14, height: 14, flexShrink: 0 }} />
+                                      {t.isUpgrade && (
+                                        <input type="number" step="0.01" placeholder="0,00"
+                                          value={t.valorUpgrade || ''}
+                                          onChange={e => editarMpLinha(i, 'valorUpgrade', e.target.value)}
+                                          style={{ width: 80, background: 'var(--surface2)', border: '1px solid var(--primary)', borderRadius: 5, color: 'var(--text)', padding: '3px 6px', fontSize: 12 }} />
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                  {t.jaImportado
+                                    ? <span style={{ fontSize: 11, color: 'var(--text2)', background: 'var(--surface2)', borderRadius: 4, padding: '2px 8px' }}>Importado</span>
+                                    : <span style={{ fontSize: 11, fontWeight: 600,
+                                        color: t.status === 'Confirmado' ? 'var(--entrada)' : 'var(--text2)',
+                                        background: t.status === 'Confirmado' ? 'color-mix(in srgb, var(--entrada) 12%, transparent)' : 'var(--surface2)',
+                                        borderRadius: 4, padding: '2px 8px' }}>{t.status}</span>
+                                  }
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {mpTransacoes.length === 0 && !mpBuscando && !mpErro && (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ fontSize: 14, color: 'var(--text2)', textAlign: 'center' }}>
+                        Selecione um período e clique em <strong>Buscar vendas</strong>.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {mpErro && <div className="form-erro">{mpErro}</div>}
+              {mpSucesso && <div style={{ padding: '12px 16px', background: 'color-mix(in srgb, #16a34a 12%, transparent)', border: '1px solid #16a34a', borderRadius: 8, fontSize: 13, color: '#15803d', fontWeight: 600 }}>{mpSucesso}</div>}
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 24px', borderTop: '1px solid var(--border)' }}>
+              <button className="btn btn-ghost" onClick={() => setMpModal(false)}>Fechar</button>
+              {mpConfigurado && mpTransacoes.length > 0 && (
+                <button className="btn btn-primary" onClick={mpImportar}
+                  disabled={mpImportando || mpSelecionados.size === 0}
+                  style={{ minWidth: 160 }}>
+                  {mpImportando ? 'Importando...' : `Importar ${mpSelecionados.size} venda(s)`}
+                </button>
+              )}
             </div>
           </div>
         </div>

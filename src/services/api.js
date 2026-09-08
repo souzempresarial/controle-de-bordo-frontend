@@ -11,6 +11,7 @@ function normalizarLancamento(l) {
     valorRecebido: l.valor_recebido != null ? parseFloat(l.valor_recebido) : null,
     valorUpgrade:  l.valor_upgrade  != null ? parseFloat(l.valor_upgrade)  : null,
     qtdUpgrade:    l.qtd_upgrade    != null ? parseInt(l.qtd_upgrade)      : null,
+    quantidade:    l.quantidade     != null ? parseInt(l.quantidade)       : null,
     valor:         parseFloat(l.valor),
   };
 }
@@ -99,6 +100,12 @@ export const API = {
   excluirAparelho:  (cid, id)        => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'DELETE' }),
   limparAparelhos:  (cid)            => apiFetch(`/clientes/${cid}/upgrade`, { method: 'DELETE' }),
   venderAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}/vender`, { method: 'POST', body: JSON.stringify(dados) }),
+
+  // Mercado Phone
+  mpStatus:    (cid)              => apiFetch(`/clientes/${cid}/mercadophone/status`),
+  mpSalvarChave: (cid, apiKey)   => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }),
+  mpPreview:   (cid, dI, dF)     => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
+  mpImportar:  (cid, transacoes) => apiFetch(`/clientes/${cid}/mercadophone/importar`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
 
   // Extrato
   processarExtrato: async (cid, arquivo, dataInicio, dataFim) => {

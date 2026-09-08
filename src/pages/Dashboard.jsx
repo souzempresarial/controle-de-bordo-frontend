@@ -33,7 +33,7 @@ const formVazio = (bancoDefault = '') => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
   subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: '',
   deducao: '', cmvValor: '', cmvCat: 'Custos Variáveis Diretos', cmvSub: '',
-  valorUpgrade: '', qtdUpgrade: '', banco: bancoDefault,
+  valorUpgrade: '', qtdUpgrade: '', banco: bancoDefault, recebimentoAnterior: false,
 });
 
 export default function Dashboard() {
@@ -104,8 +104,8 @@ export default function Dashboard() {
   const margemBruta = fat > 0 ? (lucroBruto / fat * 100) : null;
   const vendas      = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
   const aparelhos   = vendas.filter(l => l.categoria === 'Aparelhos');
-  const unidades    = aparelhos.reduce((a, l) => a + (l.quantidade || 1), 0);
-  const ticket      = vendas.length > 0 ? fat / vendas.reduce((a, l) => a + (l.quantidade || 1), 0) : null;
+  const unidades    = aparelhos.reduce((a, l) => a + (l.quantidade ?? 1), 0);
+  const ticket      = vendas.length > 0 ? fat / vendas.reduce((a, l) => a + (l.quantidade ?? 1), 0) : null;
   const cmvPct      = fat > 0 ? (cmvMes / fat * 100) : null;
   const roi         = cmvMes > 0 ? (lucroBruto / cmvMes * 100) : null;
 
@@ -115,7 +115,7 @@ export default function Dashboard() {
   const dedAp         = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
 
   const aparelhosPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente' && l.categoria === 'Aparelhos');
-  const unidadesPrev   = aparelhosPrev.reduce((a, l) => a + (l.quantidade || 1), 0);
+  const unidadesPrev   = aparelhosPrev.reduce((a, l) => a + (l.quantidade ?? 1), 0);
   const fatApPrev      = aparelhosPrev.reduce((a, l) => a + l.valor, 0);
   const apGrupoIdsPrev = new Set(aparelhosPrev.filter(l => l.grupoId).map(l => l.grupoId));
   const cmvApPrev      = lprev.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIdsPrev.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
@@ -148,7 +148,7 @@ export default function Dashboard() {
     entradas.forEach(l => {
       const key = l.subcategoria || l.categoria || 'Outro';
       if (!map[key]) map[key] = { produto: key, unidades: 0, faturamento: 0, lucro: 0, descricoes: [] };
-      map[key].unidades    += (l.quantidade || 1);
+      map[key].unidades    += (l.quantidade ?? 1);
       map[key].faturamento += l.valor;
       const cmvL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && (x.isCMV || CMVCATS.includes(x.categoria))).reduce((a, x) => a + x.valor, 0) : 0;
       const dedL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && x.tipo === 'Saída' && DEDUCOES_CATS.includes(x.categoria)).reduce((a, x) => a + x.valor, 0) : 0;
@@ -176,7 +176,7 @@ export default function Dashboard() {
   function setField(campo, valor) {
     setForm(f => {
       const novo = { ...f, [campo]: valor };
-      if (campo === 'tipo')        { novo.categoria = ''; novo.subcategoria = ''; novo.cmvValor = ''; novo.cmvCat = 'Custos Variáveis Diretos'; novo.cmvSub = ''; novo.valorUpgrade = ''; }
+      if (campo === 'tipo')        { novo.categoria = ''; novo.subcategoria = ''; novo.cmvValor = ''; novo.cmvCat = 'Custos Variáveis Diretos'; novo.cmvSub = ''; novo.valorUpgrade = ''; novo.recebimentoAnterior = false; }
       if (campo === 'categoria')   { novo.subcategoria = ''; novo.cmvSub = getCmvSubAuto(valor, ''); if (valor !== 'Aparelhos') { novo.valorUpgrade = ''; } }
       if (campo === 'subcategoria'){ novo.cmvSub = getCmvSubAuto(f.categoria, valor); }
       if (campo === 'cmvCat')      { novo.cmvSub = ''; }
@@ -225,6 +225,7 @@ export default function Dashboard() {
       cmvCat:   cmv ? (cmv.categoria || '') : '',
       cmvSub:   cmv ? (cmv.subcategoria || '') : '',
       banco:    l.banco || bancoAtivo || '',
+      recebimentoAnterior: false,
     });
     setErroForm('');
     setModalAberto(true);
@@ -254,7 +255,7 @@ export default function Dashboard() {
         let atualizadoCMV = null;
         let novoCMV    = null;
 
-        if (isEnt && form.cmvValor && parseFloat(form.cmvValor) > 0) {
+        if (isEnt && !form.recebimentoAnterior && form.cmvValor && parseFloat(form.cmvValor) > 0) {
           if (editandoCMV) {
             grupoId = editando?.grupoId || editandoCMV.grupoId || ('g' + Date.now());
             atualizadoCMV = await API.editarLancamento(clienteAtivo.id, editandoCMV.id, {
@@ -316,9 +317,11 @@ export default function Dashboard() {
         }
         setConfirmarDuplicata(null);
 
-        const cmvValor = form.tipo === 'Entrada' ? (parseFloat(form.cmvValor) || 0) : 0;
+        const cmvValor = form.tipo === 'Entrada' && !form.recebimentoAnterior ? (parseFloat(form.cmvValor) || 0) : 0;
 
-        const quantidade    = form.tipo === 'Entrada' ? (parseInt(form.quantidade) || null) : null;
+        const quantidade    = form.tipo !== 'Entrada' ? null
+          : form.recebimentoAnterior ? 0
+          : (parseInt(form.quantidade) || null);
         const valorBruto    = parseFloat(form.valor) || 0;
         const deducaoRaw    = parseFloat(form.deducao);
         const deducao       = !isNaN(deducaoRaw) && deducaoRaw > 0 && deducaoRaw < valorBruto ? deducaoRaw : null;
@@ -502,9 +505,9 @@ export default function Dashboard() {
                     </td>
                     <td style={{ textAlign: 'right' }}>{p.unidades}</td>
                     <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(p.faturamento / p.unidades)}</td>
+                    <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro / p.unidades)}</span>
+                      <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{p.unidades > 0 ? fmt(p.lucro / p.unidades) : '—'}</span>
                       <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
@@ -522,9 +525,9 @@ export default function Dashboard() {
                     <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
                     <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(totUnid > 0 ? totFat / totUnid : 0)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid > 0 ? fmt(totFat / totUnid) : '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totUnid > 0 ? totLuc / totUnid : 0)}</span>
+                      <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{totUnid > 0 ? fmt(totLuc / totUnid) : '—'}</span>
                       <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({totFat > 0 ? (totLuc / totFat * 100).toFixed(1) : 0}%)</span>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
@@ -683,19 +686,19 @@ export default function Dashboard() {
                     <option>Débito</option><option>Boleto</option><option>Transferência</option><option>Outro</option>
                   </select>
                 </div>
-                {isEntrada && (
+                {isEntrada && !form.recebimentoAnterior && (
                   <div className="field">
                     <label>Quantidade</label>
                     <input type="number" placeholder="1" value={form.quantidade} onChange={e => setField('quantidade', e.target.value)} />
                   </div>
                 )}
-                {isEntrada && (
+                {isEntrada && !form.recebimentoAnterior && (
                   <div className="field">
                     <label>Valor do Upgrade (R$)</label>
                     <input type="number" step="0.01" placeholder="Deixe vazio se não houver upgrade" value={form.valorUpgrade} onChange={e => setField('valorUpgrade', e.target.value)} />
                   </div>
                 )}
-                {isEntrada && parseFloat(form.valorUpgrade) > 0 && (
+                {isEntrada && !form.recebimentoAnterior && parseFloat(form.valorUpgrade) > 0 && (
                   <div className="field">
                     <label>Qtd. de Upgrades</label>
                     <input type="number" min="1" placeholder="1" value={form.qtdUpgrade} onChange={e => setField('qtdUpgrade', e.target.value)} />
@@ -708,6 +711,19 @@ export default function Dashboard() {
               </div>
 
               {isEntrada && (
+                <div
+                  style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--surface2)', borderRadius:8, marginBottom:8, cursor:'pointer', userSelect:'none' }}
+                  onClick={() => setField('recebimentoAnterior', !form.recebimentoAnterior)}
+                >
+                  <input type="checkbox" checked={form.recebimentoAnterior || false} onChange={() => {}} style={{ cursor:'pointer', accentColor:'var(--primary)', width:16, height:16 }} />
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>CMV já registrado</div>
+                    <div style={{ color:'var(--text2)', fontSize:12 }}>Recebimento de venda anterior — não gerar novo custo</div>
+                  </div>
+                </div>
+              )}
+
+              {isEntrada && !form.recebimentoAnterior && (
                 <div className="cmv-section">
                   <div className="cmv-titulo">Custo da Mercadoria Vendida (CMV)</div>
                   <div className="form-grid">
