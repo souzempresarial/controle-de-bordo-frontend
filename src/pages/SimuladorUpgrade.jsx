@@ -38,7 +38,7 @@ const TRADEIN_DEF = [
 ];
 
 const AVARIAS_DEF = { bateria: 120, tela: 250, traseira: 150 };
-const CFG_DEF     = { comissaoFixa: 20, taxaVariavel: 10, margemMinima: 100 };
+const CFG_DEF     = { comissaoFixa: 20, taxaVariavel: 10, margemMinima: 500 };
 
 const TAXAS = [
   { label: 'Débito (1.5%)',          pct: 1.5  },
