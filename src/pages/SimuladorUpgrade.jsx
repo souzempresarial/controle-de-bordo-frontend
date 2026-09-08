@@ -533,9 +533,15 @@ function ConfigModal({ cfg, modelos, tradeIn, avDef, onSave, onClose }) {
           )}
         </div>
 
-        <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av)}>Salvar</button>
+        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+          <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }}
+            onClick={() => { if (window.confirm('Restaurar todos os preços e modelos para o padrão?')) { setM(MODELOS_DEF.map(x => ({ ...x }))); setTi(TRADEIN_DEF.map(x => ({ ...x }))); setAv({ ...AVARIAS_DEF }); setC({ ...CFG_DEF }); } }}>
+            Restaurar padrões
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av)}>Salvar</button>
+          </div>
         </div>
       </div>
     </div>
