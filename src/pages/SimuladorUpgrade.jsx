@@ -2,16 +2,42 @@ import { useState } from 'react';
 import { fmt } from '../services/utils';
 
 const MODELOS_DEF = [
-  { modelo: 'iPhone 13 128GB seminovo',         preco: 2299,  cmv: 2080  },
+  // iPhone 11
+  { modelo: 'iPhone 11 64GB seminovo',           preco: 1099,  cmv: 900   },
+  { modelo: 'iPhone 11 128GB seminovo',          preco: 1299,  cmv: 1080  },
+  // iPhone 12
+  { modelo: 'iPhone 12 64GB seminovo',           preco: 1599,  cmv: 1380  },
+  { modelo: 'iPhone 12 128GB seminovo',          preco: 1799,  cmv: 1580  },
+  { modelo: 'iPhone 12 Pro Max 128GB seminovo',  preco: 2299,  cmv: 2080  },
+  { modelo: 'iPhone 12 Pro Max 256GB seminovo',  preco: 2499,  cmv: 2280  },
+  // iPhone 13
+  { modelo: 'iPhone 13 128GB seminovo',          preco: 2299,  cmv: 2080  },
+  { modelo: 'iPhone 13 256GB seminovo',          preco: 2499,  cmv: 2280  },
+  { modelo: 'iPhone 13 Pro 256GB seminovo',      preco: 2899,  cmv: 2680  },
+  { modelo: 'iPhone 13 Pro Max 256GB seminovo',  preco: 3199,  cmv: 2980  },
+  // iPhone 14
+  { modelo: 'iPhone 14 128GB seminovo',          preco: 2899,  cmv: 2680  },
+  { modelo: 'iPhone 14 Plus 128GB seminovo',     preco: 3199,  cmv: 2980  },
   { modelo: 'iPhone 14 Pro 256GB seminovo',      preco: 3499,  cmv: 3280  },
   { modelo: 'iPhone 14 Pro Max 128GB seminovo',  preco: 3799,  cmv: 3570  },
   { modelo: 'iPhone 14 Pro Max 256GB seminovo',  preco: 4099,  cmv: 3860  },
+  // iPhone 15
   { modelo: 'iPhone 15 128GB lacrado',           preco: 4599,  cmv: 4390  },
   { modelo: 'iPhone 15 128GB seminovo',          preco: 3299,  cmv: 3080  },
+  { modelo: 'iPhone 15 Plus 256GB seminovo',     preco: 3799,  cmv: 3580  },
+  { modelo: 'iPhone 15 Pro 256GB seminovo',      preco: 4599,  cmv: 4380  },
+  { modelo: 'iPhone 15 Pro Max 256GB seminovo',  preco: 5199,  cmv: 4980  },
+  // iPhone 16
   { modelo: 'iPhone 16 128GB lacrado',           preco: 5499,  cmv: 5280  },
   { modelo: 'iPhone 16 128GB seminovo',          preco: 4199,  cmv: 3980  },
+  { modelo: 'iPhone 16 Plus 256GB lacrado',      preco: 6299,  cmv: 6050  },
+  { modelo: 'iPhone 16 Pro 256GB lacrado',       preco: 7499,  cmv: 7250  },
+  { modelo: 'iPhone 16 Pro 256GB seminovo',      preco: 5599,  cmv: 5380  },
+  { modelo: 'iPhone 16 Pro Max 256GB lacrado',   preco: 8499,  cmv: 8200  },
   { modelo: 'iPhone 16 Pro Max 256GB seminovo',  preco: 5890,  cmv: 5690  },
+  // iPhone 17
   { modelo: 'iPhone 17 256GB lacrado',           preco: 6499,  cmv: 6250  },
+  { modelo: 'iPhone 17 Plus 256GB lacrado',      preco: 7499,  cmv: 7200  },
   { modelo: 'iPhone 17 Pro 256GB lacrado',       preco: 7999,  cmv: 7750  },
   { modelo: 'iPhone 17 Pro 512GB lacrado',       preco: 9499,  cmv: 9200  },
   { modelo: 'iPhone 17 Pro Max 256GB lacrado',   preco: 8999,  cmv: 8700  },
@@ -20,16 +46,42 @@ const MODELOS_DEF = [
 ];
 
 const TRADEIN_DEF = [
-  { modelo: 'iPhone 13 128GB seminovo',         valor: 1600  },
+  // iPhone 11
+  { modelo: 'iPhone 11 64GB seminovo',           valor: 700   },
+  { modelo: 'iPhone 11 128GB seminovo',          valor: 850   },
+  // iPhone 12
+  { modelo: 'iPhone 12 64GB seminovo',           valor: 1100  },
+  { modelo: 'iPhone 12 128GB seminovo',          valor: 1300  },
+  { modelo: 'iPhone 12 Pro Max 128GB seminovo',  valor: 1600  },
+  { modelo: 'iPhone 12 Pro Max 256GB seminovo',  valor: 1800  },
+  // iPhone 13
+  { modelo: 'iPhone 13 128GB seminovo',          valor: 1700  },
+  { modelo: 'iPhone 13 256GB seminovo',          valor: 1900  },
+  { modelo: 'iPhone 13 Pro 256GB seminovo',      valor: 2200  },
+  { modelo: 'iPhone 13 Pro Max 256GB seminovo',  valor: 2500  },
+  // iPhone 14
+  { modelo: 'iPhone 14 128GB seminovo',          valor: 2200  },
+  { modelo: 'iPhone 14 Plus 128GB seminovo',     valor: 2500  },
   { modelo: 'iPhone 14 Pro 256GB seminovo',      valor: 2800  },
   { modelo: 'iPhone 14 Pro Max 128GB seminovo',  valor: 3000  },
   { modelo: 'iPhone 14 Pro Max 256GB seminovo',  valor: 3300  },
+  // iPhone 15
   { modelo: 'iPhone 15 128GB lacrado',           valor: 3800  },
-  { modelo: 'iPhone 15 128GB seminovo',          valor: 2600  },
-  { modelo: 'iPhone 16 128GB lacrado',           valor: 4200  },
+  { modelo: 'iPhone 15 128GB seminovo',          valor: 2700  },
+  { modelo: 'iPhone 15 Plus 256GB seminovo',     valor: 3000  },
+  { modelo: 'iPhone 15 Pro 256GB seminovo',      valor: 3600  },
+  { modelo: 'iPhone 15 Pro Max 256GB seminovo',  valor: 4200  },
+  // iPhone 16
+  { modelo: 'iPhone 16 128GB lacrado',           valor: 4500  },
   { modelo: 'iPhone 16 128GB seminovo',          valor: 3500  },
+  { modelo: 'iPhone 16 Plus 256GB lacrado',      valor: 5200  },
+  { modelo: 'iPhone 16 Pro 256GB lacrado',       valor: 6200  },
+  { modelo: 'iPhone 16 Pro 256GB seminovo',      valor: 4600  },
+  { modelo: 'iPhone 16 Pro Max 256GB lacrado',   valor: 7000  },
   { modelo: 'iPhone 16 Pro Max 256GB seminovo',  valor: 4900  },
+  // iPhone 17
   { modelo: 'iPhone 17 256GB lacrado',           valor: 5500  },
+  { modelo: 'iPhone 17 Plus 256GB lacrado',      valor: 6200  },
   { modelo: 'iPhone 17 Pro 256GB lacrado',       valor: 6800  },
   { modelo: 'iPhone 17 Pro 512GB lacrado',       valor: 8000  },
   { modelo: 'iPhone 17 Pro Max 256GB lacrado',   valor: 7500  },
