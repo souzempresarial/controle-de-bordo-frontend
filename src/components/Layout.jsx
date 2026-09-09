@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import { API } from '../services/api';
 import PasswordInput from './PasswordInput';
+import ChatWidget from './ChatWidget';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
@@ -151,6 +152,8 @@ export default function Layout({ children, usuario, onLogout }) {
       <main className="main">
         {children}
       </main>
+
+      <ChatWidget />
 
       {/* Modal Perfil */}
       {perfilAberto && (
