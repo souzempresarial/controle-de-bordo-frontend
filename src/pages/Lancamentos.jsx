@@ -79,6 +79,12 @@ export default function Lancamentos() {
   const [mpSucesso, setMpSucesso]     = useState('');
   const [mpFiltroTexto, setMpFiltroTexto]   = useState('');
   const [mpApenasNovas, setMpApenasNovas]   = useState(false);
+  const [mpSortCol, setMpSortCol]           = useState('data');
+  const [mpSortDir, setMpSortDir]           = useState('asc');
+
+  function mpToggleSort(col) {
+    setMpSortCol(c => { setMpSortDir(d => c === col ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); return col; });
+  }
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -1186,19 +1192,33 @@ export default function Lancamentos() {
                     <div style={{ flex: 1, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8, minHeight: 0 }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                         <thead>
-                          <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0, zIndex: 1 }}>
-                            <th style={{ padding: '10px 12px', width: 40, borderBottom: '2px solid var(--border)' }}></th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 180 }}>Produto / Cliente</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 155 }}>Categoria</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 150 }}>Subcategoria</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 120 }}>Pagamento</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valor</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CMV</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'right', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margem</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 130 }}>Upgrade (R$)</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                          </tr>
+                          {(() => {
+                            const sortArrow = col => mpSortCol === col ? (mpSortDir === 'asc' ? ' ↑' : ' ↓') : '';
+                            const thSort = (col, label, extraStyle = {}) => (
+                              <th onClick={() => mpToggleSort(col)} style={{
+                                padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)',
+                                fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em',
+                                cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                                color: mpSortCol === col ? 'var(--primary)' : 'inherit',
+                                ...extraStyle,
+                              }}>{label}{sortArrow(col)}</th>
+                            );
+                            return (
+                              <tr style={{ background: 'var(--surface2)', position: 'sticky', top: 0, zIndex: 1 }}>
+                                <th style={{ padding: '10px 12px', width: 40, borderBottom: '2px solid var(--border)' }}></th>
+                                {thSort('data',      'Data',            { whiteSpace: 'nowrap' })}
+                                {thSort('descricao', 'Produto / Cliente', { minWidth: 180 })}
+                                <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 155 }}>Categoria</th>
+                                <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 150 }}>Subcategoria</th>
+                                <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 120 }}>Pagamento</th>
+                                {thSort('valor',  'Valor',  { textAlign: 'right' })}
+                                {thSort('cmv',    'CMV',    { textAlign: 'right' })}
+                                {thSort('margem', 'Margem', { textAlign: 'right' })}
+                                <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 130 }}>Upgrade (R$)</th>
+                                <th style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '2px solid var(--border)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                              </tr>
+                            );
+                          })()}
                         </thead>
                         <tbody>
                           {mpTransacoes.map((t, i) => ({ t, i }))
@@ -1211,6 +1231,18 @@ export default function Lancamentos() {
                                   || (t.vendedorNome || '').toLowerCase().includes(q);
                               }
                               return true;
+                            })
+                            .sort((a, b) => {
+                              let va, vb;
+                              if (mpSortCol === 'data')    { va = a.t.data;    vb = b.t.data; }
+                              else if (mpSortCol === 'descricao') { va = (a.t.descricao || '').toLowerCase(); vb = (b.t.descricao || '').toLowerCase(); }
+                              else if (mpSortCol === 'valor')   { va = a.t.valor;   vb = b.t.valor; }
+                              else if (mpSortCol === 'cmv')     { va = a.t.cmvValor; vb = b.t.cmvValor; }
+                              else if (mpSortCol === 'margem')  { va = a.t.valor - a.t.cmvValor; vb = b.t.valor - b.t.cmvValor; }
+                              else { va = 0; vb = 0; }
+                              if (va < vb) return mpSortDir === 'asc' ? -1 : 1;
+                              if (va > vb) return mpSortDir === 'asc' ? 1 : -1;
+                              return 0;
                             })
                             .map(({ t, i }) => {
                             const margem = t.valor > 0 && t.cmvValor > 0
