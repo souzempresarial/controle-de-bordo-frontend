@@ -77,6 +77,8 @@ export default function Lancamentos() {
   const [mpSelecionados, setMpSelecionados] = useState(new Set());
   const [mpErro, setMpErro]           = useState('');
   const [mpSucesso, setMpSucesso]     = useState('');
+  const [mpFiltroTexto, setMpFiltroTexto]   = useState('');
+  const [mpApenasNovas, setMpApenasNovas]   = useState(false);
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -475,7 +477,7 @@ export default function Lancamentos() {
   }
 
   async function mpBuscar() {
-    setMpBuscando(true); setMpErro(''); setMpTransacoes([]); setMpSucesso('');
+    setMpBuscando(true); setMpErro(''); setMpTransacoes([]); setMpSucesso(''); setMpFiltroTexto(''); setMpApenasNovas(false);
     try {
       const { transacoes } = await API.mpPreview(clienteAtivo.id, mpInicio || null, mpFim || null);
       setMpTransacoes(transacoes);
@@ -1151,9 +1153,9 @@ export default function Lancamentos() {
                     );
                   })()}
 
-                  {/* Ações da tabela */}
+                  {/* Ações da tabela + filtro */}
                   {mpTransacoes.length > 0 && (
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
                       <button style={{ fontSize: 12, background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, fontWeight: 600 }}
                         onClick={() => setMpSelecionados(new Set(mpTransacoes.map((_, i) => i).filter(i => !mpTransacoes[i].jaImportado)))}>
                         Selecionar novas
@@ -1162,6 +1164,20 @@ export default function Lancamentos() {
                         onClick={() => setMpSelecionados(new Set())}>
                         Desmarcar todas
                       </button>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <input
+                          type="text"
+                          placeholder="Buscar produto, cliente ou vendedor..."
+                          value={mpFiltroTexto}
+                          onChange={e => setMpFiltroTexto(e.target.value)}
+                          style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 12 }}
+                        />
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                        <input type="checkbox" checked={mpApenasNovas} onChange={e => setMpApenasNovas(e.target.checked)}
+                          style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                        Apenas novas
+                      </label>
                     </div>
                   )}
 
@@ -1185,7 +1201,18 @@ export default function Lancamentos() {
                           </tr>
                         </thead>
                         <tbody>
-                          {mpTransacoes.map((t, i) => {
+                          {mpTransacoes.map((t, i) => ({ t, i }))
+                            .filter(({ t }) => {
+                              if (mpApenasNovas && t.jaImportado) return false;
+                              if (mpFiltroTexto.trim()) {
+                                const q = mpFiltroTexto.toLowerCase();
+                                return (t.descricao || '').toLowerCase().includes(q)
+                                  || (t.clienteNome || '').toLowerCase().includes(q)
+                                  || (t.vendedorNome || '').toLowerCase().includes(q);
+                              }
+                              return true;
+                            })
+                            .map(({ t, i }) => {
                             const margem = t.valor > 0 && t.cmvValor > 0
                               ? ((t.valor - t.cmvValor) / t.valor * 100).toFixed(1) + '%'
                               : '—';
