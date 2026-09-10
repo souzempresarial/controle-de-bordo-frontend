@@ -14,6 +14,7 @@ import VerificarEmail from './pages/VerificarEmail';
 import RedefinirSenha from './pages/RedefinirSenha';
 import Ranking from './pages/Ranking';
 import Upgrade from './pages/Upgrade';
+import Integracoes from './pages/Integracoes';
 
 function getUsuarioInicial() {
   const papel = sessionStorage.getItem('sf_papel');
@@ -107,7 +108,8 @@ export default function App() {
           <Route path="/contas"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="contas"><Contas /></PrivateLayout>} />
           <Route path="/financeiro"  element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="financeiro"><Financeiro /></PrivateLayout>} />
           <Route path="/exportar"    element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="exportar"><Exportar /></PrivateLayout>} />
-          <Route path="/upgrade"     element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="upgrade"><Upgrade /></PrivateLayout>} />
+          <Route path="/upgrade"      element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="upgrade"><Upgrade /></PrivateLayout>} />
+          <Route path="/integracoes" element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="integracoes"><Integracoes /></PrivateLayout>} />
 
           {/* Rota raiz: redireciona conforme papel */}
           <Route
