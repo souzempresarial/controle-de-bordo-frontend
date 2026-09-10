@@ -8,6 +8,7 @@ const API_URL = import.meta.env.PROD
 
 export default function ChatWidget() {
   const { clienteAtivo } = useApp();
+  const usuarioNome = sessionStorage.getItem('sf_nome') || '';
   const [aberto, setAberto]       = useState(false);
   const [mensagens, setMensagens] = useState([]);
   const [input, setInput]         = useState('');
@@ -19,7 +20,7 @@ export default function ChatWidget() {
     if (clienteAtivo) {
       setMensagens([{
         role: 'assistant',
-        content: `Olá, ${clienteAtivo.nome}! Pode me dizer o que deseja lançar, por exemplo: "Vendi R$500 de iPhone no cartão hoje".`,
+        content: `Olá${usuarioNome ? ', ' + usuarioNome.split(' ')[0] : ''}! Sou a SOUZ, assistente financeira da Souz Finance. Como posso ajudar com a gestão da sua loja hoje?`,
       }]);
     }
   }, [clienteAtivo?.id]);
@@ -51,7 +52,7 @@ export default function ChatWidget() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: texto, historico, clienteNome: clienteAtivo.nome }),
+        body: JSON.stringify({ mensagem: texto, historico, clienteNome: clienteAtivo.nome, usuarioNome }),
       });
 
       const resBody = await res.text();
