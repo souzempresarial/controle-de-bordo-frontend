@@ -65,26 +65,11 @@ export default function Lancamentos() {
 
   const [bancoAtivo, setBancoAtivo] = useState('');
 
-  // Mercado Phone
-  const [mpModal, setMpModal]         = useState(false);
-  const [mpChave, setMpChave]         = useState('');
-  const [mpConfigurado, setMpConfigurado] = useState(null); // null=carregando, true/false
-  const [mpInicio, setMpInicio]       = useState('');
-  const [mpFim, setMpFim]             = useState('');
-  const [mpBuscando, setMpBuscando]   = useState(false);
-  const [mpImportando, setMpImportando] = useState(false);
-  const [mpTransacoes, setMpTransacoes] = useState([]);
-  const [mpSelecionados, setMpSelecionados] = useState(new Set());
-  const [mpErro, setMpErro]           = useState('');
-  const [mpSucesso, setMpSucesso]     = useState('');
-  const [mpFiltroTexto, setMpFiltroTexto]   = useState('');
-  const [mpApenasNovas, setMpApenasNovas]   = useState(false);
-  const [mpSortCol, setMpSortCol]           = useState('data');
-  const [mpSortDir, setMpSortDir]           = useState('asc');
-
-  function mpToggleSort(col) {
-    setMpSortCol(c => { setMpSortDir(d => c === col ? (d === 'asc' ? 'desc' : 'asc') : 'asc'); return col; });
-  }
+  // Mercado Phone — inline pending
+  const [mpConfigurado, setMpConfigurado]       = useState(null);
+  const [mpPendentes, setMpPendentes]           = useState([]);
+  const [mpCarregando, setMpCarregando]         = useState(false);
+  const [mpConfirmandoSet, setMpConfirmandoSet] = useState(new Set());
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -117,6 +102,30 @@ export default function Lancamentos() {
   const todosBancos = useMemo(() => [...new Set(lancamentos.map(l => l.banco).filter(Boolean))].sort(), [lancamentos]);
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
+
+  // Verifica se MP está configurado ao entrar no cliente
+  useEffect(() => {
+    if (!clienteAtivo) return;
+    API.mpStatus(clienteAtivo.id)
+      .then(({ configurado }) => setMpConfigurado(configurado))
+      .catch(() => setMpConfigurado(false));
+  }, [clienteAtivo?.id]);
+
+  // Busca pendentes do MP quando o filtro de mês muda
+  useEffect(() => {
+    if (!filtroMes || !mpConfigurado || !clienteAtivo) {
+      setMpPendentes([]);
+      return;
+    }
+    const [y, m] = filtroMes.split('-');
+    const inicio = `${filtroMes}-01`;
+    const fim    = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10);
+    setMpCarregando(true);
+    API.mpPreview(clienteAtivo.id, inicio, fim)
+      .then(({ transacoes }) => setMpPendentes(transacoes.filter(t => !t.jaImportado)))
+      .catch(() => setMpPendentes([]))
+      .finally(() => setMpCarregando(false));
+  }, [filtroMes, mpConfigurado, clienteAtivo?.id]);
 
   const filtrados = useMemo(() => {
     let lista = semCMV;
@@ -466,57 +475,17 @@ export default function Lancamentos() {
     setExtratoImp(false);
   }
 
-  async function abrirMpModal() {
-    setMpModal(true); setMpTransacoes([]); setMpErro(''); setMpSucesso(''); setMpChave('');
+  async function mpConfirmarTransacao(t) {
+    setMpConfirmandoSet(prev => new Set(prev).add(t.mpVendaId));
     try {
-      const { configurado } = await API.mpStatus(clienteAtivo.id);
-      setMpConfigurado(configurado);
-    } catch { setMpConfigurado(false); }
-  }
-
-  async function mpSalvarChave() {
-    if (!mpChave.trim()) return;
-    try {
-      await API.mpSalvarChave(clienteAtivo.id, mpChave.trim());
-      setMpConfigurado(true); setMpChave('');
-    } catch (err) { setMpErro(err.message || 'Erro ao salvar chave'); }
-  }
-
-  async function mpBuscar() {
-    setMpBuscando(true); setMpErro(''); setMpTransacoes([]); setMpSucesso(''); setMpFiltroTexto(''); setMpApenasNovas(false);
-    try {
-      const { transacoes } = await API.mpPreview(clienteAtivo.id, mpInicio || null, mpFim || null);
-      setMpTransacoes(transacoes);
-      const novos = new Set(transacoes.filter(t => !t.jaImportado).map((_, i) => i));
-      setMpSelecionados(novos);
-    } catch (err) { setMpErro(err.message || 'Erro ao buscar vendas'); }
-    finally { setMpBuscando(false); }
-  }
-
-  function editarMpLinha(i, campo, valor) {
-    setMpTransacoes(prev => prev.map((t, idx) => {
-      if (idx !== i) return t;
-      const updated = { ...t, [campo]: valor };
-      if (campo === 'categoria') updated.subcategoria = '';
-      return updated;
-    }));
-  }
-
-  async function mpImportar() {
-    const selecionadas = mpTransacoes.filter((_, i) => mpSelecionados.has(i)).map(t => ({
-      ...t,
-      valorUpgrade: t.isUpgrade && parseFloat(t.valorUpgrade) > 0 ? parseFloat(t.valorUpgrade) : null,
-    }));
-    if (!selecionadas.length) return;
-    setMpImportando(true); setMpErro('');
-    try {
-      const { importados } = await API.mpImportar(clienteAtivo.id, selecionadas);
+      await API.mpImportar(clienteAtivo.id, [t]);
       const novas = await API.listarLancamentos(clienteAtivo.id);
       setLancamentos(novas);
-      setMpSucesso(`${importados} venda(s) importada(s) com sucesso!`);
-      setMpTransacoes([]);
-    } catch (err) { setMpErro(err.message || 'Erro ao importar'); }
-    finally { setMpImportando(false); }
+      setMpPendentes(prev => prev.filter(p => p.mpVendaId !== t.mpVendaId));
+    } catch (err) { console.error('[mpConfirmar]', err.message); }
+    finally {
+      setMpConfirmandoSet(prev => { const s = new Set(prev); s.delete(t.mpVendaId); return s; });
+    }
   }
 
   return (
@@ -525,7 +494,6 @@ export default function Lancamentos() {
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
-          <button className="btn btn-ghost btn-sm" onClick={abrirMpModal} style={{ color: 'var(--primary)' }}>⬇ Mercado Phone</button>
           <input className="search-box" placeholder="🔍 Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
           <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
             <option value="">Todos os tipos</option>
@@ -595,6 +563,38 @@ export default function Lancamentos() {
                 </tr>
               </thead>
               <tbody>
+                {/* Pendentes do Mercado Phone */}
+                {mpCarregando && (
+                  <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando pendentes do Mercado Phone...</td></tr>
+                )}
+                {mpPendentes.map(t => (
+                  <tr key={`mp-${t.mpVendaId}`} style={{ background: 'var(--surface2)', opacity: 0.75, borderBottom: '1px dashed var(--border)' }}>
+                    <td className="id-cell" style={{ color: 'var(--text2)', fontSize: 10 }}>MP</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(t.data)}</td>
+                    <td><span className="tipo-badge tipo-Entrada">Entrada</span></td>
+                    <td>{t.categoria}</td>
+                    <td style={{ color: 'var(--text2)' }}>{t.subcategoria || '—'}</td>
+                    <td>
+                      <div>{t.descricao || '—'}</div>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>Mercado Phone</span>
+                    </td>
+                    <td style={{ color: 'var(--text2)' }}>—</td>
+                    <td style={{ color: 'var(--text2)' }}>—</td>
+                    <td><span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>Pendente</span></td>
+                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>+{fmt(t.valor)}</td>
+                    <td>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => mpConfirmarTransacao(t)}
+                        disabled={mpConfirmandoSet.has(t.mpVendaId)}
+                        title="Confirmar lançamento"
+                      >
+                        {mpConfirmandoSet.has(t.mpVendaId) ? '...' : '✓'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {/* Lançamentos confirmados */}
                 {filtradosOrdenados.map(l => {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
                   return (
@@ -1067,14 +1067,9 @@ export default function Lancamentos() {
         </div>
       )}
 
-      {/* Modal Mercado Phone */}
-      {mpModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setMpModal(false)}>
-          <div style={{
-            background: 'var(--surface)', borderRadius: 12, display: 'flex', flexDirection: 'column',
-            width: '98vw', maxWidth: 1400, maxHeight: '92vh',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
-          }}>
+      {/* Modal Mercado Phone removido — integração inline na tabela */}
+      {false && (
+        <div>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 24px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ flex: 1 }}>
