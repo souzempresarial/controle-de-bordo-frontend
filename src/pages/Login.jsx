@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../hooks/useTheme';
 import PasswordInput from '../components/PasswordInput';
 import './Login.css';
+
+const GOOGLE_CLIENT_ID = '325463439737-3nbf81904acblh39dksgpurtjp1h5c7j.apps.googleusercontent.com';
 
 export default function Login({ onLogin }) {
   const { entrarCliente }     = useApp();
@@ -16,8 +18,53 @@ export default function Login({ onLogin }) {
   const [info, setInfo]       = useState('');
   const [loading, setLoading] = useState(false);
   const { tema, toggleTema }  = useTheme();
+  const googleBtnRef = useRef(null);
 
   function irPara(t) { setTela(t); setErro(''); setInfo(''); }
+
+  // Google Sign-In
+  useEffect(() => {
+    if (tela !== 'login' || !googleBtnRef.current) return;
+    function init() {
+      if (!window.google?.accounts?.id) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCallback,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: tema === 'dark' ? 'filled_black' : 'outline',
+        size: 'large',
+        width: googleBtnRef.current.offsetWidth || 320,
+        text: 'continue_with',
+        locale: 'pt-BR',
+      });
+    }
+    if (window.google?.accounts?.id) {
+      init();
+    } else {
+      const script = document.querySelector('script[src*="accounts.google.com/gsi"]');
+      if (script) script.addEventListener('load', init);
+      return () => script?.removeEventListener('load', init);
+    }
+  }, [tela, tema]);
+
+  async function handleGoogleCallback(response) {
+    setLoading(true); setErro('');
+    try {
+      const data = await API.loginGoogle(response.credential);
+      sessionStorage.setItem('sf_papel', data.papel);
+      sessionStorage.setItem('sf_nome', data.nome || '');
+      if (data.clienteId) sessionStorage.setItem('sf_cliente_id', String(data.clienteId));
+      if (data.permissoes) sessionStorage.setItem('sf_permissoes', JSON.stringify(data.permissoes));
+      else sessionStorage.removeItem('sf_permissoes');
+      if (data.cliente) await entrarCliente(data.cliente);
+      onLogin(data);
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -123,6 +170,12 @@ export default function Login({ onLogin }) {
                 Esqueci minha senha
               </button>
             </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontSize: 12, color: 'var(--text2)', whiteSpace: 'nowrap' }}>ou continue com</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            </div>
+            <div ref={googleBtnRef} style={{ width: '100%', minHeight: 44 }} />
           </form>
         )}
 

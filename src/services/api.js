@@ -44,7 +44,8 @@ async function apiFetch(path, options = {}) {
 
 export const API = {
   // Auth
-  login:    (dados) => apiFetch('/auth/login',   { method: 'POST', body: JSON.stringify(dados) }),
+  login:       (dados)      => apiFetch('/auth/login',   { method: 'POST', body: JSON.stringify(dados) }),
+  loginGoogle: (credential) => apiFetch('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   logout:   ()      => apiFetch('/auth/logout',  { method: 'POST' }),
   registrar: (dados) => apiFetch('/auth/registro', { method: 'POST', body: JSON.stringify(dados) }),
   verificarEmail:       (token)          => apiFetch(`/auth/verificar/${token}`),
