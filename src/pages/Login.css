@@ -10,18 +10,18 @@
 .login-card {
   width: 100%;
   max-width: 400px;
-  padding: 48px 40px;
+  padding: 28px 40px 24px;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .login-logo {
-  width: 340px;
+  width: 280px;
   display: block;
-  margin: -55px auto -30px;
+  margin: -40px auto -20px;
   transform: translateX(-10px);
 }
 
@@ -34,7 +34,7 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .login-form .field {
@@ -51,7 +51,7 @@
 }
 
 .login-form input {
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -80,7 +80,7 @@
 }
 
 .login-form button {
-  padding: 15px;
+  padding: 11px;
   background: #22c55e;
   color: #fff;
   font-size: 15px;
@@ -122,7 +122,7 @@
 
 .login-footer {
   text-align: center;
-  margin-top: 32px;
+  margin-top: 16px;
   font-size: 11px;
   color: #2e4a38;
   letter-spacing: 1px;
