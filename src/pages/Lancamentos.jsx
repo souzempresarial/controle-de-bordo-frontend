@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../services/constants';
