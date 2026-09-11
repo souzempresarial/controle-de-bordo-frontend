@@ -70,6 +70,7 @@ export default function Lancamentos() {
   const [mpPendentes, setMpPendentes]           = useState([]);
   const [mpCarregando, setMpCarregando]         = useState(false);
   const [mpConfirmandoSet, setMpConfirmandoSet] = useState(new Set());
+  const [mpImportandoTodos, setMpImportandoTodos] = useState(false);
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -488,6 +489,24 @@ export default function Lancamentos() {
     }
   }
 
+  function mpDescartar(mpVendaId) {
+    setMpPendentes(prev => prev.filter(p => p.mpVendaId !== mpVendaId));
+  }
+
+  async function mpImportarTodos() {
+    const paraImportar = mpPendentes.filter(t => !t.possivelDuplicata);
+    if (!paraImportar.length) return;
+    setMpImportandoTodos(true);
+    try {
+      await API.mpImportar(clienteAtivo.id, paraImportar);
+      const novas = await API.listarLancamentos(clienteAtivo.id);
+      setLancamentos(novas);
+      const idsImportados = new Set(paraImportar.map(t => t.mpVendaId));
+      setMpPendentes(prev => prev.filter(p => !idsImportados.has(p.mpVendaId)));
+    } catch (err) { console.error('[mpImportarTodos]', err.message); }
+    finally { setMpImportandoTodos(false); }
+  }
+
   return (
     <div className="lancamentos-page">
       <div className="table-panel">
@@ -567,8 +586,47 @@ export default function Lancamentos() {
                 {mpCarregando && (
                   <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando pendentes do Mercado Phone...</td></tr>
                 )}
+                {mpPendentes.length > 0 && !mpCarregando && (
+                  <tr>
+                    <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--primary) 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
+                          {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
+                          {mpPendentes.filter(t => t.possivelDuplicata).length > 0 && (
+                            <span style={{ color: '#d97706', marginLeft: 8 }}>
+                              · {mpPendentes.filter(t => t.possivelDuplicata).length} possível duplicata
+                            </span>
+                          )}
+                        </span>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ marginLeft: 'auto' }}
+                          onClick={mpImportarTodos}
+                          disabled={mpImportandoTodos || mpPendentes.filter(t => !t.possivelDuplicata).length === 0}
+                          title="Importa tudo exceto possíveis duplicatas"
+                        >
+                          {mpImportandoTodos ? 'Importando...' : `✓ Importar ${mpPendentes.filter(t => !t.possivelDuplicata).length} de uma vez`}
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)' }}
+                          onClick={() => setMpPendentes([])}
+                          title="Limpar todos os pendentes da lista sem importar"
+                        >
+                          ✗ Ignorar todos
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {mpPendentes.map(t => (
-                  <tr key={`mp-${t.mpVendaId}`} style={{ background: 'var(--surface2)', opacity: 0.75, borderBottom: '1px dashed var(--border)' }}>
+                  <tr key={`mp-${t.mpVendaId}`} style={{
+                    background: t.possivelDuplicata
+                      ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
+                      : 'var(--surface2)',
+                    opacity: 0.85,
+                    borderBottom: '1px dashed var(--border)',
+                  }}>
                     <td className="id-cell" style={{ color: 'var(--text2)', fontSize: 10 }}>MP</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtData(t.data)}</td>
                     <td><span className="tipo-badge tipo-Entrada">Entrada</span></td>
@@ -576,21 +634,38 @@ export default function Lancamentos() {
                     <td style={{ color: 'var(--text2)' }}>{t.subcategoria || '—'}</td>
                     <td>
                       <div>{t.descricao || '—'}</div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>Mercado Phone</span>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>Mercado Phone</span>
+                        {t.possivelDuplicata && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ color: 'var(--text2)' }}>—</td>
                     <td style={{ color: 'var(--text2)' }}>—</td>
                     <td><span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>Pendente</span></td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>+{fmt(t.valor)}</td>
+                    <td style={{ textAlign: 'right', color: t.valor === 0 ? 'var(--text2)' : 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {t.valor === 0 ? 'R$ 0,00' : `+${fmt(t.valor)}`}
+                    </td>
                     <td>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => mpConfirmarTransacao(t)}
-                        disabled={mpConfirmandoSet.has(t.mpVendaId)}
-                        title="Confirmar lançamento"
-                      >
-                        {mpConfirmandoSet.has(t.mpVendaId) ? '...' : '✓'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => mpConfirmarTransacao(t)}
+                          disabled={mpConfirmandoSet.has(t.mpVendaId)}
+                          title="Importar este lançamento"
+                        >
+                          {mpConfirmandoSet.has(t.mpVendaId) ? '...' : '✓'}
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px' }}
+                          onClick={() => mpDescartar(t.mpVendaId)}
+                          title="Ignorar (não importar)"
+                        >
+                          ✗
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
