@@ -112,8 +112,6 @@ export const API = {
   mpSalvarChave:   (cid, apiKey)          => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }), // legado
   mpPreview:       (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
   mpImportar:      (cid, transacoes)      => apiFetch(`/clientes/${cid}/mercadophone/importar`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
-  mpEstoqueTotal:  (cid)                  => apiFetch(`/clientes/${cid}/mercadophone/estoque-total`),
-
   // Extrato
   processarExtrato: async (cid, arquivo, dataInicio, dataFim) => {
     const { token } = await apiFetch('/auth/token-extrato', { method: 'POST' });

@@ -589,7 +589,6 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   const [capitalForm, setCapitalForm] = useState({});
   const [salvandoCap, setSalvandoCap] = useState(false);
   const [contas, setContas]       = useState([]);
-  const [mpEstoque, setMpEstoque] = useState(null);
 
   const periodo = `${ano}-${mes}`;
 
@@ -599,16 +598,6 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   }, [clienteAtivo]);
 
   useEffect(() => {
-    if (!clienteAtivo?.id) return;
-    API.mpStatus(clienteAtivo.id).then(s => {
-      if (!s.configurado) return;
-      API.mpEstoqueTotal(clienteAtivo.id)
-        .then(d => setMpEstoque(d))
-        .catch(() => {});
-    }).catch(() => {});
-  }, [clienteAtivo?.id]);
-
-  useEffect(() => {
     if (!clienteAtivo?.id || capitalCache[periodo] !== undefined) return;
     API.buscarCapital(clienteAtivo.id, periodo)
       .then(d => setCapitalCache(prev => ({ ...prev, [periodo]: d })))
@@ -616,11 +605,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   }, [clienteAtivo, periodo]);
 
   const capital = capitalCache[periodo] || {};
-  const getCapital = (campo) => {
-    if (mpEstoque && campo === 'cap_estoque_aparelhos') return mpEstoque.aparelhos || 0;
-    if (mpEstoque && campo === 'cap_estoque_acessorios') return mpEstoque.acessorios || 0;
-    return capital[campo] || 0;
-  };
+  const getCapital = (campo) => capital[campo] || 0;
   const totalCapital = CAPITAL_CAMPOS.reduce((a, { campo }) => a + getCapital(campo), 0);
 
   function abrirModalCapital() {
@@ -747,13 +732,9 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
             <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
           </div>
           <Grupo label="Recursos em Capital" />
-          {CAPITAL_CAMPOS.map(({ campo, label }) => {
-            const isMpField = mpEstoque && (campo === 'cap_estoque_aparelhos' || campo === 'cap_estoque_acessorios');
-            const labelComp = isMpField
-              ? <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{label}<span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', borderRadius: 3, padding: '1px 5px' }}>MP</span></span>
-              : label;
-            return <Linha key={campo} label={labelComp} val={getCapital(campo)} indent />;
-          })}
+          {CAPITAL_CAMPOS.map(({ campo, label }) => (
+            <Linha key={campo} label={label} val={getCapital(campo)} indent />
+          ))}
           <LinhaTotal label="TOTAL ATIVO" val={totalCapital} final />
         </div>
 
