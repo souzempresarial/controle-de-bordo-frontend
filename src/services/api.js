@@ -105,11 +105,13 @@ export const API = {
   setSimuladorCfg:  (cid, dados)     => apiFetch(`/clientes/${cid}/upgrade/simulador-cfg`, { method: 'PUT', body: JSON.stringify(dados) }),
 
   // Mercado Phone
-  mpStatus:      (cid)              => apiFetch(`/clientes/${cid}/mercadophone/status`),
-  mpSalvarChave: (cid, apiKey)     => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }),
-  mpRemoverChave:(cid)              => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'DELETE' }),
-  mpPreview:     (cid, dI, dF)     => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
-  mpImportar:    (cid, transacoes) => apiFetch(`/clientes/${cid}/mercadophone/importar`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
+  mpStatus:        (cid)                  => apiFetch(`/clientes/${cid}/mercadophone/status`),
+  mpListarChaves:  (cid)                  => apiFetch(`/clientes/${cid}/mercadophone/chaves`),
+  mpAdicionarChave:(cid, nome, apiKey)    => apiFetch(`/clientes/${cid}/mercadophone/chaves`, { method: 'POST', body: JSON.stringify({ nome, apiKey }) }),
+  mpRemoverChave:  (cid, chaveId)         => apiFetch(`/clientes/${cid}/mercadophone/chaves/${chaveId}`, { method: 'DELETE' }),
+  mpSalvarChave:   (cid, apiKey)          => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }), // legado
+  mpPreview:       (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
+  mpImportar:      (cid, transacoes)      => apiFetch(`/clientes/${cid}/mercadophone/importar`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
 
   // Extrato
   processarExtrato: async (cid, arquivo, dataInicio, dataFim) => {

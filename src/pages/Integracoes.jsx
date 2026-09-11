@@ -11,51 +11,63 @@ const INTEGRACOES_FUTURAS = [
 export default function Integracoes() {
   const { clienteAtivo } = useApp();
 
-  const [mpConfigurado, setMpConfigurado]   = useState(null);
-  const [mpChaveInput, setMpChaveInput]     = useState('');
-  const [mpEditando, setMpEditando]         = useState(false);
-  const [mpSalvando, setMpSalvando]         = useState(false);
-  const [mpRemovendo, setMpRemovendo]       = useState(false);
-  const [mpMsg, setMpMsg]                   = useState('');
-  const [mpErro, setMpErro]                 = useState('');
-  const [confirmarRemover, setConfirmarRemover] = useState(false);
+  const [chaves, setChaves]             = useState([]);
+  const [carregando, setCarregando]     = useState(false);
+  const [adicionando, setAdicionando]   = useState(false);
+  const [novoNome, setNovoNome]         = useState('');
+  const [novaChave, setNovaChave]       = useState('');
+  const [salvando, setSalvando]         = useState(false);
+  const [removendoId, setRemovendoId]   = useState(null);
+  const [confirmRemover, setConfirmRemover] = useState(null);
+  const [msg, setMsg]                   = useState('');
+  const [erro, setErro]                 = useState('');
 
   useEffect(() => {
     if (!clienteAtivo) return;
-    setMpMsg(''); setMpErro('');
-    API.mpStatus(clienteAtivo.id)
-      .then(({ configurado }) => setMpConfigurado(configurado))
-      .catch(() => setMpConfigurado(false));
+    carregarChaves();
   }, [clienteAtivo?.id]);
 
-  async function salvarChave(e) {
-    e.preventDefault();
-    if (!mpChaveInput.trim()) return;
-    setMpSalvando(true); setMpMsg(''); setMpErro('');
+  async function carregarChaves() {
+    setCarregando(true);
     try {
-      await API.mpSalvarChave(clienteAtivo.id, mpChaveInput.trim());
-      setMpConfigurado(true);
-      setMpEditando(false);
-      setMpChaveInput('');
-      setMpMsg('Integração ativada com sucesso!');
-    } catch (err) {
-      setMpErro(err.message || 'Erro ao salvar chave');
+      const data = await API.mpListarChaves(clienteAtivo.id);
+      setChaves(data);
+    } catch {
+      setChaves([]);
     } finally {
-      setMpSalvando(false);
+      setCarregando(false);
     }
   }
 
-  async function removerIntegracao() {
-    setMpRemovendo(true); setMpMsg(''); setMpErro('');
+  async function adicionar(e) {
+    e.preventDefault();
+    if (!novaChave.trim()) return;
+    setSalvando(true); setMsg(''); setErro('');
     try {
-      await API.mpRemoverChave(clienteAtivo.id);
-      setMpConfigurado(false);
-      setConfirmarRemover(false);
-      setMpMsg('Integração removida.');
+      await API.mpAdicionarChave(clienteAtivo.id, novoNome.trim() || 'Principal', novaChave.trim());
+      setMsg('Chave adicionada com sucesso!');
+      setAdicionando(false);
+      setNovoNome('');
+      setNovaChave('');
+      await carregarChaves();
     } catch (err) {
-      setMpErro(err.message || 'Erro ao remover integração');
+      setErro(err.message || 'Erro ao adicionar chave');
     } finally {
-      setMpRemovendo(false);
+      setSalvando(false);
+    }
+  }
+
+  async function remover(id) {
+    setRemovendoId(id); setMsg(''); setErro('');
+    try {
+      await API.mpRemoverChave(clienteAtivo.id, id);
+      setMsg('Chave removida.');
+      setConfirmRemover(null);
+      await carregarChaves();
+    } catch (err) {
+      setErro(err.message || 'Erro ao remover');
+    } finally {
+      setRemovendoId(null);
     }
   }
 
@@ -66,6 +78,8 @@ export default function Integracoes() {
       </div>
     );
   }
+
+  const ativas = chaves.filter(c => c.ativa);
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 720 }}>
@@ -88,86 +102,110 @@ export default function Integracoes() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>Mercado Phone</span>
-              {mpConfigurado === null && (
-                <span style={badgeStyle('var(--text2)')}>Verificando...</span>
+              {carregando && <span style={badgeStyle('var(--text2)')}>Verificando...</span>}
+              {!carregando && ativas.length > 0 && (
+                <span style={badgeStyle('var(--entrada)')}>● {ativas.length} chave{ativas.length > 1 ? 's' : ''} ativa{ativas.length > 1 ? 's' : ''}</span>
               )}
-              {mpConfigurado === true && (
-                <span style={badgeStyle('var(--entrada)')}>● Ativo</span>
-              )}
-              {mpConfigurado === false && (
+              {!carregando && ativas.length === 0 && (
                 <span style={badgeStyle('var(--text2)')}>Não conectado</span>
               )}
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text2)', lineHeight: 1.4 }}>
               Sincroniza automaticamente as vendas do Mercado Phone com os lançamentos da loja.
-              As vendas aparecem como pendentes na aba Lançamentos para você confirmar.
+              Suporta múltiplas chaves — uma por unidade ou conta.
             </p>
           </div>
         </div>
 
         {/* Mensagens */}
-        {mpMsg  && <div style={msgStyle('var(--entrada)')}>{mpMsg}</div>}
-        {mpErro && <div style={msgStyle('var(--saida)')}>{mpErro}</div>}
+        {msg  && <div style={msgStyle('var(--entrada)')}>{msg}</div>}
+        {erro && <div style={msgStyle('var(--saida)')}>{erro}</div>}
 
-        {/* Ações quando configurado */}
-        {mpConfigurado === true && !mpEditando && !confirmarRemover && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-            <button style={btnSecStyle} onClick={() => { setMpEditando(true); setMpMsg(''); setMpErro(''); }}>
-              Trocar chave de API
-            </button>
-            <button style={btnDangerStyle} onClick={() => { setConfirmarRemover(true); setMpMsg(''); setMpErro(''); }}>
-              Remover integração
-            </button>
+        {/* Lista de chaves */}
+        {chaves.length > 0 && (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {chaves.map(c => (
+              <div key={c.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px',
+                background: 'var(--surface2)',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{c.nome}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'monospace', marginTop: 2 }}>
+                    {c.api_key_masked}
+                  </div>
+                </div>
+                {confirmRemover === c.id ? (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text2)' }}>Confirmar?</span>
+                    <button
+                      style={btnDangerStyle}
+                      onClick={() => remover(c.id)}
+                      disabled={removendoId === c.id}
+                    >
+                      {removendoId === c.id ? '...' : 'Sim, remover'}
+                    </button>
+                    <button style={btnSecStyle} onClick={() => setConfirmRemover(null)}>
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    style={{ ...btnSecStyle, fontSize: 12, padding: '5px 10px' }}
+                    onClick={() => { setConfirmRemover(c.id); setMsg(''); setErro(''); }}
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Confirmar remoção */}
-        {confirmarRemover && (
-          <div style={{ marginTop: 16, padding: '14px 16px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text)' }}>
-              Tem certeza? As vendas futuras do Mercado Phone não serão mais sincronizadas.
-              Os lançamentos já importados permanecem intactos.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button style={btnDangerStyle} onClick={removerIntegracao} disabled={mpRemovendo}>
-                {mpRemovendo ? 'Removendo...' : 'Confirmar remoção'}
-              </button>
-              <button style={btnSecStyle} onClick={() => setConfirmarRemover(false)}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Form: nova chave (configurado = false OU editando) */}
-        {(mpConfigurado === false || mpEditando) && !confirmarRemover && (
-          <form onSubmit={salvarChave} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <label style={{ fontSize: 13, color: 'var(--text2)' }}>
-              Cole aqui a chave de API do Mercado Phone:
-            </label>
+        {/* Form adicionar nova chave */}
+        {adicionando ? (
+          <form onSubmit={adicionar} style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
+                type="text"
+                value={novoNome}
+                onChange={e => setNovoNome(e.target.value)}
+                placeholder="Nome da unidade (ex: Loja Centro)"
+                style={{ ...inputStyle, flex: '0 0 200px' }}
+                autoComplete="off"
+              />
+              <input
                 type="password"
-                value={mpChaveInput}
-                onChange={e => setMpChaveInput(e.target.value)}
-                placeholder="sk-..."
-                style={inputStyle}
+                value={novaChave}
+                onChange={e => setNovaChave(e.target.value)}
+                placeholder="Chave de API (sk-...)"
+                style={{ ...inputStyle, flex: 1 }}
                 autoComplete="off"
                 required
               />
-              <button type="submit" style={btnPrimStyle} disabled={mpSalvando || !mpChaveInput.trim()}>
-                {mpSalvando ? 'Salvando...' : 'Conectar'}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="submit" style={btnPrimStyle} disabled={salvando || !novaChave.trim()}>
+                {salvando ? 'Salvando...' : 'Adicionar'}
               </button>
-              {mpEditando && (
-                <button type="button" style={btnSecStyle} onClick={() => { setMpEditando(false); setMpChaveInput(''); }}>
-                  Cancelar
-                </button>
-              )}
+              <button type="button" style={btnSecStyle} onClick={() => { setAdicionando(false); setNovoNome(''); setNovaChave(''); setErro(''); }}>
+                Cancelar
+              </button>
             </div>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--text2)' }}>
               Encontre a chave em Mercado Phone → Configurações → API.
             </p>
           </form>
+        ) : (
+          <button
+            style={{ ...btnSecStyle, marginTop: 16 }}
+            onClick={() => { setAdicionando(true); setMsg(''); setErro(''); }}
+          >
+            + Adicionar chave
+          </button>
         )}
       </div>
 
@@ -254,12 +292,12 @@ const btnSecStyle = {
 };
 
 const btnDangerStyle = {
-  padding: '9px 14px',
+  padding: '6px 12px',
   borderRadius: 8,
   border: '1px solid var(--saida)',
   background: 'transparent',
   color: 'var(--saida)',
-  fontSize: 13,
+  fontSize: 12,
   cursor: 'pointer',
   whiteSpace: 'nowrap',
 };
