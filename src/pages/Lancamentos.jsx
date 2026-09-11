@@ -136,8 +136,9 @@ export default function Lancamentos() {
               n[t.mpItemKey] = {
                 valor:        String(t.valor),
                 quantidade:   String(t.quantidade || 1),
-                pagamento:    '',
-                valorUpgrade: '',
+                pagamento:    t.pagamento || '',
+                valorUpgrade: t.valorUpgrade ? String(t.valorUpgrade) : '',
+                isUpgrade:    t.isUpgrade || false,
               };
             }
           });
@@ -504,7 +505,8 @@ export default function Lancamentos() {
       valor:        parseFloat(edit.valor)    > 0 ? parseFloat(edit.valor)    : t.valor,
       quantidade:   parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
       pagamento:    edit.pagamento  || t.pagamento  || '',
-      valorUpgrade: edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
+      isUpgrade:    edit.isUpgrade ?? t.isUpgrade,
+      valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : ((t.valorUpgrade || '')),
     };
     setMpConfirmandoSet(prev => new Set(prev).add(itemKey));
     try {
@@ -681,8 +683,9 @@ export default function Lancamentos() {
                   const itemKey    = t.mpItemKey;
                   const expanded   = mpExpanded.has(itemKey);
                   const edit       = mpEdits[itemKey] || {};
-                  const upgradeOk  = !t.isUpgrade || parseFloat(edit.valorUpgrade || 0) > 0;
-                  const rowBg      = t.isUpgrade        ? 'color-mix(in srgb, #7c3aed 6%, var(--surface2))'
+                  const isUpgradeEfetivo = edit.isUpgrade ?? t.isUpgrade;
+                  const upgradeOk  = !isUpgradeEfetivo || parseFloat(edit.valorUpgrade || 0) > 0;
+                  const rowBg      = isUpgradeEfetivo    ? 'color-mix(in srgb, #7c3aed 6%, var(--surface2))'
                                    : t.possivelDuplicata ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
                                    : 'var(--surface2)';
                   return (
@@ -707,7 +710,7 @@ export default function Lancamentos() {
                               Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
                             </span>
                             {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
-                            {t.isUpgrade && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade — informe valor recebido</span>}
+                            {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
                           </div>
                         </td>
                         <td style={{ color: 'var(--text2)' }}>—</td>
@@ -788,19 +791,29 @@ export default function Lancamentos() {
                                   {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                               </div>
-                              {t.isUpgrade && (
-                                <div>
-                                  <div style={{ fontSize: 10, color: '#7c3aed', marginBottom: 3, fontWeight: 600 }}>★ Valor do aparelho recebido (obrigatório)</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)', cursor: 'pointer', userSelect: 'none' }}>
                                   <input
-                                    type="number"
-                                    min="0"
-                                    value={edit.valorUpgrade || ''}
-                                    onChange={e => mpSetEdit(itemKey, 'valorUpgrade', e.target.value)}
-                                    placeholder="Ex: 2500"
-                                    style={{ width: 120, fontSize: 12, padding: '4px 7px', border: `1px solid ${upgradeOk ? 'var(--border)' : '#7c3aed'}`, borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    type="checkbox"
+                                    checked={isUpgradeEfetivo || false}
+                                    onChange={e => mpSetEdit(itemKey, 'isUpgrade', e.target.checked)}
                                   />
-                                </div>
-                              )}
+                                  É upgrade? (teve aparelho de entrada)
+                                </label>
+                                {isUpgradeEfetivo && (
+                                  <div>
+                                    <div style={{ fontSize: 10, color: '#7c3aed', marginBottom: 3, fontWeight: 600 }}>Valor do aparelho recebido</div>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={edit.valorUpgrade || ''}
+                                      onChange={e => mpSetEdit(itemKey, 'valorUpgrade', e.target.value)}
+                                      placeholder="Ex: 2500"
+                                      style={{ width: 120, fontSize: 12, padding: '4px 7px', border: `1px solid ${upgradeOk ? 'var(--border)' : '#7c3aed'}`, borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
                               <button
                                 className="btn btn-primary btn-sm"
                                 onClick={() => mpConfirmarTransacao(t)}
