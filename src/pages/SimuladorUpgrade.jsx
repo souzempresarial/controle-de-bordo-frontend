@@ -112,8 +112,9 @@ function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch
 
 export default function SimuladorUpgrade() {
   const { clienteAtivo } = useApp();
-  const [tab, setTab]         = useState('upgrade');
-  const [showCfg, setShowCfg] = useState(false);
+  const [tab, setTab]             = useState('upgrade');
+  const [showCfg, setShowCfg]     = useState(false);
+  const [mostrarCartao, setMostrarCartao] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
   const [cfg, setCfg]         = useState(CFG_DEF);
@@ -369,6 +370,61 @@ export default function SimuladorUpgrade() {
                         : `Prejuízo de ${fmt(Math.abs(margem))}`}
                     </div>
                   </div>
+                </div>
+
+                <div className="sim-cartao-inline">
+                  <button className="sim-cartao-toggle" onClick={() => setMostrarCartao(v => !v)}>
+                    <span>Vai pagar no cartão?</span>
+                    <span className={`sim-cartao-arrow ${mostrarCartao ? 'open' : ''}`}>›</span>
+                  </button>
+                  {mostrarCartao && (
+                    <div className="sim-cartao-body">
+                      <div className="sim-field">
+                        <label className="sim-label">FORMA DE PAGAMENTO</label>
+                        <select className="sim-select" value={taxaIdx} onChange={e => setTaxaIdx(Number(e.target.value))}>
+                          {TAXAS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                        </select>
+                      </div>
+                      {TAXAS[taxaIdx].pct === null && (
+                        <div className="sim-field">
+                          <label className="sim-label">TAXA PERSONALIZADA</label>
+                          <div className="sim-input-row">
+                            <span className="sim-rs">%</span>
+                            <input className="sim-input" type="number" step="0.1" value={taxaCustom}
+                              onChange={e => setTaxaCustom(e.target.value)} />
+                          </div>
+                        </div>
+                      )}
+                      <div className="sim-comissao-card">
+                        <div className="sim-comissao-row">
+                          <span>Taxa do cartão ({taxaPct}%)</span>
+                          <span style={{ color: 'var(--saida)' }}>-{fmt(taxaRs)}</span>
+                        </div>
+                        <div className="sim-comissao-row" style={{ fontWeight: 600 }}>
+                          <span>Margem após taxa</span>
+                          <span style={{ color: margemCartao >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(margemCartao)}</span>
+                        </div>
+                        <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0 4px' }} />
+                        <div className="sim-comissao-row">
+                          <span>Comissão estimada</span>
+                          <span>{fmt(cfg.comissaoFixa + Math.max(0, margemCartao) * (cfg.taxaVariavel / 100))}</span>
+                        </div>
+                      </div>
+                      <div className={`sim-status sim-status-${statusCartao}`} style={{ margin: 0 }}>
+                        <span className={`sim-dot sim-dot-${statusCartao}`} />
+                        <div>
+                          <div className="sim-status-title">
+                            {statusCartao === 'verde'    && 'OK no cartão — pode fechar!'}
+                            {statusCartao === 'amarelo'  && 'Cuidado — margem baixa no cartão'}
+                            {statusCartao === 'vermelho' && 'Prejuízo com a taxa — cuidado'}
+                          </div>
+                          {taxaRs > 0 && (
+                            <div className="sim-status-sub">Cobrar mais {fmt(taxaRs)} ou reduzir o desconto pra cobrir a taxa</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
