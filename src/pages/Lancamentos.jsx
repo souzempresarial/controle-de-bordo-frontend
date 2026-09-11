@@ -635,7 +635,9 @@ export default function Lancamentos() {
                     <td>
                       <div>{t.descricao || '—'}</div>
                       <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>Mercado Phone</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
+                          Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
+                        </span>
                         {t.possivelDuplicata && (
                           <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>
                         )}
