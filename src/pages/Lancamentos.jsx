@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../services/constants';
@@ -69,8 +69,10 @@ export default function Lancamentos() {
   const [mpConfigurado, setMpConfigurado]       = useState(null);
   const [mpPendentes, setMpPendentes]           = useState([]);
   const [mpCarregando, setMpCarregando]         = useState(false);
-  const [mpConfirmandoSet, setMpConfirmandoSet] = useState(new Set());
+  const [mpConfirmandoSet, setMpConfirmandoSet] = useState(new Set()); // keys: mpItemKey
   const [mpImportandoTodos, setMpImportandoTodos] = useState(false);
+  const [mpExpanded, setMpExpanded]             = useState(new Set()); // keys: mpItemKey
+  const [mpEdits, setMpEdits]                   = useState({});        // mpItemKey → {valor,quantidade,pagamento,valorUpgrade}
 
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
@@ -123,7 +125,25 @@ export default function Lancamentos() {
     const fim    = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10);
     setMpCarregando(true);
     API.mpPreview(clienteAtivo.id, inicio, fim)
-      .then(({ transacoes }) => setMpPendentes(transacoes.filter(t => !t.jaImportado)))
+      .then(({ transacoes }) => {
+        const pendentes = transacoes.filter(t => !t.jaImportado);
+        setMpPendentes(pendentes);
+        // Inicializa edits com os valores do MP para cada item
+        setMpEdits(prev => {
+          const n = { ...prev };
+          pendentes.forEach(t => {
+            if (!n[t.mpItemKey]) {
+              n[t.mpItemKey] = {
+                valor:        String(t.valor),
+                quantidade:   String(t.quantidade || 1),
+                pagamento:    '',
+                valorUpgrade: '',
+              };
+            }
+          });
+          return n;
+        });
+      })
       .catch(() => setMpPendentes([]))
       .finally(() => setMpCarregando(false));
   }, [filtroMes, mpConfigurado, clienteAtivo?.id]);
@@ -477,32 +497,68 @@ export default function Lancamentos() {
   }
 
   async function mpConfirmarTransacao(t) {
-    setMpConfirmandoSet(prev => new Set(prev).add(t.mpVendaId));
+    const itemKey = t.mpItemKey;
+    const edit    = mpEdits[itemKey] || {};
+    const tFinal  = {
+      ...t,
+      valor:        parseFloat(edit.valor)    > 0 ? parseFloat(edit.valor)    : t.valor,
+      quantidade:   parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
+      pagamento:    edit.pagamento  || t.pagamento  || '',
+      valorUpgrade: edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
+    };
+    setMpConfirmandoSet(prev => new Set(prev).add(itemKey));
     try {
-      await API.mpImportar(clienteAtivo.id, [t]);
+      await API.mpImportar(clienteAtivo.id, [tFinal]);
       const novas = await API.listarLancamentos(clienteAtivo.id);
       setLancamentos(novas);
-      setMpPendentes(prev => prev.filter(p => p.mpVendaId !== t.mpVendaId));
+      setMpPendentes(prev => prev.filter(p => p.mpItemKey !== itemKey));
+      setMpExpanded(prev => { const s = new Set(prev); s.delete(itemKey); return s; });
+      setMpEdits(prev => { const n = { ...prev }; delete n[itemKey]; return n; });
     } catch (err) { console.error('[mpConfirmar]', err.message); }
     finally {
-      setMpConfirmandoSet(prev => { const s = new Set(prev); s.delete(t.mpVendaId); return s; });
+      setMpConfirmandoSet(prev => { const s = new Set(prev); s.delete(itemKey); return s; });
     }
   }
 
-  function mpDescartar(mpVendaId) {
-    setMpPendentes(prev => prev.filter(p => p.mpVendaId !== mpVendaId));
+  function mpDescartar(itemKey) {
+    setMpPendentes(prev => prev.filter(p => p.mpItemKey !== itemKey));
+    setMpExpanded(prev => { const s = new Set(prev); s.delete(itemKey); return s; });
+    setMpEdits(prev => { const n = { ...prev }; delete n[itemKey]; return n; });
+  }
+
+  function mpToggleExpand(key) {
+    setMpExpanded(prev => {
+      const s = new Set(prev);
+      s.has(key) ? s.delete(key) : s.add(key);
+      return s;
+    });
+  }
+
+  function mpSetEdit(key, field, value) {
+    setMpEdits(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
   }
 
   async function mpImportarTodos() {
-    const paraImportar = mpPendentes.filter(t => !t.possivelDuplicata);
+    // Exclui duplicatas e upgrades (upgrades precisam de valorUpgrade manual)
+    const paraImportar = mpPendentes
+      .filter(t => !t.possivelDuplicata && !t.isUpgrade)
+      .map(t => {
+        const edit = mpEdits[t.mpItemKey] || {};
+        return {
+          ...t,
+          valor:      parseFloat(edit.valor)    > 0 ? parseFloat(edit.valor)    : t.valor,
+          quantidade: parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
+          pagamento:  edit.pagamento || t.pagamento || '',
+        };
+      });
     if (!paraImportar.length) return;
     setMpImportandoTodos(true);
     try {
       await API.mpImportar(clienteAtivo.id, paraImportar);
       const novas = await API.listarLancamentos(clienteAtivo.id);
       setLancamentos(novas);
-      const idsImportados = new Set(paraImportar.map(t => t.mpVendaId));
-      setMpPendentes(prev => prev.filter(p => !idsImportados.has(p.mpVendaId)));
+      const keysImportados = new Set(paraImportar.map(t => t.mpItemKey));
+      setMpPendentes(prev => prev.filter(p => !keysImportados.has(p.mpItemKey)));
     } catch (err) { console.error('[mpImportarTodos]', err.message); }
     finally { setMpImportandoTodos(false); }
   }
@@ -586,91 +642,185 @@ export default function Lancamentos() {
                 {mpCarregando && (
                   <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando pendentes do Mercado Phone...</td></tr>
                 )}
-                {mpPendentes.length > 0 && !mpCarregando && (
-                  <tr>
-                    <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--primary) 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
-                          {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
-                          {mpPendentes.filter(t => t.possivelDuplicata).length > 0 && (
-                            <span style={{ color: '#d97706', marginLeft: 8 }}>
-                              · {mpPendentes.filter(t => t.possivelDuplicata).length} possível duplicata
+                {mpPendentes.length > 0 && !mpCarregando && (() => {
+                  const importaveis   = mpPendentes.filter(t => !t.possivelDuplicata && !t.isUpgrade);
+                  const upgradeCount  = mpPendentes.filter(t => t.isUpgrade).length;
+                  const dupCount      = mpPendentes.filter(t => t.possivelDuplicata).length;
+                  return (
+                    <tr>
+                      <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--primary) 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
+                            {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
+                            {dupCount > 0 && <span style={{ color: '#d97706', marginLeft: 8 }}>· {dupCount} possível duplicata</span>}
+                            {upgradeCount > 0 && <span style={{ color: '#7c3aed', marginLeft: 8 }}>· {upgradeCount} upgrade (revisão manual)</span>}
+                          </span>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ marginLeft: 'auto' }}
+                            onClick={mpImportarTodos}
+                            disabled={mpImportandoTodos || importaveis.length === 0}
+                            title="Importa tudo exceto possíveis duplicatas e upgrades"
+                          >
+                            {mpImportandoTodos ? 'Importando...' : `✓ Importar ${importaveis.length} de uma vez`}
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)' }}
+                            onClick={() => setMpPendentes([])}
+                            title="Limpar todos os pendentes da lista sem importar"
+                          >
+                            ✗ Ignorar todos
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })()}
+                {mpPendentes.map(t => {
+                  const itemKey    = t.mpItemKey;
+                  const expanded   = mpExpanded.has(itemKey);
+                  const edit       = mpEdits[itemKey] || {};
+                  const upgradeOk  = !t.isUpgrade || parseFloat(edit.valorUpgrade || 0) > 0;
+                  const rowBg      = t.isUpgrade        ? 'color-mix(in srgb, #7c3aed 6%, var(--surface2))'
+                                   : t.possivelDuplicata ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
+                                   : 'var(--surface2)';
+                  return (
+                    <React.Fragment key={`mp-${itemKey}`}>
+                      <tr style={{ background: rowBg, opacity: 0.88, borderBottom: expanded ? 'none' : '1px dashed var(--border)' }}>
+                        <td className="id-cell" style={{ color: 'var(--text2)', fontSize: 10 }}>MP</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{fmtData(t.data)}</td>
+                        <td><span className="tipo-badge tipo-Entrada">Entrada</span></td>
+                        <td>{t.categoria}</td>
+                        <td style={{ color: 'var(--text2)' }}>{t.subcategoria || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 5, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                            <span>{t.descricao || '—'}</span>
+                            {t.quantidade > 1 && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
+                                × {t.quantidade}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
+                              Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
                             </span>
-                          )}
-                        </span>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          style={{ marginLeft: 'auto' }}
-                          onClick={mpImportarTodos}
-                          disabled={mpImportandoTodos || mpPendentes.filter(t => !t.possivelDuplicata).length === 0}
-                          title="Importa tudo exceto possíveis duplicatas"
-                        >
-                          {mpImportandoTodos ? 'Importando...' : `✓ Importar ${mpPendentes.filter(t => !t.possivelDuplicata).length} de uma vez`}
-                        </button>
-                        <button
-                          className="btn btn-sm"
-                          style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)' }}
-                          onClick={() => setMpPendentes([])}
-                          title="Limpar todos os pendentes da lista sem importar"
-                        >
-                          ✗ Ignorar todos
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {mpPendentes.map(t => (
-                  <tr key={`mp-${t.mpVendaId}`} style={{
-                    background: t.possivelDuplicata
-                      ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
-                      : 'var(--surface2)',
-                    opacity: 0.85,
-                    borderBottom: '1px dashed var(--border)',
-                  }}>
-                    <td className="id-cell" style={{ color: 'var(--text2)', fontSize: 10 }}>MP</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtData(t.data)}</td>
-                    <td><span className="tipo-badge tipo-Entrada">Entrada</span></td>
-                    <td>{t.categoria}</td>
-                    <td style={{ color: 'var(--text2)' }}>{t.subcategoria || '—'}</td>
-                    <td>
-                      <div>{t.descricao || '—'}</div>
-                      <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
-                          Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
-                        </span>
-                        {t.possivelDuplicata && (
-                          <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ color: 'var(--text2)' }}>—</td>
-                    <td style={{ color: 'var(--text2)' }}>—</td>
-                    <td><span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>Pendente</span></td>
-                    <td style={{ textAlign: 'right', color: t.valor === 0 ? 'var(--text2)' : 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                      {t.valor === 0 ? 'R$ 0,00' : `+${fmt(t.valor)}`}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => mpConfirmarTransacao(t)}
-                          disabled={mpConfirmandoSet.has(t.mpVendaId)}
-                          title="Importar este lançamento"
-                        >
-                          {mpConfirmandoSet.has(t.mpVendaId) ? '...' : '✓'}
-                        </button>
-                        <button
-                          className="btn btn-sm"
-                          style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px' }}
-                          onClick={() => mpDescartar(t.mpVendaId)}
-                          title="Ignorar (não importar)"
-                        >
-                          ✗
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
+                            {t.isUpgrade && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade — informe valor recebido</span>}
+                          </div>
+                        </td>
+                        <td style={{ color: 'var(--text2)' }}>—</td>
+                        <td>
+                          <select
+                            value={edit.pagamento || ''}
+                            onChange={e => mpSetEdit(itemKey, 'pagamento', e.target.value)}
+                            style={{ fontSize: 11, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 4px', color: edit.pagamento ? 'var(--text)' : 'var(--text2)', maxWidth: 110 }}
+                          >
+                            <option value="">Pagamento...</option>
+                            {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        </td>
+                        <td><span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>Pendente</span></td>
+                        <td style={{ textAlign: 'right', color: t.valor === 0 ? 'var(--text2)' : 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {t.valor === 0 ? 'R$ 0,00' : `+${fmt(t.valor)}`}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: expanded ? 'var(--primary)' : 'transparent', color: expanded ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
+                              onClick={() => mpToggleExpand(itemKey)}
+                              title={expanded ? 'Fechar edição' : 'Editar antes de importar'}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => mpConfirmarTransacao(t)}
+                              disabled={mpConfirmandoSet.has(itemKey) || !upgradeOk}
+                              title={!upgradeOk ? 'Abra a edição e informe o valor do aparelho recebido' : 'Importar este lançamento'}
+                            >
+                              {mpConfirmandoSet.has(itemKey) ? '...' : '✓'}
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px' }}
+                              onClick={() => mpDescartar(itemKey)}
+                              title="Ignorar (não importar)"
+                            >
+                              ✗
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr style={{ background: rowBg, borderBottom: '1px dashed var(--border)' }}>
+                          <td colSpan={11} style={{ padding: '4px 16px 12px', paddingLeft: 48 }}>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                              <div>
+                                <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Valor (R$)</div>
+                                <input
+                                  type="number"
+                                  value={edit.valor ?? t.valor}
+                                  onChange={e => mpSetEdit(itemKey, 'valor', e.target.value)}
+                                  style={{ width: 90, fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Qtd</div>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={edit.quantidade ?? (t.quantidade || 1)}
+                                  onChange={e => mpSetEdit(itemKey, 'quantidade', e.target.value)}
+                                  style={{ width: 55, fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Pagamento</div>
+                                <select
+                                  value={edit.pagamento || ''}
+                                  onChange={e => mpSetEdit(itemKey, 'pagamento', e.target.value)}
+                                  style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                >
+                                  <option value="">Selecionar...</option>
+                                  {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                              </div>
+                              {t.isUpgrade && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: '#7c3aed', marginBottom: 3, fontWeight: 600 }}>★ Valor do aparelho recebido (obrigatório)</div>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={edit.valorUpgrade || ''}
+                                    onChange={e => mpSetEdit(itemKey, 'valorUpgrade', e.target.value)}
+                                    placeholder="Ex: 2500"
+                                    style={{ width: 120, fontSize: 12, padding: '4px 7px', border: `1px solid ${upgradeOk ? 'var(--border)' : '#7c3aed'}`, borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                  />
+                                </div>
+                              )}
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => mpConfirmarTransacao(t)}
+                                disabled={mpConfirmandoSet.has(itemKey) || !upgradeOk}
+                                style={{ alignSelf: 'flex-end' }}
+                              >
+                                {mpConfirmandoSet.has(itemKey) ? 'Importando...' : '✓ Importar este'}
+                              </button>
+                            </div>
+                            {t.cmvValor > 0 && (
+                              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text2)' }}>
+                                CMV lançado automaticamente: {fmt(t.cmvValor)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
                 {/* Lançamentos confirmados */}
                 {filtradosOrdenados.map(l => {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
