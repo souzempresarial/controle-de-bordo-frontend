@@ -101,6 +101,8 @@ export const API = {
   excluirAparelho:  (cid, id)        => apiFetch(`/clientes/${cid}/upgrade/${id}`, { method: 'DELETE' }),
   limparAparelhos:  (cid)            => apiFetch(`/clientes/${cid}/upgrade`, { method: 'DELETE' }),
   venderAparelho:   (cid, id, dados) => apiFetch(`/clientes/${cid}/upgrade/${id}/vender`, { method: 'POST', body: JSON.stringify(dados) }),
+  getSimuladorCfg:  (cid)            => apiFetch(`/clientes/${cid}/upgrade/simulador-cfg`),
+  setSimuladorCfg:  (cid, dados)     => apiFetch(`/clientes/${cid}/upgrade/simulador-cfg`, { method: 'PUT', body: JSON.stringify(dados) }),
 
   // Mercado Phone
   mpStatus:      (cid)              => apiFetch(`/clientes/${cid}/mercadophone/status`),

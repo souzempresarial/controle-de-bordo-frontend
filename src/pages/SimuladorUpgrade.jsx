@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fmt } from '../services/utils';
+import { useApp } from '../context/AppContext';
+import { API } from '../services/api';
 
 const MODELOS_DEF = [
   // iPhone 11
@@ -109,14 +111,39 @@ function ls(k, d)    { try { const v = localStorage.getItem(k); return v ? JSON.
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 
 export default function SimuladorUpgrade() {
+  const { clienteAtivo } = useApp();
   const [tab, setTab]         = useState('upgrade');
   const [showCfg, setShowCfg] = useState(false);
+  const [carregando, setCarregando] = useState(true);
 
-  const [cfg, setCfg]         = useState(() => ls('sim_cfg', CFG_DEF));
-  const [modelos, setModelos] = useState(() => ls('sim_modelos', MODELOS_DEF));
-  const [tradeIn, setTradeIn] = useState(() => ls('sim_tradein', TRADEIN_DEF));
-  const [avDef, setAvDef]     = useState(() => ls('sim_avarias', AVARIAS_DEF));
-  const [grades, setGrades]   = useState(() => ls('sim_grades', GRADES_DEF));
+  const [cfg, setCfg]         = useState(CFG_DEF);
+  const [modelos, setModelos] = useState(MODELOS_DEF);
+  const [tradeIn, setTradeIn] = useState(TRADEIN_DEF);
+  const [avDef, setAvDef]     = useState(AVARIAS_DEF);
+  const [grades, setGrades]   = useState(GRADES_DEF);
+
+  useEffect(() => {
+    if (!clienteAtivo?.id) { setCarregando(false); return; }
+    API.getSimuladorCfg(clienteAtivo.id)
+      .then(data => {
+        if (data) {
+          if (data.cfg)     setCfg(data.cfg);
+          if (data.modelos) setModelos(data.modelos);
+          if (data.tradeIn) setTradeIn(data.tradeIn);
+          if (data.avarias) setAvDef(data.avarias);
+          if (data.grades)  setGrades(data.grades);
+        }
+      })
+      .catch(() => {
+        // fallback: tenta localStorage se a API falhar
+        const c = ls('sim_cfg', null);     if (c) setCfg(c);
+        const m = ls('sim_modelos', null); if (m) setModelos(m);
+        const t = ls('sim_tradein', null); if (t) setTradeIn(t);
+        const a = ls('sim_avarias', null); if (a) setAvDef(a);
+        const g = ls('sim_grades', null);  if (g) setGrades(g);
+      })
+      .finally(() => setCarregando(false));
+  }, [clienteAtivo?.id]);
 
   // Upgrade tab
   const [modelo, setModelo]           = useState('');
@@ -173,13 +200,21 @@ export default function SimuladorUpgrade() {
   function handleVolta(v)   { setVoltaVal(v); setVoltaManual(true); }
 
   function salvarCfg(newCfg, newM, newTi, newAv, newGrades) {
-    setCfg(newCfg);           lsSet('sim_cfg', newCfg);
-    setModelos(newM);         lsSet('sim_modelos', newM);
-    setTradeIn(newTi);        lsSet('sim_tradein', newTi);
-    setAvDef(newAv);          lsSet('sim_avarias', newAv);
-    setGrades(newGrades);     lsSet('sim_grades', newGrades);
+    setCfg(newCfg); setModelos(newM); setTradeIn(newTi); setAvDef(newAv); setGrades(newGrades);
+    const payload = { cfg: newCfg, modelos: newM, tradeIn: newTi, avarias: newAv, grades: newGrades };
+    // cache local como fallback
+    lsSet('sim_cfg', newCfg); lsSet('sim_modelos', newM); lsSet('sim_tradein', newTi);
+    lsSet('sim_avarias', newAv); lsSet('sim_grades', newGrades);
+    // persiste no banco vinculado ao cliente
+    if (clienteAtivo?.id) API.setSimuladorCfg(clienteAtivo.id, payload).catch(() => {});
     setShowCfg(false);
   }
+
+  if (carregando) return (
+    <div className="sim-root" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, color: 'var(--text2)', fontSize: 14 }}>
+      Carregando configurações...
+    </div>
+  );
 
   return (
     <div className="sim-root">
