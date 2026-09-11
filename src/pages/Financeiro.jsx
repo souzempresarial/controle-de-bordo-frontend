@@ -23,7 +23,8 @@ function calcDREMes(lancamentos, pfx) {
   const recFin      = ent('Receitas Não-Operacionais', 'Aplicações Fora da Companhia');
   const recNaoOp    = ent('Receitas Não-Operacionais') - recFin;
   const recBruta    = subscricao + recNaoOp;
-  const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
+  // Exclui Upgrade: o trade-in já está contabilizado no CMV (Saída de Custos Variáveis Diretos)
+  const deducoesDiretas = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null && l.subcategoria !== 'Upgrade').reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
   const deducoes    = sai('Deduções das Vendas') + deducoesDiretas;
   const recLiquida  = recBruta - deducoes;
 
