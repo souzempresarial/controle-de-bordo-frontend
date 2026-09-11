@@ -223,7 +223,6 @@ export default function SimuladorUpgrade() {
       <div className="sim-topbar">
         <div className="sim-tabs">
           <button className={`sim-tab ${tab === 'upgrade' ? 'active' : ''}`} onClick={() => setTab('upgrade')}>Upgrade</button>
-          <button className={`sim-tab ${tab === 'cartao'  ? 'active' : ''}`} onClick={() => setTab('cartao')}>Cartão</button>
         </div>
         <button className="sim-cfg-btn" onClick={() => setShowCfg(true)}>⚙ Configurar</button>
       </div>
