@@ -134,11 +134,12 @@ export default function Lancamentos() {
           pendentes.forEach(t => {
             if (!n[t.mpItemKey]) {
               n[t.mpItemKey] = {
-                valor:        String(t.valor),
-                quantidade:   String(t.quantidade || 1),
-                pagamento:    t.pagamento || '',
-                valorUpgrade: t.valorUpgrade ? String(t.valorUpgrade) : '',
-                isUpgrade:    t.isUpgrade || false,
+                valor:         String(t.valor),
+                quantidade:    String(t.quantidade || 1),
+                pagamento:     t.pagamento || '',
+                valorUpgrade:  t.valorUpgrade ? String(t.valorUpgrade) : '',
+                isUpgrade:     t.isUpgrade || false,
+                deducaoCartao: '',
               };
             }
           });
@@ -506,7 +507,8 @@ export default function Lancamentos() {
       quantidade:   parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
       pagamento:    edit.pagamento  || t.pagamento  || '',
       isUpgrade:    edit.isUpgrade ?? t.isUpgrade,
-      valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : ((t.valorUpgrade || '')),
+      valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
+      deducao:      edit.pagamento === 'Crédito' && parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
     };
     setMpConfirmandoSet(prev => new Set(prev).add(itemKey));
     try {
@@ -791,6 +793,20 @@ export default function Lancamentos() {
                                   {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
                                 </select>
                               </div>
+                              {edit.pagamento === 'Crédito' && (
+                                <div>
+                                  <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Dedução (R$)</div>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={edit.deducaoCartao || ''}
+                                    onChange={e => mpSetEdit(itemKey, 'deducaoCartao', e.target.value)}
+                                    placeholder="taxa cartão..."
+                                    style={{ width: 100, fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                  />
+                                </div>
+                              )}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)', cursor: 'pointer', userSelect: 'none' }}>
                                   <input
