@@ -365,7 +365,6 @@ export default function Upgrade() {
       <div className="up-header">
         <div>
           <h2>Controle de Upgrade</h2>
-          <p className="up-subtitle">{pagina === 'estoque' ? 'Gestão de aparelhos em estoque' : 'Simulador de upgrade e comissão'}</p>
         </div>
         {pagina === 'estoque' && (
           <div style={{ display: 'flex', gap: 8 }}>
@@ -379,7 +378,7 @@ export default function Upgrade() {
 
       {/* Tabs */}
       <div className="up-page-tabs">
-        <button className={`up-page-tab ${pagina === 'estoque'   ? 'active' : ''}`} onClick={() => setPagina('estoque')}>Controle de Estoque</button>
+        <button className={`up-page-tab ${pagina === 'estoque'   ? 'active' : ''}`} onClick={() => setPagina('estoque')}>Upgrade</button>
         <button className={`up-page-tab ${pagina === 'simulador' ? 'active' : ''}`} onClick={() => setPagina('simulador')}>Simulador</button>
       </div>
 
