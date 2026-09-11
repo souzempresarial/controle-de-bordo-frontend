@@ -99,12 +99,12 @@ const GRADES_DEF  = [
   { id: 'C', nome: 'Grade C', descricao: 'Regular — riscos visíveis, bateria <75% ou danos',    pct: 60  },
 ];
 
-const TAXAS = [
-  { label: 'Débito (1.5%)',          pct: 1.5  },
-  { label: 'Crédito 1x (2.5%)',      pct: 2.5  },
-  { label: 'Crédito 2–6x (3.5%)',    pct: 3.5  },
-  { label: 'Crédito 7–12x (4.5%)',   pct: 4.5  },
-  { label: 'Personalizado',          pct: null },
+const TAXAS_DEF = [
+  { label: 'Débito',        pct: 1.5  },
+  { label: 'Crédito 1x',   pct: 2.5  },
+  { label: 'Crédito 2–6x', pct: 3.5  },
+  { label: 'Crédito 7–12x',pct: 4.5  },
+  { label: 'Personalizado', pct: null },
 ];
 
 function ls(k, d)    { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
@@ -122,6 +122,7 @@ export default function SimuladorUpgrade() {
   const [tradeIn, setTradeIn] = useState(TRADEIN_DEF);
   const [avDef, setAvDef]     = useState(AVARIAS_DEF);
   const [grades, setGrades]   = useState(GRADES_DEF);
+  const [taxas, setTaxas]     = useState(TAXAS_DEF);
 
   useEffect(() => {
     if (!clienteAtivo?.id) { setCarregando(false); return; }
@@ -133,6 +134,7 @@ export default function SimuladorUpgrade() {
           if (data.tradeIn) setTradeIn(data.tradeIn);
           if (data.avarias) setAvDef(data.avarias);
           if (data.grades)  setGrades(data.grades);
+          if (data.taxas)   setTaxas(data.taxas);
         }
       })
       .catch(() => {
@@ -142,6 +144,7 @@ export default function SimuladorUpgrade() {
         const t = ls('sim_tradein', null); if (t) setTradeIn(t);
         const a = ls('sim_avarias', null); if (a) setAvDef(a);
         const g = ls('sim_grades', null);  if (g) setGrades(g);
+        const tx = ls('sim_taxas', null);  if (tx) setTaxas(tx);
       })
       .finally(() => setCarregando(false));
   }, [clienteAtivo?.id]);
@@ -186,7 +189,7 @@ export default function SimuladorUpgrade() {
     : margem > 0 ? 'amarelo'
     : 'vermelho';
 
-  const taxaPct      = TAXAS[taxaIdx].pct ?? parseFloat(taxaCustom || 0);
+  const taxaPct      = taxas[taxaIdx]?.pct ?? parseFloat(taxaCustom || 0);
   const taxaRs       = volta * (taxaPct / 100);
   const margemCartao = margem - taxaRs;
   const statusCartao = !mData ? null
@@ -200,13 +203,11 @@ export default function SimuladorUpgrade() {
   function handleAv(k, v)   { setAvarias(a => ({ ...a, [k]: v })); resetVolta(); }
   function handleVolta(v)   { setVoltaVal(v); setVoltaManual(true); }
 
-  function salvarCfg(newCfg, newM, newTi, newAv, newGrades) {
-    setCfg(newCfg); setModelos(newM); setTradeIn(newTi); setAvDef(newAv); setGrades(newGrades);
-    const payload = { cfg: newCfg, modelos: newM, tradeIn: newTi, avarias: newAv, grades: newGrades };
-    // cache local como fallback
+  function salvarCfg(newCfg, newM, newTi, newAv, newGrades, newTaxas) {
+    setCfg(newCfg); setModelos(newM); setTradeIn(newTi); setAvDef(newAv); setGrades(newGrades); setTaxas(newTaxas);
+    const payload = { cfg: newCfg, modelos: newM, tradeIn: newTi, avarias: newAv, grades: newGrades, taxas: newTaxas };
     lsSet('sim_cfg', newCfg); lsSet('sim_modelos', newM); lsSet('sim_tradein', newTi);
-    lsSet('sim_avarias', newAv); lsSet('sim_grades', newGrades);
-    // persiste no banco vinculado ao cliente
+    lsSet('sim_avarias', newAv); lsSet('sim_grades', newGrades); lsSet('sim_taxas', newTaxas);
     if (clienteAtivo?.id) API.setSimuladorCfg(clienteAtivo.id, payload).catch(() => {});
     setShowCfg(false);
   }
@@ -381,10 +382,10 @@ export default function SimuladorUpgrade() {
                       <div className="sim-field">
                         <label className="sim-label">FORMA DE PAGAMENTO</label>
                         <select className="sim-select" value={taxaIdx} onChange={e => setTaxaIdx(Number(e.target.value))}>
-                          {TAXAS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                          {taxas.map((t, i) => <option key={i} value={i}>{t.label}{t.pct != null ? ` (${t.pct}%)` : ''}</option>)}
                         </select>
                       </div>
-                      {TAXAS[taxaIdx].pct === null && (
+                      {taxas[taxaIdx]?.pct == null && (
                         <div className="sim-field">
                           <label className="sim-label">TAXA PERSONALIZADA</label>
                           <div className="sim-input-row">
@@ -452,11 +453,11 @@ export default function SimuladorUpgrade() {
                 <div className="sim-field">
                   <label className="sim-label">FORMA DE PAGAMENTO</label>
                   <select className="sim-select" value={taxaIdx} onChange={e => setTaxaIdx(Number(e.target.value))}>
-                    {TAXAS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                    {taxas.map((t, i) => <option key={i} value={i}>{t.label}{t.pct != null ? ` (${t.pct}%)` : ''}</option>)}
                   </select>
                 </div>
 
-                {TAXAS[taxaIdx].pct === null && (
+                {taxas[taxaIdx]?.pct == null && (
                   <div className="sim-field">
                     <label className="sim-label">TAXA PERSONALIZADA</label>
                     <div className="sim-input-row">
@@ -504,7 +505,7 @@ export default function SimuladorUpgrade() {
 
       {showCfg && (
         <ConfigModal
-          cfg={cfg} modelos={modelos} tradeIn={tradeIn} avDef={avDef} grades={grades}
+          cfg={cfg} modelos={modelos} tradeIn={tradeIn} avDef={avDef} grades={grades} taxas={taxas}
           onSave={salvarCfg} onClose={() => setShowCfg(false)}
         />
       )}
@@ -512,16 +513,18 @@ export default function SimuladorUpgrade() {
   );
 }
 
-function ConfigModal({ cfg, modelos, tradeIn, avDef, grades, onSave, onClose }) {
+function ConfigModal({ cfg, modelos, tradeIn, avDef, grades, taxas, onSave, onClose }) {
   const [c,  setC]  = useState({ ...cfg });
   const [m,  setM]  = useState(modelos.map(x => ({ ...x })));
   const [ti, setTi] = useState(tradeIn.map(x => ({ ...x })));
   const [av, setAv] = useState({ ...avDef });
   const [gr, setGr] = useState(grades.map(x => ({ ...x })));
+  const [tx, setTx] = useState(taxas.map(x => ({ ...x })));
   const [tab, setTab] = useState('comissao');
 
   const tabs = [
     ['comissao', 'Comissão'],
+    ['cartao',   'Cartão'],
     ['grades',   'Grades'],
     ['precos',   'Preços de Venda'],
     ['tradein',  'Trade-in'],
@@ -569,6 +572,43 @@ function ConfigModal({ cfg, modelos, tradeIn, avDef, grades, onSave, onClose }) 
                 </div>
               </div>
             </div>
+          )}
+
+          {tab === 'cartao' && (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>
+                Taxa cobrada pelo cartão por modalidade. O valor é deduzido da margem para calcular o resultado real da venda.
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500 }}>Modalidade</th>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>Taxa (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tx.map((t, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '6px 8px' }}>
+                          <input type="text" value={t.label}
+                            onChange={e => setTx(arr => arr.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+                            style={{ width: '100%', padding: '4px 6px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', color: 'var(--text)' }} />
+                        </td>
+                        <td style={{ padding: '4px 8px' }}>
+                          {t.pct == null
+                            ? <span style={{ fontSize: 12, color: 'var(--text2)', paddingRight: 8, display: 'block', textAlign: 'right' }}>livre</span>
+                            : <input type="number" step="0.1" min="0" max="20" value={t.pct}
+                                onChange={e => setTx(arr => arr.map((x, j) => j === i ? { ...x, pct: parseFloat(e.target.value) || 0 } : x))}
+                                style={{ width: 70, textAlign: 'right', padding: '4px 6px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface2)', color: 'var(--text)' }} />
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {tab === 'grades' && (
@@ -702,12 +742,12 @@ function ConfigModal({ cfg, modelos, tradeIn, avDef, grades, onSave, onClose }) 
 
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
           <button className="btn btn-ghost" style={{ color: 'var(--danger)', fontSize: 13 }}
-            onClick={() => { if (window.confirm('Restaurar todos os preços e modelos para o padrão?')) { setM(MODELOS_DEF.map(x => ({ ...x }))); setTi(TRADEIN_DEF.map(x => ({ ...x }))); setAv({ ...AVARIAS_DEF }); setC({ ...CFG_DEF }); setGr(GRADES_DEF.map(x => ({ ...x }))); } }}>
+            onClick={() => { if (window.confirm('Restaurar todos os preços e modelos para o padrão?')) { setM(MODELOS_DEF.map(x => ({ ...x }))); setTi(TRADEIN_DEF.map(x => ({ ...x }))); setAv({ ...AVARIAS_DEF }); setC({ ...CFG_DEF }); setGr(GRADES_DEF.map(x => ({ ...x }))); setTx(TAXAS_DEF.map(x => ({ ...x }))); } }}>
             Restaurar padrões
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av, gr)}>Salvar</button>
+            <button className="btn btn-primary" onClick={() => onSave(c, m, ti, av, gr, tx)}>Salvar</button>
           </div>
         </div>
       </div>
