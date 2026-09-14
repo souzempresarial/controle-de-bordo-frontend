@@ -140,6 +140,7 @@ export default function Lancamentos() {
                 valorUpgrade:  t.valorUpgrade ? String(t.valorUpgrade) : '',
                 isUpgrade:     t.isUpgrade || false,
                 deducaoCartao: '',
+                cmvOverride:   '',
               };
             }
           });
@@ -509,6 +510,7 @@ export default function Lancamentos() {
       isUpgrade:    edit.isUpgrade ?? t.isUpgrade,
       valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
       deducao:      edit.pagamento === 'Crédito' && parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
+      cmvValor:     parseFloat(edit.cmvOverride) > 0 ? parseFloat(edit.cmvOverride) : t.cmvValor,
     };
     setMpConfirmandoSet(prev => new Set(prev).add(itemKey));
     try {
@@ -840,8 +842,22 @@ export default function Lancamentos() {
                               </button>
                             </div>
                             {t.cmvValor > 0 && (
-                              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text2)' }}>
-                                CMV lançado automaticamente: {fmt(t.cmvValor)}
+                              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 11, color: 'var(--text2)' }}>
+                                  CMV automático: {fmt(parseFloat(edit.cmvOverride) > 0 ? parseFloat(edit.cmvOverride) : t.cmvValor)}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 10, color: 'var(--text2)' }}>Corrigir CMV (R$):</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={edit.cmvOverride || ''}
+                                    onChange={e => mpSetEdit(itemKey, 'cmvOverride', e.target.value)}
+                                    placeholder={String(t.cmvValor)}
+                                    style={{ width: 90, fontSize: 11, padding: '2px 6px', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--surface)', color: 'var(--text)' }}
+                                  />
+                                </div>
                               </div>
                             )}
                           </td>
