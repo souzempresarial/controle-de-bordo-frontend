@@ -683,7 +683,7 @@ export default function Lancamentos() {
                     </tr>
                   );
                 })()}
-                {mpPendentes.map(t => {
+                {[...mpPendentes].sort((a, b) => (a.data || '').localeCompare(b.data || '')).map(t => {
                   const itemKey    = t.mpItemKey;
                   const expanded   = mpExpanded.has(itemKey);
                   const edit       = mpEdits[itemKey] || {};
