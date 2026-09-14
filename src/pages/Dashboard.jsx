@@ -495,14 +495,7 @@ export default function Dashboard() {
               {resumoProdutos.map(p => {
                 return (
                   <tr key={p.produto}>
-                    <td style={{ fontWeight: 600 }}>
-                      {p.produto}
-                      {p.descricoes.length > 0 && (
-                        <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text2)', marginLeft: 6 }}>
-                          ({p.descricoes.join(', ')})
-                        </span>
-                      )}
-                    </td>
+                    <td style={{ fontWeight: 600 }}>{p.produto}</td>
                     <td style={{ textAlign: 'right' }}>{p.unidades}</td>
                     <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
                     <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
