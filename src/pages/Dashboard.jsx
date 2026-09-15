@@ -155,7 +155,7 @@ export default function Dashboard() {
       map[key].lucro += l.valor - cmvL - dedL;
       if (l.descricao && !map[key].descricoes.includes(l.descricao)) map[key].descricoes.push(l.descricao);
     });
-    return Object.values(map).filter(p => p.faturamento > 0).sort((a, b) => b.faturamento - a.faturamento);
+    return Object.values(map).sort((a, b) => b.faturamento - a.faturamento);
   }, [lm]);
 
   const semCMV = useMemo(() => {
