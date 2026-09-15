@@ -141,6 +141,8 @@ export default function Lancamentos() {
                 isUpgrade:     t.isUpgrade || false,
                 deducaoCartao: '',
                 cmvOverride:   '',
+                categoria:     t.categoria    || '',
+                subcategoria:  t.subcategoria || '',
               };
             }
           });
@@ -511,6 +513,8 @@ export default function Lancamentos() {
       valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
       deducao:      edit.pagamento === 'Crédito' && parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
       cmvValor:     parseFloat(edit.cmvOverride) > 0 ? parseFloat(edit.cmvOverride) : t.cmvValor,
+      categoria:    edit.categoria    || t.categoria    || '',
+      subcategoria: edit.subcategoria || t.subcategoria || '',
     };
     setMpConfirmandoSet(prev => new Set(prev).add(itemKey));
     try {
@@ -793,6 +797,28 @@ export default function Lancamentos() {
                                 >
                                   <option value="">Selecionar...</option>
                                   {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Categoria</div>
+                                <select
+                                  value={edit.categoria || t.categoria || ''}
+                                  onChange={e => { mpSetEdit(itemKey, 'categoria', e.target.value); mpSetEdit(itemKey, 'subcategoria', ''); }}
+                                  style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                >
+                                  <option value="">— cat —</option>
+                                  {Object.keys(getCatsPorTipo('Entrada')).map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Subcategoria</div>
+                                <select
+                                  value={edit.subcategoria || t.subcategoria || ''}
+                                  onChange={e => mpSetEdit(itemKey, 'subcategoria', e.target.value)}
+                                  style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                >
+                                  <option value="">— sub —</option>
+                                  {getSubcats(edit.categoria || t.categoria || '').map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                               </div>
                               {edit.pagamento === 'Crédito' && (
