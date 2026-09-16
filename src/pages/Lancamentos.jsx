@@ -256,6 +256,9 @@ export default function Lancamentos() {
       let atualizadoCMV = null;
       let novoCMV = null;
 
+      // "CMV já registrado" → desvincula qualquer grupoId que possa estar associado por engano
+      if (form.recebimentoAnterior) grupoId = null;
+
       let cmvExcluido = false;
       if (isEntrada && !form.recebimentoAnterior && form.cmvValor && parseFloat(form.cmvValor) > 0) {
         if (editandoCMV) {
