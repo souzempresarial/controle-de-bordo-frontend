@@ -217,16 +217,15 @@ export default function Lancamentos() {
 
   function abrirEditar(l) {
     const cmv = l.tipo !== 'Entrada' ? null : (() => {
+      // "CMV já registrado" foi marcado → quantidade=0, sem CMV associado
+      if (l.quantidade === 0) return null;
       if (l.grupoId) {
         const byGrupo = lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'));
         if (byGrupo) return byGrupo;
       }
       const byObs = lancamentos.find(x => x.id !== l.id && (x.obs || '').includes('#' + String(l.id).padStart(3, '0')));
       if (byObs) return byObs;
-      if (!l.grupoId) return lancamentos.find(x =>
-        x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
-        (x.isCMV || (x.descricao || '').startsWith('CMV'))
-      ) || null;
+      // fallback por data removido: era muito genérico e associava CMVs de outros lançamentos no mesmo dia
       return null;
     })();
     setEditando(l);
