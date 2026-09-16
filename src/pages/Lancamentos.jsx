@@ -284,8 +284,9 @@ export default function Lancamentos() {
             grupo_id: grupoId, is_cmv: true,
           });
         }
-      } else if (editandoCMV) {
+      } else if (editandoCMV && !form.recebimentoAnterior) {
         // usuário removeu CMV — exclui do banco e desvincula grupo
+        // (quando recebimentoAnterior=true apenas desvincula o grupoId, não deleta — o CMV pode pertencer a outro lançamento)
         await API.excluirLancamento(clienteAtivo.id, editandoCMV.id);
         grupoId = null;
         cmvExcluido = true;
