@@ -199,10 +199,6 @@ export default function Dashboard() {
       }
       const byObs = lancamentos.find(x => x.id !== l.id && (x.obs || '').includes('#' + String(l.id).padStart(3, '0')));
       if (byObs) return byObs;
-      if (!l.grupoId) return lancamentos.find(x =>
-        x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
-        (x.isCMV || (x.descricao || '').startsWith('CMV'))
-      ) || null;
       return null;
     })();
     setEditandoId(l.id);
@@ -568,12 +564,8 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {semCMV.map(l => {
-                  const cmv = l.tipo !== 'Entrada' ? null : l.grupoId
-      ? lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'))
-      : lancamentos.find(x =>
-          x.id !== l.id && x.data === l.data && x.tipo === 'Saída' &&
-          (x.isCMV || (x.descricao || '').startsWith('CMV'))
-        );
+                  const cmv = l.tipo !== 'Entrada' || !l.grupoId ? null
+      : lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'));
                   return (
                     <tr key={l.id}>
                       <td style={{ whiteSpace: 'nowrap' }}>{fmtData(l.data)}</td>
