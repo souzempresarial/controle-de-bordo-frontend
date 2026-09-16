@@ -29,7 +29,7 @@ const formVazio = (l, cmv, bancoAtivo) => ({
   cmvValor: cmv ? cmv.valor : '',
   cmvCat:   cmv ? (cmv.categoria || 'Custos Variáveis Diretos') : 'Custos Variáveis Diretos',
   cmvSub:   cmv ? (cmv.subcategoria || '') : '',
-  recebimentoAnterior: false,
+  recebimentoAnterior: l.quantidade === 0,
 });
 
 export default function Lancamentos() {
