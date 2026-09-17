@@ -35,7 +35,7 @@ export const CATEGORIAS_SAIDA = {
 };
 
 export const CATEGORIAS_CMV = {
-  'Custos Variáveis Diretos': ['Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
 };
 
 export const CATEGORIAS_TRANSF = {
