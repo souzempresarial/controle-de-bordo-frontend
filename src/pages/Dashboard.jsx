@@ -57,7 +57,7 @@ export default function Dashboard() {
   const cats    = getCatsPorTipo(form.tipo);
   const subcats = getSubcats(form.categoria);
   const cmvCats = CATEGORIAS_CMV;
-  const cmvSubs = getSubcats(form.cmvCat);
+  const cmvSubs = CATEGORIAS_CMV[form.cmvCat] || [];
 
   const periodo = `${ano}-${mes}`;
   const prevMes = mesAnterior(periodo);

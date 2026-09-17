@@ -193,7 +193,7 @@ export default function Lancamentos() {
   const cats     = form ? getCatsPorTipo(form.tipo) : {};
   const subcats  = form ? getSubcats(form.categoria) : [];
   const cmvCats  = CATEGORIAS_CMV;
-  const cmvSubs  = form ? getSubcats(form.cmvCat) : [];
+  const cmvSubs  = form ? (CATEGORIAS_CMV[form.cmvCat] || []) : [];
 
   const isEntrada = form?.tipo === 'Entrada';
   const margemPreview = isEntrada && form?.cmvValor
