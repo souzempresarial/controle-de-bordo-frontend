@@ -655,7 +655,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     const upgradeEstoque = lancAteAno.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
     const totalAtivo     = Math.max(0, caixa) + totalAReceber + estoque + upgradeEstoque;
 
-    const aPagar              = lancamentos.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
+    const aPagar              = lancAteAno.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
     const totalFornecPagar    = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
     const totalOutrasPagar    = aPagar.filter(l => !['Fornecedores (Estoque)','Dívidas / Empréstimos','Impostos'].includes(l.categoria)).reduce((a,l) => a+l.valor, 0);
     const totalEmprestimosPagar = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos' && c.status === 'pendente').reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);

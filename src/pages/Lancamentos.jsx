@@ -74,6 +74,15 @@ export default function Lancamentos() {
   const [mpExpanded, setMpExpanded]             = useState(new Set()); // keys: mpItemKey
   const [mpEdits, setMpEdits]                   = useState({});        // mpItemKey → {valor,quantidade,pagamento,valorUpgrade}
 
+  // Ordens de Serviço — MP
+  const [osPendentes, setOsPendentes]         = useState([]);
+  const [osCarregando, setOsCarregando]       = useState(false);
+  const [osImportandoSet, setOsImportandoSet] = useState(new Set()); // keys: osId
+  const [osEdits, setOsEdits]                 = useState({});        // osId → {valor, subcategoria, descricao, pagamento, cmv}
+  const [osExpanded, setOsExpanded]           = useState(new Set()); // osId
+
+  const [filtrosPanelAberto, setFiltrosPanelAberto] = useState(false);
+
   const [dividindo, setDividindo]           = useState(null);
   const [dividirOrigem, setDividirOrigem]   = useState(null);
   const [dividirPartes, setDividirPartes]   = useState([]);
@@ -106,29 +115,30 @@ export default function Lancamentos() {
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
 
-  // Verifica se MP está configurado ao entrar no cliente
+  // Verifica se MP está configurado ao entrar no cliente; limpa pendentes ao trocar
   useEffect(() => {
+    setMpPendentes([]);
+    setOsPendentes([]);
     if (!clienteAtivo) return;
     API.mpStatus(clienteAtivo.id)
       .then(({ configurado }) => setMpConfigurado(configurado))
       .catch(() => setMpConfigurado(false));
   }, [clienteAtivo?.id]);
 
-  // Busca pendentes do MP quando o filtro de mês muda
-  useEffect(() => {
-    if (!filtroMes || !mpConfigurado || !clienteAtivo) {
-      setMpPendentes([]);
-      return;
-    }
-    const [y, m] = filtroMes.split('-');
-    const inicio = `${filtroMes}-01`;
+  // Busca manual de pendentes MP (vendas + OS)
+  function buscarMpPendentes(mes) {
+    const mesAlvo = mes || filtroMes;
+    if (!mesAlvo || !mpConfigurado || !clienteAtivo) return;
+    const [y, m] = mesAlvo.split('-');
+    const inicio = `${mesAlvo}-01`;
     const fim    = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10);
+
+    // Vendas
     setMpCarregando(true);
     API.mpPreview(clienteAtivo.id, inicio, fim)
       .then(({ transacoes }) => {
         const pendentes = transacoes.filter(t => !t.jaImportado);
         setMpPendentes(pendentes);
-        // Inicializa edits com os valores do MP para cada item
         setMpEdits(prev => {
           const n = { ...prev };
           pendentes.forEach(t => {
@@ -151,7 +161,24 @@ export default function Lancamentos() {
       })
       .catch(() => setMpPendentes([]))
       .finally(() => setMpCarregando(false));
-  }, [filtroMes, mpConfigurado, clienteAtivo?.id]);
+
+    // Ordens de Serviço
+    setOsCarregando(true);
+    API.mpOsPreview(clienteAtivo.id, inicio, fim)
+      .then(({ ordens }) => {
+        const pendentes = ordens.filter(o => !o.jaImportado);
+        setOsPendentes(pendentes);
+        setOsEdits(prev => {
+          const n = { ...prev };
+          pendentes.forEach(os => {
+            if (!n[os.osId]) n[os.osId] = { valor: String(os.valor), subcategoria: os.subcategoria || '', descricao: os.descricao || '', pagamento: '' };
+          });
+          return n;
+        });
+      })
+      .catch(() => setOsPendentes([]))
+      .finally(() => setOsCarregando(false));
+  }
 
   const filtrados = useMemo(() => {
     let lista = semCMV;
@@ -239,6 +266,14 @@ export default function Lancamentos() {
     setEditando(null); setEditandoCMV(null); setForm(null);
   }
 
+  function abrirNovo(tipo = 'Entrada') {
+    const l = { tipo, data: hoje(), valor: '', descricao: '', categoria: '', subcategoria: '', pagamento: '', status: 'Confirmado', obs: '', quantidade: null, valorRecebido: null, valorUpgrade: null, qtdUpgrade: null, banco: bancoAtivo || '', grupoId: null, isCMV: false };
+    setForm(formVazio(l, null, bancoAtivo));
+    setEditando(l);
+    setEditandoCMV(null);
+    setErroForm('');
+  }
+
   async function salvar() {
     const valorNum = parseFloat(form.valor);
     if (isNaN(valorNum) || valorNum < 0) { setErroForm('Informe um valor válido (mínimo R$ 0,00)'); return; }
@@ -251,6 +286,41 @@ export default function Lancamentos() {
       const valorRecebido = deducao !== null ? valorBruto - deducao : null;
       const upgradeVal    = parseFloat(form.valorUpgrade) > 0 ? parseFloat(form.valorUpgrade) : null;
       const qtdUpgradeVal = upgradeVal && parseInt(form.qtdUpgrade) > 0 ? parseInt(form.qtdUpgrade) : null;
+
+      // ── NOVO LANÇAMENTO (sem id) ────────────────────────────────────────────
+      if (!editando.id) {
+        const criado = await API.criarLancamento(clienteAtivo.id, {
+          tipo: form.tipo, valor: valorBruto, data: form.data,
+          categoria: form.categoria, subcategoria: form.subcategoria,
+          descricao: form.descricao, pagamento: form.pagamento,
+          status: form.status, obs: form.obs,
+          quantidade: isEntrada && !form.recebimentoAnterior ? (parseInt(form.quantidade) || null) : (form.recebimentoAnterior ? 0 : null),
+          valor_recebido: valorRecebido,
+          valor_upgrade: upgradeVal, qtd_upgrade: qtdUpgradeVal,
+          banco: form.banco || null,
+        });
+        if (isEntrada && !form.recebimentoAnterior && form.cmvValor && parseFloat(form.cmvValor) > 0) {
+          const gid = 'g' + Date.now() + criado.id;
+          try {
+            await API.criarLancamento(clienteAtivo.id, {
+              tipo: 'Saída', valor: parseFloat(form.cmvValor), data: form.data,
+              categoria: form.cmvCat, subcategoria: form.cmvSub,
+              descricao: 'CMV — ' + form.descricao,
+              pagamento: form.pagamento, status: form.status,
+              obs: 'CMV vinculado ao #' + String(criado.id).padStart(3, '0'),
+              grupo_id: gid, is_cmv: true,
+            });
+            await API.editarLancamento(clienteAtivo.id, criado.id, { ...criado, grupo_id: gid });
+          } catch (cmvErr) {
+            await API.excluirLancamento(clienteAtivo.id, criado.id).catch(() => {});
+            throw cmvErr;
+          }
+        }
+        const novas = await API.listarLancamentos(clienteAtivo.id);
+        setLancamentos(novas);
+        fecharModal();
+        return;
+      }
 
       let grupoId = editando.grupoId || null;
       let atualizadoCMV = null;
@@ -352,15 +422,19 @@ export default function Lancamentos() {
   }
 
   async function excluir(id) {
-    setConfirmando(null);
     try {
       await API.excluirLancamento(clienteAtivo.id, id);
+      setConfirmando(null);
       const sem    = lancamentos.filter(l => l.id !== id);
       const pais   = new Set(sem.filter(l => l.grupoId && !l.isCMV).map(l => l.grupoId));
       const orfaos = sem.filter(l => l.isCMV && !pais.has(l.grupoId));
       await Promise.allSettled(orfaos.map(o => API.excluirLancamento(clienteAtivo.id, o.id)));
       setLancamentos(sem.filter(l => !l.isCMV || pais.has(l.grupoId)));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setConfirmando(null);
+      setErroForm('Erro ao excluir lançamento. Tente novamente.');
+    }
   }
 
 
@@ -581,24 +655,13 @@ export default function Lancamentos() {
       <div className="table-panel">
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => abrirNovo('Entrada')}
+            title="Novo lançamento de entrada"
+          >+ Novo Lançamento</button>
           <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
           <input className="search-box" placeholder="🔍 Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
-          <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
-            <option value="">Todos os tipos</option>
-            <option>Entrada</option><option>Saída</option><option>Transferência</option>
-          </select>
-          <select className="filter-select" value={filtroCat} onChange={e => { setFiltroCat(e.target.value); setFiltroSub(''); }}>
-            <option value="">Todas categorias</option>
-            {todasCats.map(c => <option key={c}>{c}</option>)}
-          </select>
-          <select className="filter-select" value={filtroSub} onChange={e => setFiltroSub(e.target.value)}>
-            <option value="">Todas subcategorias</option>
-            {todasSubs.map(s => <option key={s}>{s}</option>)}
-          </select>
-          <select className="filter-select" value={filtroBanco} onChange={e => setFiltroBanco(e.target.value)}>
-            <option value="">Todos os bancos</option>
-            {todosBancos.map(b => <option key={b}>{b}</option>)}
-          </select>
           <select className="filter-select" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
             <option value="">Todos os meses</option>
             {todosMeses.map(m => {
@@ -606,7 +669,58 @@ export default function Lancamentos() {
               return <option key={m} value={m}>{new Date(y, mo-1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</option>;
             })}
           </select>
+          {mpConfigurado && filtroMes && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => buscarMpPendentes(filtroMes)}
+              disabled={mpCarregando || osCarregando}
+              title="Buscar vendas e OS pendentes do Mercado Phone para este mês"
+            >
+              {(mpCarregando || osCarregando) ? '⏳ Buscando...' : '🔄 Buscar no MP'}
+            </button>
+          )}
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setFiltrosPanelAberto(v => !v)}
+            style={{ position: 'relative', color: filtrosPanelAberto ? 'var(--primary)' : undefined, borderColor: filtrosPanelAberto ? 'var(--primary)' : undefined }}
+          >
+            🔍 Filtrar
+            {[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length > 0 && (
+              <span style={{ position: 'absolute', top: -6, right: -6, background: 'var(--primary)', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                {[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* Painel de filtros secundários colapsável */}
+        {filtrosPanelAberto && (
+          <div style={{ padding: '10px 18px 14px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', background: 'var(--surface2)' }}>
+            <select className="filter-select" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+              <option value="">Todos os tipos</option>
+              <option>Entrada</option><option>Saída</option><option>Transferência</option>
+            </select>
+            <select className="filter-select" value={filtroCat} onChange={e => { setFiltroCat(e.target.value); setFiltroSub(''); }}>
+              <option value="">Todas categorias</option>
+              {todasCats.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <select className="filter-select" value={filtroSub} onChange={e => setFiltroSub(e.target.value)}>
+              <option value="">Todas subcategorias</option>
+              {todasSubs.map(s => <option key={s}>{s}</option>)}
+            </select>
+            <select className="filter-select" value={filtroBanco} onChange={e => setFiltroBanco(e.target.value)}>
+              <option value="">Todos os bancos</option>
+              {todosBancos.map(b => <option key={b}>{b}</option>)}
+            </select>
+            {[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length > 0 && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ color: 'var(--danger)' }}
+                onClick={() => { setFiltroTipo(''); setFiltroCat(''); setFiltroSub(''); setFiltroBanco(''); }}
+              >✕ Limpar</button>
+            )}
+          </div>
+        )}
 
         {filtrados.length > 0 && (
           <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 13, flexWrap: 'wrap' }}>
@@ -895,6 +1009,200 @@ export default function Lancamentos() {
                     </React.Fragment>
                   );
                 })}
+                {/* Ordens de Serviço pendentes do MP */}
+                {osCarregando && (
+                  <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando Ordens de Serviço do Mercado Phone...</td></tr>
+                )}
+                {osPendentes.length > 0 && !osCarregando && (
+                  <>
+                    <tr>
+                      <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, #059669 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
+                            🔧 {osPendentes.length} OS pendente{osPendentes.length !== 1 ? 's' : ''} do Mercado Phone — Assistência Técnica
+                            <span style={{ fontWeight: 400, marginLeft: 6 }}>(todas não importadas)</span>
+                          </span>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ marginLeft: 'auto', background: '#059669' }}
+                            disabled={osImportandoSet.size > 0}
+                            onClick={async () => {
+                              const paraImportar = osPendentes
+                                .filter(o => !osImportandoSet.has(o.osId))
+                                .map(o => { const e = osEdits[o.osId] || {}; return { ...o, valor: parseFloat(e.valor) >= 0 ? parseFloat(e.valor) : o.valor, cmvEstimado: parseFloat(e.cmv) >= 0 ? parseFloat(e.cmv) : o.cmvEstimado, cmvEditado: e.cmv !== undefined, subcategoria: e.subcategoria || o.subcategoria, descricao: e.descricao || o.descricao, descricaoEditada: e.descricaoEditada || false, pagamento: e.pagamento || '' }; });
+                              if (!paraImportar.length) return;
+                              setOsImportandoSet(new Set(osPendentes.map(o => o.osId)));
+                              try {
+                                const { importados } = await API.mpOsImportar(clienteAtivo.id, paraImportar);
+                                if (importados > 0) {
+                                  const novas = await API.listarLancamentos(clienteAtivo.id);
+                                  setLancamentos(novas);
+                                }
+                                setOsPendentes([]);
+                                setOsEdits({});
+                              } catch (err) { console.error('[osImportarTodos]', err.message); }
+                              finally { setOsImportandoSet(new Set()); }
+                            }}
+                          >
+                            ✓ Importar {osPendentes.length} OS de uma vez
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)' }}
+                            onClick={() => setOsPendentes([])}
+                          >
+                            ✗ Ignorar todos
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {[...osPendentes].sort((a, b) => (a.data || '').localeCompare(b.data || '')).map(os => {
+                      const edit     = osEdits[os.osId] || {};
+                      const setEdit  = (campo, val) => setOsEdits(prev => ({ ...prev, [os.osId]: { ...prev[os.osId], [campo]: val } }));
+                      const expanded = osExpanded.has(os.osId);
+                      const toggleExpand = () => setOsExpanded(prev => { const s = new Set(prev); s.has(os.osId) ? s.delete(os.osId) : s.add(os.osId); return s; });
+                      const osDescartar  = () => { setOsPendentes(prev => prev.filter(o => o.osId !== os.osId)); setOsEdits(prev => { const n = { ...prev }; delete n[os.osId]; return n; }); setOsExpanded(prev => { const s = new Set(prev); s.delete(os.osId); return s; }); };
+                      const osImportar   = async () => {
+                        const osFinal = { ...os, valor: parseFloat(edit.valor) >= 0 ? parseFloat(edit.valor) : os.valor, cmvEstimado: parseFloat(edit.cmv) >= 0 ? parseFloat(edit.cmv) : os.cmvEstimado, cmvEditado: edit.cmv !== undefined, subcategoria: edit.subcategoria || os.subcategoria, descricao: edit.descricao || os.descricao, descricaoEditada: edit.descricaoEditada || false, pagamento: edit.pagamento || '' };
+                        setOsImportandoSet(prev => new Set([...prev, os.osId]));
+                        try {
+                          const { importados } = await API.mpOsImportar(clienteAtivo.id, [osFinal]);
+                          if (importados > 0) {
+                            const novas = await API.listarLancamentos(clienteAtivo.id);
+                            setLancamentos(novas);
+                            setOsPendentes(prev => prev.filter(o => o.osId !== os.osId));
+                            setOsEdits(prev => { const n = { ...prev }; delete n[os.osId]; return n; });
+                            setOsExpanded(prev => { const s = new Set(prev); s.delete(os.osId); return s; });
+                          }
+                        } catch (err) { console.error('[osImportar]', err.message); }
+                        finally { setOsImportandoSet(prev => { const s = new Set(prev); s.delete(os.osId); return s; }); }
+                      };
+                      const AT_SUBS = ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Garantia','Outro'];
+                      const rowBg   = 'color-mix(in srgb, #059669 4%, var(--surface2))';
+                      return (
+                        <React.Fragment key={`os-${os.osId}`}>
+                          <tr style={{ background: rowBg, opacity: 0.9, borderBottom: expanded ? 'none' : undefined }}>
+                            <td className="id-cell" style={{ whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 10, background: '#05966920', color: '#059669', borderRadius: 4, padding: '2px 5px', fontWeight: 700 }}>OS</span>
+                              <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>{os.codigo}</span>
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap' }}>{os.data ? os.data.split('-').reverse().join('/') : '—'}</td>
+                            <td><span className="tipo-badge tipo-Entrada">Entrada</span></td>
+                            <td>Assistência Técnica</td>
+                            <td style={{ color: 'var(--text2)' }}>{edit.subcategoria || os.subcategoria}</td>
+                            <td>
+                              <span>{edit.descricao || os.descricao}</span>
+                              {os.tipoAparelho && <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 6 }}>· {os.tipoAparelho}</span>}
+                              <div style={{ fontSize: 10, fontWeight: 600, color: '#059669', background: '#05966912', borderRadius: 3, padding: '1px 5px', display: 'inline-block', marginTop: 2, marginLeft: os.tipoAparelho ? 6 : 0 }}>
+                                Mercado Phone{os.chaveNome ? ` · ${os.chaveNome}` : ''}
+                              </div>
+                            </td>
+                            <td style={{ color: 'var(--text2)' }}>—</td>
+                            <td style={{ color: 'var(--text2)' }}>{edit.pagamento || '—'}</td>
+                            <td><span style={{ fontSize: 11, color: 'var(--text2)' }}>Confirmado</span></td>
+                            <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              +{fmt(parseFloat(edit.valor) >= 0 ? parseFloat(edit.valor) : os.valor)}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button
+                                  className="btn btn-sm"
+                                  style={{ background: expanded ? '#059669' : 'transparent', color: expanded ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
+                                  onClick={toggleExpand}
+                                  title={expanded ? 'Fechar edição' : 'Editar antes de importar'}
+                                >✎</button>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  style={{ background: '#059669' }}
+                                  disabled={osImportandoSet.has(os.osId)}
+                                  onClick={osImportar}
+                                  title={`Importar OS · ${os.clienteNome}`}
+                                >{osImportandoSet.has(os.osId) ? '...' : '✓'}</button>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  onClick={osDescartar}
+                                  title="Ignorar esta OS"
+                                >✗</button>
+                              </div>
+                            </td>
+                          </tr>
+                          {expanded && (
+                            <tr style={{ background: rowBg, borderBottom: '1px dashed var(--border)' }}>
+                              <td colSpan={11} style={{ padding: '4px 16px 12px', paddingLeft: 48 }}>
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                  <div>
+                                    <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Valor (R$)</div>
+                                    <input type="number" min="0" step="0.01"
+                                      value={edit.valor ?? String(os.valor)}
+                                      onChange={e => setEdit('valor', e.target.value)}
+                                      style={{ width: 90, fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Custo / CMV (R$)</div>
+                                    <input type="number" min="0" step="0.01"
+                                      value={edit.cmv ?? String(os.cmvEstimado ?? 0)}
+                                      onChange={e => setEdit('cmv', e.target.value)}
+                                      placeholder="0,00"
+                                      style={{ width: 90, fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Subcategoria</div>
+                                    <select
+                                      value={edit.subcategoria || os.subcategoria}
+                                      onChange={e => setEdit('subcategoria', e.target.value)}
+                                      style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    >
+                                      {AT_SUBS.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Pagamento</div>
+                                    <select
+                                      value={edit.pagamento || ''}
+                                      onChange={e => setEdit('pagamento', e.target.value)}
+                                      style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    >
+                                      <option value="">Selecionar...</option>
+                                      {['Pix','Crédito','Débito','Dinheiro','Transferência','Boleto'].map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                  </div>
+                                  {os.tecnicoNome && (
+                                    <div>
+                                      <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Técnico</div>
+                                      <div style={{ fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text2)', minWidth: 100 }}>{os.tecnicoNome}</div>
+                                    </div>
+                                  )}
+                                  <div style={{ flex: 1, minWidth: 180 }}>
+                                    <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Descrição <span style={{ fontWeight: 400, opacity: 0.7 }}>(auto da API se não editar)</span></div>
+                                    <input
+                                      value={edit.descricao ?? ''}
+                                      placeholder={os.descricao}
+                                      onChange={e => setOsEdits(prev => ({ ...prev, [os.osId]: { ...prev[os.osId], descricao: e.target.value, descricaoEditada: true } }))}
+                                      style={{ width: '100%', fontSize: 12, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--text)' }}
+                                    />
+                                    {os.queixa && <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 3, fontStyle: 'italic' }} title={os.queixa}>{os.queixa.slice(0, 80)}{os.queixa.length > 80 ? '…' : ''}</div>}
+                                  </div>
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    style={{ background: '#059669', alignSelf: 'flex-end' }}
+                                    disabled={osImportandoSet.has(os.osId)}
+                                    onClick={osImportar}
+                                  >{osImportandoSet.has(os.osId) ? 'Importando...' : '✓ Importar esta'}</button>
+                                </div>
+                                {os.clienteNome && (
+                                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text2)' }}>Cliente: {os.clienteNome}</div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </>
+                )}
+
                 {/* Lançamentos confirmados */}
                 {filtradosOrdenados.map(l => {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
@@ -948,7 +1256,7 @@ export default function Lancamentos() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && fecharModal()}>
           <div className="modal-box">
             <div className="modal-header">
-              <h3>Editar Lançamento #{String(editando.id).padStart(3,'0')}</h3>
+              <h3>{editando.id ? `Editar Lançamento #${String(editando.id).padStart(3,'0')}` : `Novo Lançamento — ${editando.tipo}`}</h3>
               <button className="modal-close" onClick={fecharModal}>✕</button>
             </div>
             <div className="modal-body">
@@ -1213,7 +1521,7 @@ export default function Lancamentos() {
                               <select value={l.categoria_sugerida || ''} onChange={e => editarLinha(l._id, 'categoria_sugerida', e.target.value)}
                                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text2)', padding: '2px 4px', fontSize: 12, width: '100%' }}>
                                 <option value="">— selecione —</option>
-                                {Object.entries(getCatsPorTipo('Saída')).filter(([,v]) => v !== null).map(([cat]) => (
+                                {Object.entries(getCatsPorTipo(l.tipo)).filter(([,v]) => v !== null).map(([cat]) => (
                                   <option key={cat} value={cat}>{cat}</option>
                                 ))}
                               </select>

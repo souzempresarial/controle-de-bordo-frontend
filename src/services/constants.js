@@ -2,7 +2,7 @@
   '— Receitas Operacionais —': null,
   'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Upgrade','Outro'],
   'Acessórios':            ['Acessórios Geral','Fonte Turbo','Brindes','Premium','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
-  'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Outro'],
+  'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Garantia','Outro'],
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
   '— Receitas Não-Operacionais —': null,
   'Receitas Não-Operacionais': ['Blindagem','Seguro','Vendas Extras','Aplicações Fora da Companhia','Outro'],
