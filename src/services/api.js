@@ -1,6 +1,6 @@
 ﻿const API_URL = import.meta.env.PROD
   ? '/api'
-  : (import.meta.env.VITE_DEV_API || 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com');
+  : (import.meta.env.VITE_DEV_API || 'https://4ptvribcbc.execute-api.sa-east-1.amazonaws.com');
 
 function normalizarLancamento(l) {
   return {
