@@ -121,7 +121,7 @@ export const API = {
     form.append('arquivo', arquivo);
     if (dataInicio) form.append('dataInicio', dataInicio);
     if (dataFim)    form.append('dataFim',    dataFim);
-    return fetch(`https://e5dyozgewxfhwitb6dpm5e2fbm0wobrh.lambda-url.sa-east-1.on.aws/clientes/${cid}/extrato/processar`, {
+    return fetch(`https://25guff2oa3jjyui375jromh7u40enoeu.lambda-url.sa-east-1.on.aws/clientes/${cid}/extrato/processar`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: form,
