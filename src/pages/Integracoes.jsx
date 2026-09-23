@@ -3,9 +3,9 @@ import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 
 const INTEGRACOES_FUTURAS = [
-  { id: 'bling',        nome: 'Bling',          descricao: 'ERP e emissão de NF-e',              logo: '/logos/bling.svg',        logoBg: '#002726', em_breve: true },
-  { id: 'nfe',          nome: 'NF-e',            descricao: 'Emissão de nota fiscal eletrônica',  logo: '/logos/nfe.png',           logoBg: '#fff',    em_breve: true },
-  { id: 'open_finance', nome: 'Open Finance',    descricao: 'Conexão direta com bancos',          logo: '/logos/open-finance.png',  logoBg: '#fff',    em_breve: true },
+  { id: 'bling',        nome: 'Bling',          descricao: 'ERP e emissão de NF-e',              logo: '/logos/bling.svg',        logoBg: '#002726',          em_breve: true },
+  { id: 'nfe',          nome: 'NF-e',            descricao: 'Emissão de nota fiscal eletrônica',  logo: '/logos/nfe.png',           logoBg: 'var(--surface2)',  em_breve: true },
+  { id: 'open_finance', nome: 'Open Finance',    descricao: 'Conexão direta com bancos',          logo: '/logos/open-finance.png',  logoBg: 'var(--surface2)',  em_breve: true },
 ];
 
 export default function Integracoes() {
@@ -91,9 +91,9 @@ export default function Integracoes() {
       {/* ── Mercado Phone ── */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ ...logoBox, background: '#fff', border: '1px solid #e8e8e8' }}>
-            <img src="/logos/mercadophone.png" alt="Mercado Phone"
-              style={{ width: 38, height: 38, objectFit: 'contain' }}
+          <div style={{ ...logoBox, background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+            <img src="/logos/mercadophone-icon.png" alt="Mercado Phone"
+              style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 6 }}
             />
           </div>
 
@@ -215,9 +215,9 @@ export default function Integracoes() {
         {INTEGRACOES_FUTURAS.map(int => (
           <div key={int.id} style={{ ...cardStyle, opacity: 0.6, cursor: 'default' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ ...logoBox, background: int.logoBg, border: '1px solid #e8e8e8' }}>
+              <div style={{ ...logoBox, background: int.logoBg, border: int.id === 'bling' ? 'none' : '1px solid var(--border)' }}>
                 <img src={int.logo} alt={int.nome}
-                  style={{ width: 38, height: 38, objectFit: 'contain' }}
+                  style={{ width: 36, height: 36, objectFit: 'contain' }}
                 />
               </div>
               <div>
