@@ -3,9 +3,9 @@ import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 
 const INTEGRACOES_FUTURAS = [
-  { id: 'bling',        nome: 'Bling',          descricao: 'ERP e emissão de NF-e',              logo: '🟦', em_breve: true },
-  { id: 'nfe',          nome: 'NF-e',            descricao: 'Emissão de nota fiscal eletrônica',  logo: '🧾', em_breve: true },
-  { id: 'open_finance', nome: 'Open Finance',    descricao: 'Conexão direta com bancos',          logo: '🏦', em_breve: true },
+  { id: 'bling',        nome: 'Bling',          descricao: 'ERP e emissão de NF-e',              logo: '/logos/bling.svg',        logoBg: '#002726', em_breve: true },
+  { id: 'nfe',          nome: 'NF-e',            descricao: 'Emissão de nota fiscal eletrônica',  logo: '/logos/nfe.png',           logoBg: '#fff',    em_breve: true },
+  { id: 'open_finance', nome: 'Open Finance',    descricao: 'Conexão direta com bancos',          logo: '/logos/open-finance.png',  logoBg: '#fff',    em_breve: true },
 ];
 
 export default function Integracoes() {
@@ -91,12 +91,10 @@ export default function Integracoes() {
       {/* ── Mercado Phone ── */}
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-          <div style={logoBox}>
-            <img src="/mp-logo.png" alt="Mercado Phone"
-              style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8 }}
-              onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block'; }}
+          <div style={{ ...logoBox, background: '#fff', border: '1px solid #e8e8e8' }}>
+            <img src="/logos/mercadophone.png" alt="Mercado Phone"
+              style={{ width: 38, height: 38, objectFit: 'contain' }}
             />
-            <span style={{ display: 'none', fontSize: 28 }}>📱</span>
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -217,8 +215,10 @@ export default function Integracoes() {
         {INTEGRACOES_FUTURAS.map(int => (
           <div key={int.id} style={{ ...cardStyle, opacity: 0.6, cursor: 'default' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ ...logoBox, fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {int.logo}
+              <div style={{ ...logoBox, background: int.logoBg, border: '1px solid #e8e8e8' }}>
+                <img src={int.logo} alt={int.nome}
+                  style={{ width: 38, height: 38, objectFit: 'contain' }}
+                />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
