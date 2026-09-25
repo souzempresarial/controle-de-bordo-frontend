@@ -99,7 +99,7 @@ export default function Exportar() {
     const card = (label, value, color = '#111', sub = '') => `
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:4px">
         <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px">${label}</div>
-        <div style="font-size:22px;font-weight:900;color:${color};line-height:1.1">${value}</div>
+        <div style="font-size:22px;font-weight:900;color:${color};line-height:1.1;white-space:nowrap">${value}</div>
         ${sub ? `<div style="font-size:11px;color:#9ca3af">${sub}</div>` : ''}
       </div>`;
 
