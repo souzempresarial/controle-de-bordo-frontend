@@ -72,7 +72,7 @@ export function getCmvSubAuto(categoria, subcategoria) {
 }
 
 export function getSubcats(cat) {
-  const todas = [CATEGORIAS_ENTRADA, CATEGORIAS_SAIDA, CATEGORIAS_TRANSF, CATEGORIAS_CMV];
+  const todas = [CATEGORIAS_ENTRADA, CATEGORIAS_CMV, CATEGORIAS_SAIDA, CATEGORIAS_TRANSF];
   for (const grupo of todas) {
     if (grupo[cat] && grupo[cat] !== null) return grupo[cat];
   }
