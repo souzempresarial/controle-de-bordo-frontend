@@ -131,7 +131,7 @@ export default function Lancamentos() {
     if (!mesAlvo || !mpConfigurado || !clienteAtivo) return;
     const [y, m] = mesAlvo.split('-');
     const inicio = `${mesAlvo}-01`;
-    const fim    = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10);
+    const fim    = new Date(Number(y), Number(m), 1).toISOString().slice(0, 10);
 
     // Vendas
     setMpCarregando(true);
