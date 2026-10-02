@@ -821,6 +821,7 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
   }, [lancamentos, anoAtual]);
 
   const [mes, setMes] = useState(hoje().slice(5, 7));
+  const [diasAbertos, setDiasAbertos] = useState(new Set());
 
   const upgrades = useMemo(() => {
     const periodo = (l) => l.data.startsWith(ano) && (mes === '' || l.data.startsWith(`${ano}-${mes}`));
@@ -833,8 +834,26 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
     return [...novos, ...antigos].sort((a, b) => b.data.localeCompare(a.data));
   }, [lancamentos, ano, mes]);
 
+  // Agrupa por data
+  const porDia = useMemo(() => {
+    const map = new Map();
+    for (const l of upgrades) {
+      if (!map.has(l.data)) map.set(l.data, []);
+      map.get(l.data).push(l);
+    }
+    return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [upgrades]);
+
   const totalQtd = upgrades.reduce((a, l) => a + l._qtd, 0);
   const totalVal = upgrades.reduce((a, l) => a + l._valorUpgrade, 0);
+
+  function toggleDia(data) {
+    setDiasAbertos(prev => {
+      const next = new Set(prev);
+      next.has(data) ? next.delete(data) : next.add(data);
+      return next;
+    });
+  }
 
   return (
     <div>
@@ -873,6 +892,7 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 32 }} />
                   <th>Data</th>
                   <th>Modelo</th>
                   <th>Descrição</th>
@@ -881,22 +901,48 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
                 </tr>
               </thead>
               <tbody>
-                {upgrades.map(l => (
-                  <tr key={`${l._origem}-${l.id}`}>
-                    <td style={{ whiteSpace: 'nowrap' }}>{l.data.split('-').reverse().join('/')}</td>
-                    <td style={{ fontWeight: 600 }}>{l._origem === 'novo' ? (l.subcategoria || l.categoria || '—') : (l.subcategoria || '—')}</td>
-                    <td style={{ color: 'var(--text2)' }}>{l.descricao || '—'}</td>
-                    <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l._valorUpgrade)}</td>
-                    <td>
-                      <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: l._origem === 'novo' ? '#8b5cf622' : '#f59e0b22', color: l._origem === 'novo' ? '#8b5cf6' : '#f59e0b', fontWeight: 600 }}>
-                        {l._origem === 'novo' ? 'Novo' : 'Anterior'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {porDia.map(([data, itens]) => {
+                  const aberto = diasAbertos.has(data);
+                  const diaQtd = itens.reduce((a, l) => a + l._qtd, 0);
+                  const diaVal = itens.reduce((a, l) => a + l._valorUpgrade, 0);
+                  const dataFmt = data.split('-').reverse().join('/');
+                  return (
+                    <>
+                      {/* Linha resumo do dia */}
+                      <tr
+                        key={`dia-${data}`}
+                        onClick={() => toggleDia(data)}
+                        style={{ cursor: 'pointer', background: aberto ? 'var(--surface2)' : undefined, userSelect: 'none' }}
+                      >
+                        <td style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 11, transition: 'transform .15s', transform: aberto ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', marginTop: 4 }}>▶</td>
+                        <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{dataFmt}</td>
+                        <td style={{ color: 'var(--text2)', fontSize: 12 }}>{diaQtd} aparelho{diaQtd !== 1 ? 's' : ''}</td>
+                        <td style={{ color: 'var(--text2)', fontSize: 12 }}>clique para ver detalhes</td>
+                        <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(diaVal)}</td>
+                        <td />
+                      </tr>
+                      {/* Linhas detalhadas (expandidas) */}
+                      {aberto && itens.map(l => (
+                        <tr key={`${l._origem}-${l.id}`} style={{ background: 'var(--surface2)' }}>
+                          <td />
+                          <td style={{ whiteSpace: 'nowrap', color: 'var(--text2)', fontSize: 12, paddingLeft: 20 }}>{dataFmt}</td>
+                          <td style={{ fontWeight: 600, paddingLeft: 20 }}>{l._origem === 'novo' ? (l.subcategoria || l.categoria || '—') : (l.subcategoria || '—')}</td>
+                          <td style={{ color: 'var(--text2)', paddingLeft: 20 }}>{l.descricao || '—'}</td>
+                          <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l._valorUpgrade)}</td>
+                          <td>
+                            <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: l._origem === 'novo' ? '#8b5cf622' : '#f59e0b22', color: l._origem === 'novo' ? '#8b5cf6' : '#f59e0b', fontWeight: 600 }}>
+                              {l._origem === 'novo' ? 'Novo' : 'Anterior'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 700 }}>
+                  <td />
                   <td colSpan={3} style={{ paddingTop: 8, color: 'var(--text2)' }}>TOTAL — {totalQtd} aparelho{totalQtd !== 1 ? 's' : ''}</td>
                   <td style={{ textAlign: 'right', paddingTop: 8, color: '#8b5cf6' }}>{fmt(totalVal)}</td>
                   <td />
