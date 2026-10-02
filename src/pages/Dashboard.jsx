@@ -473,6 +473,13 @@ export default function Dashboard() {
       </div>
 
 
+      {/* Botão novo lançamento */}
+      <div>
+        <button className="btn btn-primary" onClick={abrirNovo}>
+          ＋ Novo Lançamento
+        </button>
+      </div>
+
       {/* Resumo de Produtos */}
       {resumoProdutos.length > 0 && (
         <div className="table-panel">
@@ -558,13 +565,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* Botão novo lançamento */}
-      <div>
-        <button className="btn btn-primary" onClick={abrirNovo}>
-          ＋ Novo Lançamento
-        </button>
-      </div>
 
       {/* Tabela de últimos lançamentos */}
       <div className="table-panel">
