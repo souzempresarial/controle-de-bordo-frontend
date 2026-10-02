@@ -32,7 +32,7 @@ export default function Exportar() {
     const entradas  = lm.filter(l => l.tipo === 'Entrada' && ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos','Receitas Não-Operacionais'].includes(l.categoria) && l.status !== 'Pendente');
     const fat       = entradas.reduce((a, l) => a + l.valor, 0);
     const dedInline = entradas.filter(l => l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
-    const cmv       = lm.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a, l) => a + l.valor, 0);
+    const cmv       = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const sga       = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
     const naoOp     = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
