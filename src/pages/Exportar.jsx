@@ -2,6 +2,7 @@
 import { useApp } from '../context/AppContext';
 import { fmt, hoje } from '../services/utils';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, APORTE_CATS } from '../services/constants';
+import { calcDREBase } from '../services/dre';
 import './Exportar.css';
 
 function fmtBR(v) {
@@ -27,44 +28,39 @@ export default function Exportar() {
 
 
   const metricas = useMemo(() => {
-    const lm = filtrados;
+    const lm   = filtrados;
+    const base = calcDREBase(lm);
 
-    const entradas  = lm.filter(l => l.tipo === 'Entrada' && ['Aparelhos','Acessórios','Assistência Técnica','Outros Produtos','Receitas Não-Operacionais'].includes(l.categoria) && l.status !== 'Pendente');
-    const fat       = entradas.reduce((a, l) => a + l.valor, 0);
-    const dedInline = entradas.filter(l => l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
-    const cmv       = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-    const deducoes  = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-    const sga       = lm.filter(l => l.tipo === 'Saída' && SGA_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-    const naoOp     = lm.filter(l => l.tipo === 'Saída' && NAOOP_CATS.includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-    const lucroLiq  = fat - cmv - deducoes - sga - naoOp - dedInline;
-    const margem    = fat > 0 ? (lucroLiq / fat * 100) : 0;
-    const custoTotal = cmv + deducoes + sga + naoOp;
+    const fat      = base.recBruta;
+    const lucroLiq = base.lucroLiq;
+    const margem   = base.margem;
+    const custoTotal = fat - lucroLiq;
 
-    const aps       = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV && l.status !== 'Pendente');
-    const fatAp     = aps.reduce((a, l) => a + l.valor, 0);
-    const uniAp     = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
-    const ticketAp  = uniAp > 0 ? fatAp / uniAp : 0;
-    const apIds     = new Set(aps.filter(l => l.grupoId).map(l => l.grupoId));
-    const cmvAp     = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-    const lucroAp   = fatAp - cmvAp;
-    const lucMedAp  = uniAp > 0 ? lucroAp / uniAp : 0;
+    const aps    = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Aparelhos' && !l.isCMV);
+    const fatAp  = aps.reduce((a, l) => a + l.valor, 0);
+    const uniAp  = aps.reduce((a, l) => a + (l.quantidade || 1), 0);
+    const ticketAp = uniAp > 0 ? fatAp / uniAp : 0;
+    const apIds  = new Set(aps.filter(l => l.grupoId).map(l => l.grupoId));
+    const cmvAp  = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+    const lucroAp  = fatAp - cmvAp;
+    const lucMedAp = uniAp > 0 ? lucroAp / uniAp : 0;
 
-    const accs      = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV && l.status !== 'Pendente');
-    const fatAcc    = accs.reduce((a, l) => a + l.valor, 0);
-    const uniAcc    = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
-    const accIds    = new Set(accs.filter(l => l.grupoId).map(l => l.grupoId));
-    const cmvAcc    = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && accIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-    const lucroAcc  = fatAcc - cmvAcc;
+    const accs   = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV);
+    const fatAcc = accs.reduce((a, l) => a + l.valor, 0);
+    const uniAcc = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
+    const accIds = new Set(accs.filter(l => l.grupoId).map(l => l.grupoId));
+    const cmvAcc = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && accIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+    const lucroAcc = fatAcc - cmvAcc;
 
-    const lmDFC     = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
-    const entBruto  = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
+    const lmDFC      = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
+    const entBruto   = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
     const dedInlineDFC = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
     const upInlineDFC  = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a, l) => a + l.valorUpgrade, 0);
-    const entCaixa  = entBruto - upInlineDFC;
-    const saiCaixa  = lmDFC.filter(l => l.tipo === 'Saída').reduce((a, l) => a + l.valor, 0) + dedInlineDFC;
+    const entCaixa   = entBruto - upInlineDFC;
+    const saiCaixa   = lmDFC.filter(l => l.tipo === 'Saída').reduce((a, l) => a + l.valor, 0) + dedInlineDFC;
     const geracaoCaixa = entCaixa - saiCaixa;
 
-    return { fat, cmv, lucroLiq, margem, custoTotal, uniAp, fatAp, ticketAp, lucMedAp, lucroAp, uniAcc, fatAcc, lucroAcc, entCaixa, saiCaixa, geracaoCaixa };
+    return { fat, lucroLiq, margem, custoTotal, uniAp, fatAp, ticketAp, lucMedAp, lucroAp, uniAcc, fatAcc, lucroAcc, entCaixa, saiCaixa, geracaoCaixa };
   }, [filtrados]);
 
   const totEntradas = metricas.fat;
