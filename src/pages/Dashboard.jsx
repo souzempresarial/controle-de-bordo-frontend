@@ -480,56 +480,81 @@ export default function Dashboard() {
             <h2>Resumo de Produtos</h2>
             <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {['Aparelhos', 'Acessórios', 'Assistência Técnica'].map(grupo => {
-              const itens = resumoProdutos.filter(p => p.grupo === grupo);
-              if (!itens.length) return null;
-              const subUnid = itens.reduce((a, p) => a + p.unidades, 0);
-              const subFat  = itens.reduce((a, p) => a + p.faturamento, 0);
-              const subLuc  = itens.reduce((a, p) => a + p.lucro, 0);
-              return (
-                <div key={grupo} style={{ flex: '1 1 280px', minWidth: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ background: 'var(--surface2)', padding: '8px 14px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text2)' }}>
-                    {grupo}
-                  </div>
-                  <table className="resumo-table" style={{ width: '100%' }}>
-                    <thead>
-                      <tr>
-                        <th>Produto</th>
-                        <th style={{ textAlign: 'right' }}>Un.</th>
-                        <th style={{ textAlign: 'right' }}>Faturamento</th>
-                        <th style={{ textAlign: 'right' }}>Margem</th>
-                        <th style={{ textAlign: 'right' }}>Lucro</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {itens.map(p => (
-                        <tr key={p.produto}>
-                          <td style={{ fontWeight: 600 }}>{p.produto}</td>
-                          <td style={{ textAlign: 'right' }}>{p.unidades}</td>
-                          <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                          <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--text2)' }}>
-                            {p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) + '%' : '—'}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
-                        <td style={{ fontWeight: 700, fontSize: 12 }}>Total</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(subFat)}</td>
-                        <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--text2)' }}>
-                          {subFat > 0 ? (subLuc / subFat * 100).toFixed(1) + '%' : '—'}
+          <div className="resumo-table-wrap">
+          <table className="resumo-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th style={{ textAlign: 'right' }}>Unidades</th>
+                <th style={{ textAlign: 'right' }}>Faturamento</th>
+                <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                <th style={{ textAlign: 'right' }}>Lucro Médio</th>
+                <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {['Aparelhos', 'Acessórios', 'Assistência Técnica'].map(grupo => {
+                const itens = resumoProdutos.filter(p => p.grupo === grupo);
+                if (!itens.length) return null;
+                const subUnid = itens.reduce((a, p) => a + p.unidades, 0);
+                const subFat  = itens.reduce((a, p) => a + p.faturamento, 0);
+                const subLuc  = itens.reduce((a, p) => a + p.lucro, 0);
+                return (
+                  <React.Fragment key={grupo}>
+                    <tr style={{ background: 'var(--surface2)' }}>
+                      <td colSpan={6} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text2)', paddingTop: 10, paddingBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        {grupo}
+                      </td>
+                    </tr>
+                    {itens.map(p => (
+                      <tr key={p.grupo + ':' + p.produto}>
+                        <td style={{ fontWeight: 600, paddingLeft: 20 }}>{p.produto}</td>
+                        <td style={{ textAlign: 'right' }}>{p.unidades}</td>
+                        <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
+                        <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{p.unidades > 0 ? fmt(p.lucro / p.unidades) : '—'}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(subLuc)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
                       </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              );
-            })}
+                    ))}
+                    <tr style={{ borderTop: '1px solid var(--border)', background: 'var(--surface2)' }}>
+                      <td style={{ fontWeight: 700, paddingLeft: 20, fontSize: 12 }}>Subtotal {grupo}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(subFat)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid > 0 ? fmt(subFat / subUnid) : '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span style={{ fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{subUnid > 0 ? fmt(subLuc / subUnid) : '—'}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({subFat > 0 ? (subLuc / subFat * 100).toFixed(1) : 0}%)</span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(subLuc)}</td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              {(() => {
+                const totUnid = resumoProdutos.reduce((a, p) => a + p.unidades, 0);
+                const totFat  = resumoProdutos.reduce((a, p) => a + p.faturamento, 0);
+                const totLuc  = resumoProdutos.reduce((a, p) => a + p.lucro, 0);
+                return (
+                  <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
+                    <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid > 0 ? fmt(totFat / totUnid) : '—'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{totUnid > 0 ? fmt(totLuc / totUnid) : '—'}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({totFat > 0 ? (totLuc / totFat * 100).toFixed(1) : 0}%)</span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
+                  </tr>
+                );
+              })()}
+            </tfoot>
+          </table>
           </div>
         </div>
       )}
