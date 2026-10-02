@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
@@ -144,10 +144,15 @@ export default function Dashboard() {
 
   const resumoProdutos = useMemo(() => {
     const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
+    const GRUPO_AT = ['Assistência Técnica'];
+    const GRUPO_ACESS = ['Acessórios', 'Outros Produtos'];
     const map = {};
     entradas.forEach(l => {
-      const key = l.subcategoria || l.categoria || 'Outro';
-      if (!map[key]) map[key] = { produto: key, unidades: 0, faturamento: 0, lucro: 0, descricoes: [] };
+      const grupo = GRUPO_AT.includes(l.categoria) ? 'Assistência Técnica'
+                  : GRUPO_ACESS.includes(l.categoria) ? 'Acessórios'
+                  : 'Aparelhos';
+      const key = grupo + ':' + (l.subcategoria || l.categoria || 'Outro');
+      if (!map[key]) map[key] = { produto: l.subcategoria || l.categoria || 'Outro', grupo, unidades: 0, faturamento: 0, lucro: 0, descricoes: [] };
       map[key].unidades    += (l.quantidade ?? 1);
       map[key].faturamento += l.valor;
       const cmvL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && (x.isCMV || CMVCATS.includes(x.categoria))).reduce((a, x) => a + x.valor, 0) : 0;
@@ -488,19 +493,44 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {resumoProdutos.map(p => {
+              {['Aparelhos', 'Acessórios', 'Assistência Técnica'].map(grupo => {
+                const itens = resumoProdutos.filter(p => p.grupo === grupo);
+                if (!itens.length) return null;
+                const subUnid = itens.reduce((a, p) => a + p.unidades, 0);
+                const subFat  = itens.reduce((a, p) => a + p.faturamento, 0);
+                const subLuc  = itens.reduce((a, p) => a + p.lucro, 0);
                 return (
-                  <tr key={p.produto}>
-                    <td style={{ fontWeight: 600 }}>{p.produto}</td>
-                    <td style={{ textAlign: 'right' }}>{p.unidades}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                    <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{p.unidades > 0 ? fmt(p.lucro / p.unidades) : '—'}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
-                  </tr>
+                  <React.Fragment key={grupo}>
+                    <tr style={{ background: 'var(--surface2)' }}>
+                      <td colSpan={6} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text2)', paddingTop: 10, paddingBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        {grupo}
+                      </td>
+                    </tr>
+                    {itens.map(p => (
+                      <tr key={p.grupo + ':' + p.produto}>
+                        <td style={{ fontWeight: 600, paddingLeft: 20 }}>{p.produto}</td>
+                        <td style={{ textAlign: 'right' }}>{p.unidades}</td>
+                        <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
+                        <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{p.unidades > 0 ? fmt(p.lucro / p.unidades) : '—'}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ borderTop: '1px solid var(--border)', background: 'var(--surface2)' }}>
+                      <td style={{ fontWeight: 700, paddingLeft: 20, fontSize: 12 }}>Subtotal {grupo}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(subFat)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid > 0 ? fmt(subFat / subUnid) : '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span style={{ fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{subUnid > 0 ? fmt(subLuc / subUnid) : '—'}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({subFat > 0 ? (subLuc / subFat * 100).toFixed(1) : 0}%)</span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(subLuc)}</td>
+                    </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -509,7 +539,7 @@ export default function Dashboard() {
                 const totUnid = resumoProdutos.reduce((a, p) => a + p.unidades, 0);
                 const totFat  = resumoProdutos.reduce((a, p) => a + p.faturamento, 0);
                 const totLuc  = resumoProdutos.reduce((a, p) => a + p.lucro, 0);
-                return (<>
+                return (
                   <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
                     <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
                     <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
@@ -521,7 +551,7 @@ export default function Dashboard() {
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
                   </tr>
-                </>);
+                );
               })()}
             </tfoot>
           </table>
