@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, useCallback } from 'react';
+﻿import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
@@ -12,7 +12,38 @@ function calcDREMes(lancamentos, pfx) {
 }
 
 // ── DRE ──────────────────────────────────────────────────────────────────────
+// Abre a tabela com o mês selecionado como última coluna visível, mostrando os meses anteriores ao lado
+function useRolarParaMes(mesFiltro, ano, dados) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    const th = el?.querySelector(`th[data-mes="${mesFiltro}"]`);
+    if (!th) return;
+    const fim = th.getBoundingClientRect().right - el.getBoundingClientRect().left + el.scrollLeft;
+    el.scrollLeft = Math.max(0, fim - el.clientWidth + 8);
+  }, [mesFiltro, ano, dados]);
+  return ref;
+}
+
+function TituloComSetas({ titulo, scrollRef }) {
+  const rolar = dir => {
+    const el = scrollRef.current;
+    const col = el?.querySelector('th[data-mes]')?.offsetWidth || 100;
+    el?.scrollBy({ left: dir * col * 3, behavior: 'smooth' });
+  };
+  return (
+    <div className="dre-titulo">
+      <span>{titulo}</span>
+      <span className="dre-setas">
+        <button type="button" onClick={() => rolar(-1)} aria-label="Meses anteriores" title="Meses anteriores">‹</button>
+        <button type="button" onClick={() => rolar(1)} aria-label="Próximos meses" title="Próximos meses">›</button>
+      </span>
+    </div>
+  );
+}
+
 function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, setMesFiltro, ano, setAno }) {
+  const scrollRef = useRolarParaMes(mesFiltro, ano, lancamentos);
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -206,12 +237,12 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
       </div>
 
       <div className="table-panel">
-        <div style={{ overflowX: 'auto' }}>
+        <div className="dre-scroll" ref={scrollRef}>
           <table className="dre-table">
             <thead>
               <tr>
-                <th style={{ minWidth: 280 }}>DRE — Resultado do Exercício</th>
-                {MESES.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
+                <th style={{ minWidth: 280 }}><TituloComSetas titulo="DRE — Resultado do Exercício" scrollRef={scrollRef} /></th>
+                {MESES.map((m, i) => <th key={m} data-mes={i} className={i === mesFiltro ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
                 <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
               </tr>
             </thead>
@@ -282,6 +313,7 @@ const DFC_GRUPOS = [
 ];
 
 function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setAno }) {
+  const scrollRef = useRolarParaMes(mesFiltro, ano, lancamentos);
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -400,12 +432,12 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       </div>
 
       <div className="table-panel">
-        <div style={{ overflowX: 'auto' }}>
+        <div className="dre-scroll" ref={scrollRef}>
           <table className="dre-table">
             <thead>
               <tr>
-                <th style={{ minWidth: 260 }}>Fluxo de Caixa</th>
-                {MESES.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
+                <th style={{ minWidth: 260 }}><TituloComSetas titulo="Fluxo de Caixa" scrollRef={scrollRef} /></th>
+                {MESES.map((m, i) => <th key={m} data-mes={i} className={i === mesFiltro ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
                 <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
               </tr>
             </thead>
