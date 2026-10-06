@@ -13,7 +13,7 @@ export default function Layout({ children, usuario, onLogout }) {
   const { tema, toggleTema } = useTheme();
   const [sidebarAberta, setSidebarAberta] = useState(false);
   const [perfilAberto, setPerfilAberto]   = useState(false);
-  const [perfilForm, setPerfilForm]       = useState({ nome: '', email: '', senhaAtual: '', novaSenha: '' });
+  const [perfilForm, setPerfilForm]       = useState({ nome: '', email: '', telefone: '', senhaAtual: '', novaSenha: '' });
   const [perfilMsg, setPerfilMsg]         = useState('');
   const [perfilErro, setPerfilErro]       = useState('');
   const [perfilSalvando, setPerfilSalvando] = useState(false);
@@ -29,11 +29,11 @@ export default function Layout({ children, usuario, onLogout }) {
     setPerfilMsg(''); setPerfilErro('');
     try {
       const info = await API.minhaInfo();
-      setPerfilForm({ nome: info.nome || '', email: info.email || '', senhaAtual: '', novaSenha: '' });
+      setPerfilForm({ nome: info.nome || '', email: info.email || '', telefone: info.telefone || '', senhaAtual: '', novaSenha: '' });
     } catch (err) {
       console.error('[abrirPerfil]', err.message);
       setPerfilErro('Não foi possível carregar seus dados. Tente novamente.');
-      setPerfilForm({ nome: usuario?.nome || '', email: '', senhaAtual: '', novaSenha: '' });
+      setPerfilForm({ nome: usuario?.nome || '', email: '', telefone: '', senhaAtual: '', novaSenha: '' });
     }
     setPerfilAberto(true);
   }
@@ -45,6 +45,7 @@ export default function Layout({ children, usuario, onLogout }) {
       await API.editarPerfil({
         nome:      perfilForm.nome      || undefined,
         email:     perfilForm.email     || undefined,
+        telefone:  perfilForm.telefone  || null,
         senhaAtual: perfilForm.senhaAtual || undefined,
         novaSenha: perfilForm.novaSenha  || undefined,
       });
@@ -176,6 +177,10 @@ export default function Layout({ children, usuario, onLogout }) {
               <div className="field">
                 <label>E-mail</label>
                 <input type="email" value={perfilForm.email} onChange={e => setPerfilForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="field">
+                <label>WhatsApp <span style={{ fontSize: 11, color: 'var(--text2)' }}>(com DDD, ex: 11999990000)</span></label>
+                <input type="tel" placeholder="11999990000" value={perfilForm.telefone} onChange={e => setPerfilForm(f => ({ ...f, telefone: e.target.value.replace(/\D/g, '') }))} />
               </div>
               <div className="field">
                 <label>Senha atual <span style={{ fontSize: 11, color: 'var(--text2)' }}>(obrigatório para alterar e-mail ou senha)</span></label>
