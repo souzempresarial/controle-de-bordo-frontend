@@ -126,6 +126,10 @@
   word-break: break-word;
 }
 
+.chat-msg--assistant .chat-msg-texto { white-space: normal; }
+.chat-msg-texto .chat-item { padding-left: 12px; text-indent: -10px; }
+.chat-msg-texto strong { font-weight: 700; }
+
 .chat-msg--user .chat-msg-texto {
   background: var(--accent);
   color: #fff;

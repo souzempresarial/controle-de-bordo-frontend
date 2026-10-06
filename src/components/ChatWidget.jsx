@@ -6,6 +6,24 @@ const API_URL = import.meta.env.PROD
   ? '/api'
   : (import.meta.env.VITE_DEV_API || 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com');
 
+// Markdown mínimo da IA (**negrito** e listas) sem injetar HTML
+function negrito(linha) {
+  return linha.split(/(\*\*[^*]+\*\*)/g).map((parte, i) =>
+    parte.length > 4 && parte.startsWith('**') && parte.endsWith('**')
+      ? <strong key={i}>{parte.slice(2, -2)}</strong>
+      : parte
+  );
+}
+
+function TextoFormatado({ texto }) {
+  return texto.split('\n').map((linha, i) => {
+    const semTitulo = linha.replace(/^#{1,6}\s+/, '');
+    const item = semTitulo.match(/^\s*[-*•]\s+(.*)$/);
+    if (item) return <div key={i} className="chat-item">• {negrito(item[1])}</div>;
+    return <div key={i}>{semTitulo.trim() ? negrito(semTitulo) : ' '}</div>;
+  });
+}
+
 export default function ChatWidget() {
   const { clienteAtivo } = useApp();
   const usuarioNome = sessionStorage.getItem('sf_nome') || '';
@@ -110,7 +128,9 @@ export default function ChatWidget() {
           <div className="chat-mensagens">
             {mensagens.map((m, i) => (
               <div key={i} className={`chat-msg chat-msg--${m.role}`}>
-                <span className="chat-msg-texto">{m.content}</span>
+                <span className="chat-msg-texto">
+                  {m.role === 'assistant' ? <TextoFormatado texto={m.content} /> : m.content}
+                </span>
               </div>
             ))}
             {carregando && (
