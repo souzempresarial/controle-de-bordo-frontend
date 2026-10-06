@@ -625,17 +625,25 @@ export default function Lancamentos() {
     setMpEdits(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
   }
 
+  function mpUpgradeSemValor(t) {
+    const edit = mpEdits[t.mpItemKey] || {};
+    const isUp = edit.isUpgrade ?? t.isUpgrade;
+    return isUp && !(parseFloat(edit.valorUpgrade ?? t.valorUpgrade) > 0);
+  }
+
   async function mpImportarTodos() {
-    // Exclui duplicatas e upgrades (upgrades precisam de valorUpgrade manual)
     const paraImportar = mpPendentes
-      .filter(t => !t.possivelDuplicata && !t.isUpgrade)
+      .filter(t => !t.possivelDuplicata && !mpUpgradeSemValor(t))
       .map(t => {
         const edit = mpEdits[t.mpItemKey] || {};
+        const isUp = edit.isUpgrade ?? t.isUpgrade;
         return {
           ...t,
-          valor:      parseFloat(edit.valor)    > 0 ? parseFloat(edit.valor)    : t.valor,
-          quantidade: parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
-          pagamento:  edit.pagamento || t.pagamento || '',
+          valor:        parseFloat(edit.valor)    > 0 ? parseFloat(edit.valor)    : t.valor,
+          quantidade:   parseInt(edit.quantidade) > 0 ? parseInt(edit.quantidade) : (t.quantidade || 1),
+          pagamento:    edit.pagamento || t.pagamento || '',
+          isUpgrade:    isUp,
+          valorUpgrade: isUp ? parseFloat(edit.valorUpgrade ?? t.valorUpgrade) || '' : '',
         };
       });
     if (!paraImportar.length) return;
@@ -770,8 +778,8 @@ export default function Lancamentos() {
                   <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando pendentes do Mercado Phone...</td></tr>
                 )}
                 {mpPendentes.length > 0 && !mpCarregando && (() => {
-                  const importaveis   = mpPendentes.filter(t => !t.possivelDuplicata && !t.isUpgrade);
-                  const upgradeCount  = mpPendentes.filter(t => t.isUpgrade).length;
+                  const importaveis   = mpPendentes.filter(t => !t.possivelDuplicata && !mpUpgradeSemValor(t));
+                  const upgradeCount  = mpPendentes.filter(mpUpgradeSemValor).length;
                   const dupCount      = mpPendentes.filter(t => t.possivelDuplicata).length;
                   return (
                     <tr>
@@ -780,14 +788,14 @@ export default function Lancamentos() {
                           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                             {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
                             {dupCount > 0 && <span style={{ color: '#d97706', marginLeft: 8 }}>· {dupCount} possível duplicata</span>}
-                            {upgradeCount > 0 && <span style={{ color: '#7c3aed', marginLeft: 8 }}>· {upgradeCount} upgrade (revisão manual)</span>}
+                            {upgradeCount > 0 && <span style={{ color: '#7c3aed', marginLeft: 8 }}>· {upgradeCount} upgrade sem valor do aparelho</span>}
                           </span>
                           <button
                             className="btn btn-primary btn-sm"
                             style={{ marginLeft: 'auto' }}
                             onClick={mpImportarTodos}
                             disabled={mpImportandoTodos || importaveis.length === 0}
-                            title="Importa tudo exceto possíveis duplicatas e upgrades"
+                            title="Importa tudo exceto possíveis duplicatas e upgrades sem valor do aparelho"
                           >
                             {mpImportandoTodos ? 'Importando...' : `✓ Importar ${importaveis.length} de uma vez`}
                           </button>
@@ -809,7 +817,7 @@ export default function Lancamentos() {
                   const expanded   = mpExpanded.has(itemKey);
                   const edit       = mpEdits[itemKey] || {};
                   const isUpgradeEfetivo = edit.isUpgrade ?? t.isUpgrade;
-                  const upgradeOk  = !isUpgradeEfetivo || parseFloat(edit.valorUpgrade || 0) > 0;
+                  const upgradeOk  = !mpUpgradeSemValor(t);
                   const rowBg      = isUpgradeEfetivo    ? 'color-mix(in srgb, #7c3aed 6%, var(--surface2))'
                                    : t.possivelDuplicata ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
                                    : 'var(--surface2)';
@@ -837,6 +845,9 @@ export default function Lancamentos() {
                             {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
                             {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
                           </div>
+                          {t.resumoPagamentos && (
+                            <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 3 }}>{t.resumoPagamentos}</div>
+                          )}
                         </td>
                         <td style={{ color: 'var(--text2)' }}>—</td>
                         <td>
