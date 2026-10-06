@@ -69,3 +69,31 @@
 .resumo-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .resumo-table { min-width: 600px; }
+
+/* ── Alerta de contas a pagar ── */
+.dash-alerta {
+  border-radius: var(--radius, 10px); padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid; background: var(--surface);
+}
+.dash-alerta-urgente { border-color: var(--saida); background: color-mix(in srgb, var(--saida) 9%, var(--surface)); }
+.dash-alerta-aviso   { border-color: var(--warn);  background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+.dash-alerta-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dash-alerta-titulo { font-weight: 700; font-size: 14px; color: var(--text); text-wrap: balance; }
+.dash-alerta-sub { font-size: 12px; color: var(--text2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.dash-alerta-btn { background: var(--surface); color: var(--text); border: 1px solid var(--border); white-space: nowrap; }
+.dash-alerta-btn:hover { border-color: var(--accent); color: var(--accent); }
+.dash-alerta-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.dash-alerta-lista li {
+  display: grid; grid-template-columns: 130px 1fr auto; gap: 10px; align-items: baseline;
+  font-size: 12px; padding: 4px 0; border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.dash-alerta-prazo { font-weight: 600; color: var(--warn); }
+.dash-alerta-prazo.urgente, .dash-alerta-prazo.vencida { color: var(--saida); }
+.dash-alerta-desc { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dash-alerta-valor { font-weight: 700; color: var(--saida); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dash-alerta-mais { font-size: 11px; color: var(--text2); }
+@media (max-width: 480px) {
+  .dash-alerta-lista li { grid-template-columns: 1fr auto; }
+  .dash-alerta-desc { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
+}

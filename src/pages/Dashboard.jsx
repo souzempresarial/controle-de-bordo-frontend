@@ -12,6 +12,66 @@ function mesAnterior(mes) {
   return `${ano}-${String(parseInt(m) - 1).padStart(2, '0')}`;
 }
 
+function diasAte(dataISO) {
+  const alvo = new Date(String(dataISO).slice(0, 10) + 'T00:00:00');
+  const base = new Date(hoje() + 'T00:00:00');
+  return Math.round((alvo - base) / 86400000);
+}
+
+function textoPrazo(dias) {
+  if (dias < -1) return `Venceu há ${-dias} dias`;
+  if (dias === -1) return 'Venceu ontem';
+  if (dias === 0)  return 'Vence hoje';
+  if (dias === 1)  return 'Vence amanhã';
+  return `Vence em ${dias} dias`;
+}
+
+function AlertaVencimentos({ contas, onVerContas }) {
+  const proximas = contas
+    .filter(c => c.tipo === 'pagar' && c.status === 'pendente' && c.vencimento)
+    .map(c => ({ ...c, dias: diasAte(c.vencimento) }))
+    .filter(c => c.dias <= 7)
+    .sort((a, b) => a.dias - b.dias);
+  if (!proximas.length) return null;
+
+  const vencidas = proximas.filter(c => c.dias < 0);
+  const hojeOuAmanha = proximas.filter(c => c.dias === 0 || c.dias === 1);
+  const semana = proximas.filter(c => c.dias > 1);
+  const total = proximas.reduce((s, c) => s + parseFloat(c.valor || 0), 0);
+  const nivel = vencidas.length || hojeOuAmanha.length ? 'urgente' : 'aviso';
+
+  const partes = [
+    vencidas.length && `${vencidas.length} vencida${vencidas.length > 1 ? 's' : ''}`,
+    hojeOuAmanha.length && `${hojeOuAmanha.length} vence${hojeOuAmanha.length > 1 ? 'm' : ''} hoje ou amanhã`,
+    semana.length && `${semana.length} nos próximos 7 dias`,
+  ].filter(Boolean);
+  const visiveis = proximas.slice(0, 5);
+
+  return (
+    <div className={`dash-alerta dash-alerta-${nivel}`} role="status">
+      <div className="dash-alerta-topo">
+        <div>
+          <div className="dash-alerta-titulo">{nivel === 'urgente' ? '🚨' : '⏰'} Contas a pagar: {partes.join(' · ')}</div>
+          <div className="dash-alerta-sub">Total {fmt(total)}</div>
+        </div>
+        <button className="btn btn-sm dash-alerta-btn" onClick={onVerContas}>Ver contas</button>
+      </div>
+      <ul className="dash-alerta-lista">
+        {visiveis.map(c => (
+          <li key={c.id}>
+            <span className={`dash-alerta-prazo ${c.dias < 0 ? 'vencida' : c.dias <= 1 ? 'urgente' : ''}`}>{textoPrazo(c.dias)}</span>
+            <span className="dash-alerta-desc">{c.descricao || c.subcategoria || c.categoria || 'Conta sem descrição'}</span>
+            <span className="dash-alerta-valor">{fmt(parseFloat(c.valor || 0))}</span>
+          </li>
+        ))}
+      </ul>
+      {proximas.length > visiveis.length && (
+        <div className="dash-alerta-mais">e mais {proximas.length - visiveis.length}</div>
+      )}
+    </div>
+  );
+}
+
 function calcularTotais(lista) {
   let entradas = 0, saidas = 0;
   lista
@@ -37,7 +97,7 @@ const formVazio = (bancoDefault = '') => ({
 });
 
 export default function Dashboard() {
-  const { lancamentos, setLancamentos, clienteAtivo } = useApp();
+  const { lancamentos, setLancamentos, clienteAtivo, contas } = useApp();
   const navigate = useNavigate();
 
   const mesAtual = hoje().slice(0, 7);
@@ -405,6 +465,8 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
+      <AlertaVencimentos contas={contas} onVerContas={() => navigate('/contas')} />
+
       {/* Seletor de período */}
       <div className="period-row">
         <span className="period-label">Período</span>
