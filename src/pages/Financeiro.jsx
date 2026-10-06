@@ -53,6 +53,24 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
 
 
   const [expandedRows, setExpanded] = useState(new Set());
+  const [mostrarAH, setMostrarAH]   = useState(false);
+  const ultimoMesComDados = ano < anoAtual ? 11 : ano > anoAtual ? -1 : Number(hoje().slice(5, 7)) - 1;
+
+  // Análise Horizontal: variação contra o mês anterior. Em linhas de custo (neg), subir é ruim.
+  const AH = ({ vals, i, neg }) => {
+    if (!mostrarAH || i === 0 || i > ultimoMesComDados) return null;
+    const ant = vals[i - 1], atual = vals[i];
+    if (!ant) return null;
+    const pct = (atual - ant) / Math.abs(ant) * 100;
+    const bom = neg ? pct < 0 : pct > 0;
+    const cor = Math.abs(pct) < 0.05 ? 'var(--text2)' : bom ? 'var(--entrada)' : 'var(--saida)';
+    const seta = pct > 0 ? '▲' : pct < 0 ? '▼' : '';
+    return (
+      <div className="ah-var" style={{ color: cor }}>
+        {seta} {Math.abs(pct).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
+      </div>
+    );
+  };
 
   function toggleExpand(cat) {
     setExpanded(prev => {
@@ -118,7 +136,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
   const RowBig = ({ label, vals, tot, neg = false, final = false }) => (
     <tr className={`row-big ${final ? 'row-final' : ''}`}>
       <td>{label}</td>
-      {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{neg ? dn(v) : d(v)}</td>)}
+      {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{neg ? dn(v) : d(v)}<AH vals={vals} i={i} neg={neg} /></td>)}
       <td style={{ textAlign: 'right' }}>{neg ? dn(tot) : d(tot)}</td>
     </tr>
   );
@@ -128,7 +146,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
     return (
       <tr className="row-med">
         <td style={{ paddingLeft: 20 }}>{label}</td>
-        {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{neg ? dn(v) : d(v)}</td>)}
+        {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{neg ? dn(v) : d(v)}<AH vals={vals} i={i} neg={neg} /></td>)}
         <td style={{ textAlign: 'right' }}>{neg ? dn(tot) : d(tot)}</td>
       </tr>
     );
@@ -154,7 +172,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
       return [(
         <tr key={sub} className="row-sub">
           <td style={{ paddingLeft: 36, fontSize: 11, color: 'var(--text2)', borderLeft: '2px solid #22c55e33' }}>{sub}</td>
-          {subVals.map((v, i) => <td key={i} style={{ textAlign: 'right', fontSize: 11 }}>{fn(v)}</td>)}
+          {subVals.map((v, i) => <td key={i} style={{ textAlign: 'right', fontSize: 11 }}>{fn(v)}<AH vals={subVals} i={i} neg={neg} /></td>)}
           <td style={{ textAlign: 'right', fontSize: 11 }}>{fn(subTot)}</td>
         </tr>
       )];
@@ -170,7 +188,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
             }
             {label}
           </td>
-          {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{fn(v)}</td>)}
+          {vals.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{fn(v)}<AH vals={vals} i={i} neg={neg} /></td>)}
           <td style={{ textAlign: 'right' }}>{fn(tot)}</td>
         </tr>
         {subcatRows}
@@ -233,6 +251,15 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
           <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); setExpanded(new Set()); }}>
             {anos.map(a => <option key={a}>{a}</option>)}
           </select>
+          <button
+            type="button"
+            className={`ah-toggle ${mostrarAH ? 'ativo' : ''}`}
+            onClick={() => setMostrarAH(v => !v)}
+            aria-pressed={mostrarAH}
+            title="Análise Horizontal: variação de cada linha em relação ao mês anterior"
+          >
+            AH %
+          </button>
         </div>
       </div>
 
