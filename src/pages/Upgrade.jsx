@@ -47,7 +47,7 @@ const formVazio = () => ({
 
 const novoApVazio = () => ({
   modelo: '', cor: '', armazenamento: '', bateria: '',
-  observacoes: '', valor_avaliado: '', valor_pretendido: '',
+  observacoes: '', valor_avaliado: '', valor_pretendido: '', imei: '',
 });
 
 const venderVazio = (ap) => ({
@@ -55,6 +55,7 @@ const venderVazio = (ap) => ({
   data:           hoje(),
   pagamento:      '',
   valor_recebido: '',
+  deducao:        '',
 });
 
 export default function Upgrade() {
@@ -107,7 +108,8 @@ export default function Upgrade() {
       lista = lista.filter(a =>
         (a.modelo||'').toLowerCase().includes(b) ||
         (a.cor||'').toLowerCase().includes(b) ||
-        (a.email_aparelho||'').toLowerCase().includes(b)
+        (a.email_aparelho||'').toLowerCase().includes(b) ||
+        (a.imei||'').includes(busca.trim())
       );
     }
     return [...lista].sort((a, b) => {
@@ -228,15 +230,20 @@ export default function Upgrade() {
     if (comUpgrade && parseFloat(venderForm.valor_recebido) >= parseFloat(venderForm.valor_venda)) {
       setVenderErro('Valor recebido deve ser menor que o valor de venda'); return;
     }
+    const recebido   = comUpgrade && venderForm.valor_recebido ? parseFloat(venderForm.valor_recebido) : null;
+    const deducao    = parseFloat(venderForm.deducao) > 0 ? parseFloat(venderForm.deducao) : 0;
+    const baseCaixa  = recebido ?? parseFloat(venderForm.valor_venda);
+    if (deducao >= baseCaixa) {
+      setVenderErro('A dedução deve ser menor que o valor que entra no caixa'); return;
+    }
     setVenderSalvando(true); setVenderErro('');
     try {
-      const recebido   = comUpgrade && venderForm.valor_recebido ? parseFloat(venderForm.valor_recebido) : null;
       const upgradeVal = recebido != null ? parseFloat(venderForm.valor_venda) - recebido : null;
       const atualizado = await API.venderAparelho(clienteAtivo.id, venderModal.id, {
         valor_venda:    parseFloat(venderForm.valor_venda),
         data:           venderForm.data,
         pagamento:      venderForm.pagamento || null,
-        valor_recebido: recebido,
+        valor_recebido: deducao > 0 ? baseCaixa - deducao : recebido,
       });
       let novosAparelhos = aparelhos.map(a => a.id === venderModal.id ? atualizado : a);
       if (comUpgrade) {
@@ -246,6 +253,7 @@ export default function Upgrade() {
           cor:              novoApForm.cor           || null,
           armazenamento:    novoApForm.armazenamento || null,
           bateria:          novoApForm.bateria       ? parseInt(novoApForm.bateria)            : null,
+          imei:             novoApForm.imei.trim()   || null,
           observacoes:      novoApForm.observacoes   || null,
           valor_avaliado:   cmvAparelho,
           valor_pretendido: novoApForm.valor_pretendido ? parseFloat(novoApForm.valor_pretendido) : null,
@@ -416,7 +424,7 @@ export default function Upgrade() {
       {/* Busca */}
       <input
         className="search-box"
-        placeholder="🔍 Buscar modelo, cor..."
+        placeholder="🔍 Buscar modelo, cor, IMEI..."
         value={busca}
         onChange={e => setBusca(e.target.value)}
         style={{ maxWidth: 320 }}
@@ -601,6 +609,12 @@ export default function Upgrade() {
                       <option>Débito</option><option>Transferência</option><option>Outro</option>
                     </select>
                   </div>
+                  <div className="field span2">
+                    <label>Dedução (R$)</label>
+                    <input type="number" step="0.01" min="0" placeholder="taxa da maquininha... (deixe vazio se não houver)"
+                      value={venderForm.deducao}
+                      onChange={e => setVenderForm(f => ({...f, deducao: e.target.value}))} />
+                  </div>
                 </div>
 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
@@ -634,7 +648,7 @@ export default function Upgrade() {
                         parseFloat(venderForm.valor_recebido) < parseFloat(venderForm.valor_venda) && (
                         <div className="field span2">
                           <div className="up-preview-row">
-                            <span>Caixa (DFC) <strong style={{ color: 'var(--entrada)' }}>{fmt(parseFloat(venderForm.valor_recebido))}</strong></span>
+                            <span>Caixa (DFC) <strong style={{ color: 'var(--entrada)' }}>{fmt(parseFloat(venderForm.valor_recebido) - (parseFloat(venderForm.deducao) || 0))}</strong></span>
                             <span>Aparelho recebido <strong>{fmt(parseFloat(venderForm.valor_venda) - parseFloat(venderForm.valor_recebido))}</strong></span>
                           </div>
                         </div>
@@ -665,6 +679,11 @@ export default function Upgrade() {
                           <label>Bateria (%)</label>
                           <input type="number" min="0" max="100" placeholder="ex: 87" value={novoApForm.bateria}
                             onChange={e => setNovoApForm(f => ({...f, bateria: e.target.value}))} />
+                        </div>
+                        <div className="field">
+                          <label>IMEI</label>
+                          <input type="text" placeholder="ex: 353879234567890" value={novoApForm.imei}
+                            onChange={e => setNovoApForm(f => ({...f, imei: e.target.value}))} />
                         </div>
                         <div className="field">
                           <label>Vlr. Avaliado / CMV (R$)</label>
