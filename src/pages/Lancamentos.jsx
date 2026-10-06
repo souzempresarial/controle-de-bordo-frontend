@@ -469,6 +469,7 @@ export default function Lancamentos() {
       if (l._id !== id) return l;
       const updated = { ...l, [campo]: valor };
       if (campo === 'categoria_sugerida') updated.subcategoria_sugerida = '';
+      if (campo === 'categoria_sugerida' || campo === 'subcategoria_sugerida') updated.origem_sugestao = null;
       return updated;
     }));
   }
@@ -1485,6 +1486,18 @@ export default function Lancamentos() {
                 <>
                   <p style={{ fontSize: 13, color: 'var(--text2)' }}>
                     {extratoLinhas.length} transações encontradas. Revise antes de importar.
+                    {(() => {
+                      const nHist = extratoLinhas.filter(l => l.origem_sugestao === 'historico').length;
+                      const nIA   = extratoLinhas.filter(l => l.origem_sugestao === 'ia').length;
+                      const nSem  = extratoLinhas.filter(l => !l.categoria_sugerida).length;
+                      return (
+                        <span style={{ display: 'block', marginTop: 4 }}>
+                          <span style={{ color: 'var(--entrada)', fontWeight: 600 }}>{nHist} pelo histórico do cliente</span>
+                          {' · '}<span style={{ color: '#ca8a04', fontWeight: 600 }}>{nIA} pela IA (confira)</span>
+                          {nSem > 0 && <>{' · '}<span style={{ color: 'var(--saida)', fontWeight: 600 }}>{nSem} sem categoria</span></>}
+                        </span>
+                      );
+                    })()}
                     {extratoLinhas.some(l => l._duplicata) && (
                       <span style={{ marginLeft: 8, color: '#ca8a04', fontWeight: 600 }}>
                         ⚠️ {extratoLinhas.filter(l => l._duplicata).length} possível(is) duplicata(s) — remova com ✕ se já existir.
@@ -1536,6 +1549,12 @@ export default function Lancamentos() {
                                   <option key={cat} value={cat}>{cat}</option>
                                 ))}
                               </select>
+                              {l.origem_sugestao === 'historico' && (
+                                <div title="Mesma categoria usada antes para esta descrição" style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', marginTop: 2 }}>✓ histórico</div>
+                              )}
+                              {l.origem_sugestao === 'ia' && (
+                                <div title="Sugestão da IA — confira antes de importar" style={{ fontSize: 10, fontWeight: 600, color: '#ca8a04', marginTop: 2 }}>IA · confira</div>
+                              )}
                             </td>
                             <td style={{ padding: '6px 10px' }}>
                               <select value={l.subcategoria_sugerida || ''} onChange={e => editarLinha(l._id, 'subcategoria_sugerida', e.target.value)}
