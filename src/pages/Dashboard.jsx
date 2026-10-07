@@ -542,11 +542,11 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Resumo de Produtos */}
+      {/* Linhas de Receita */}
       {resumoProdutos.length > 0 && (
         <div className="table-panel">
           <div className="table-header">
-            <h2>Resumo de Produtos</h2>
+            <h2>Linhas de Receita</h2>
             <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
           </div>
           <div className="resumo-table-wrap">
