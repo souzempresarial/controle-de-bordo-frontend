@@ -72,6 +72,46 @@ function AlertaVencimentos({ contas, onVerContas }) {
   );
 }
 
+const GRUPOS_RECEITA = ['Aparelhos', 'Acessórios', 'Assistência Técnica'];
+
+function lerGruposAbertos() {
+  try { return new Set(JSON.parse(localStorage.getItem('dash_linhas_abertas') || '[]')); }
+  catch { return new Set(); }
+}
+
+// tipo: 'total' | 'grupo' (clicável, abre os itens) | 'item'
+function LinhaReceita({ tipo, rotulo, itens, aberto, onClick }) {
+  const unid  = itens.reduce((a, p) => a + p.unidades, 0);
+  const fat   = itens.reduce((a, p) => a + p.faturamento, 0);
+  const lucro = itens.reduce((a, p) => a + p.lucro, 0);
+  const corLucro = lucro >= 0 ? 'var(--entrada)' : 'var(--saida)';
+  const clicavel = tipo === 'grupo';
+  const onKey = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } };
+
+  return (
+    <tr
+      className={`linha-receita linha-receita-${tipo}`}
+      onClick={clicavel ? onClick : undefined}
+      onKeyDown={clicavel ? onKey : undefined}
+      tabIndex={clicavel ? 0 : undefined}
+      aria-expanded={clicavel ? aberto : undefined}
+    >
+      <td>
+        {clicavel && <span className={`linha-receita-seta ${aberto ? 'aberta' : ''}`} aria-hidden="true">▶</span>}
+        {rotulo}
+      </td>
+      <td style={{ textAlign: 'right' }}>{unid}</td>
+      <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(fat)}</td>
+      <td style={{ textAlign: 'right' }}>{unid > 0 ? fmt(fat / unid) : '—'}</td>
+      <td style={{ textAlign: 'right' }}>
+        <span style={{ fontWeight: 700, color: corLucro }}>{unid > 0 ? fmt(lucro / unid) : '—'}</span>
+        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({fat > 0 ? (lucro / fat * 100).toFixed(1) : 0}%)</span>
+      </td>
+      <td style={{ textAlign: 'right', fontWeight: 700, color: corLucro }}>{fmt(lucro)}</td>
+    </tr>
+  );
+}
+
 function calcularTotais(lista) {
   let entradas = 0, saidas = 0;
   lista
@@ -103,6 +143,20 @@ export default function Dashboard() {
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
   const [ano, setAno] = useState(() => localStorage.getItem('dash_ano') || mesAtual.slice(0, 4));
+  const [gruposAbertos, setGruposAbertos] = useState(lerGruposAbertos);
+
+  function salvarGruposAbertos(set) {
+    setGruposAbertos(set);
+    try { localStorage.setItem('dash_linhas_abertas', JSON.stringify([...set])); } catch { /* sem storage: só não lembra */ }
+  }
+  function alternarGrupo(grupo) {
+    const novo = new Set(gruposAbertos);
+    novo.has(grupo) ? novo.delete(grupo) : novo.add(grupo);
+    salvarGruposAbertos(novo);
+  }
+  function alternarTodos(grupos, abrir) {
+    salvarGruposAbertos(abrir ? new Set(grupos) : new Set());
+  }
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId]   = useState(null);
@@ -543,90 +597,53 @@ export default function Dashboard() {
       </div>
 
       {/* Linhas de Receita */}
-      {resumoProdutos.length > 0 && (
-        <div className="table-panel">
-          <div className="table-header">
-            <h2>Linhas de Receita</h2>
-            <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
+      {resumoProdutos.length > 0 && (() => {
+        const grupos = GRUPOS_RECEITA
+          .map(grupo => ({ grupo, itens: resumoProdutos.filter(p => p.grupo === grupo) }))
+          .filter(g => g.itens.length);
+        const todosAbertos = grupos.every(g => gruposAbertos.has(g.grupo));
+        return (
+          <div className="table-panel">
+            <div className="table-header">
+              <h2>Linhas de Receita</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 11, color: 'var(--text2)' }}>{MESES[parseInt(mes) - 1]} {ano}</span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => alternarTodos(grupos.map(g => g.grupo), !todosAbertos)}>
+                  {todosAbertos ? 'Recolher tudo' : 'Expandir tudo'}
+                </button>
+              </div>
+            </div>
+            <div className="resumo-table-wrap">
+            <table className="resumo-table">
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th style={{ textAlign: 'right' }}>Unidades</th>
+                  <th style={{ textAlign: 'right' }}>Faturamento</th>
+                  <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                  <th style={{ textAlign: 'right' }}>Lucro Médio</th>
+                  <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <LinhaReceita tipo="total" rotulo="Total" itens={resumoProdutos} />
+                {grupos.map(({ grupo, itens }) => {
+                  const aberto = gruposAbertos.has(grupo);
+                  return (
+                    <React.Fragment key={grupo}>
+                      <LinhaReceita tipo="grupo" rotulo={grupo} itens={itens} aberto={aberto} onClick={() => alternarGrupo(grupo)} />
+                      {aberto && itens.map(p => (
+                        <LinhaReceita key={p.grupo + ':' + p.produto} tipo="item" rotulo={p.produto} itens={[p]} />
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+            </div>
           </div>
-          <div className="resumo-table-wrap">
-          <table className="resumo-table">
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th style={{ textAlign: 'right' }}>Unidades</th>
-                <th style={{ textAlign: 'right' }}>Faturamento</th>
-                <th style={{ textAlign: 'right' }}>Ticket Médio</th>
-                <th style={{ textAlign: 'right' }}>Lucro Médio</th>
-                <th style={{ textAlign: 'right' }}>Lucro Acumulado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {['Aparelhos', 'Acessórios', 'Assistência Técnica'].map(grupo => {
-                const itens = resumoProdutos.filter(p => p.grupo === grupo);
-                if (!itens.length) return null;
-                const subUnid = itens.reduce((a, p) => a + p.unidades, 0);
-                const subFat  = itens.reduce((a, p) => a + p.faturamento, 0);
-                const subLuc  = itens.reduce((a, p) => a + p.lucro, 0);
-                return (
-                  <React.Fragment key={grupo}>
-                    <tr style={{ background: 'var(--surface2)' }}>
-                      <td colSpan={6} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text2)', paddingTop: 10, paddingBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                        {grupo}
-                      </td>
-                    </tr>
-                    {itens.map(p => (
-                      <tr key={p.grupo + ':' + p.produto}>
-                        <td style={{ fontWeight: 600, paddingLeft: 20 }}>{p.produto}</td>
-                        <td style={{ textAlign: 'right' }}>{p.unidades}</td>
-                        <td style={{ textAlign: 'right', color: 'var(--entrada)', fontWeight: 700 }}>{fmt(p.faturamento)}</td>
-                        <td style={{ textAlign: 'right' }}>{p.unidades > 0 ? fmt(p.faturamento / p.unidades) : '—'}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <span style={{ fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{p.unidades > 0 ? fmt(p.lucro / p.unidades) : '—'}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({p.faturamento > 0 ? (p.lucro / p.faturamento * 100).toFixed(1) : 0}%)</span>
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: p.lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(p.lucro)}</td>
-                      </tr>
-                    ))}
-                    <tr style={{ borderTop: '1px solid var(--border)', background: 'var(--surface2)' }}>
-                      <td style={{ fontWeight: 700, paddingLeft: 20, fontSize: 12 }}>Subtotal {grupo}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(subFat)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{subUnid > 0 ? fmt(subFat / subUnid) : '—'}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{subUnid > 0 ? fmt(subLuc / subUnid) : '—'}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({subFat > 0 ? (subLuc / subFat * 100).toFixed(1) : 0}%)</span>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: subLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(subLuc)}</td>
-                    </tr>
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              {(() => {
-                const totUnid = resumoProdutos.reduce((a, p) => a + p.unidades, 0);
-                const totFat  = resumoProdutos.reduce((a, p) => a + p.faturamento, 0);
-                const totLuc  = resumoProdutos.reduce((a, p) => a + p.lucro, 0);
-                return (
-                  <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
-                    <td style={{ fontWeight: 700, fontSize: 13 }}>Total</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--entrada)' }}>{fmt(totFat)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{totUnid > 0 ? fmt(totFat / totUnid) : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{totUnid > 0 ? fmt(totLuc / totUnid) : '—'}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>({totFat > 0 ? (totLuc / totFat * 100).toFixed(1) : 0}%)</span>
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: totLuc >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totLuc)}</td>
-                  </tr>
-                );
-              })()}
-            </tfoot>
-          </table>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Tabela de últimos lançamentos */}
       <div className="table-panel">
