@@ -3,8 +3,16 @@ import { API } from '../services/api';
 
 const AppContext = createContext(null);
 
+function clienteSalvo() {
+  try { return JSON.parse(sessionStorage.getItem('sf_cliente_json') || 'null'); }
+  catch { sessionStorage.removeItem('sf_cliente_json'); return null; }
+}
+
+const espera = ms => new Promise(r => setTimeout(r, ms));
+
 export function AppProvider({ children }) {
-  const [clienteAtivo, setClienteAtivo] = useState(null);
+  // Volta com o cliente já definido após F5; os dados chegam depois, sem deixar clienteAtivo null no meio
+  const [clienteAtivo, setClienteAtivo] = useState(clienteSalvo);
   const [lancamentos, setLancamentos]   = useState([]);
   const [contas, setContas]             = useState([]);
   const [metasCache, setMetasCache]     = useState({});
@@ -54,25 +62,26 @@ export function AppProvider({ children }) {
     sessionStorage.removeItem('sf_cliente_json');
   }, []);
 
-  // Restaura cliente ativo ao recarregar a página
-  useEffect(() => {
-    const clienteJson = sessionStorage.getItem('sf_cliente_json');
-    if (clienteJson) {
+  const recarregarCliente = useCallback(async () => {
+    const cliente = clienteSalvo();
+    if (!cliente) return;
+    for (const atraso of [0, 1500, 4000]) {
+      if (atraso) await espera(atraso);
       try {
-        const cliente = JSON.parse(clienteJson);
-        entrarCliente(cliente).catch(() => {});
-      } catch {
-        sessionStorage.removeItem('sf_cliente_json');
-      }
+        await entrarCliente(cliente);
+        return;
+      } catch { /* tenta de novo; erroEntrar fica visível se todas falharem */ }
     }
-  }, []);
+  }, [entrarCliente]);
+
+  useEffect(() => { recarregarCliente(); }, [recarregarCliente]);
 
   return (
     <AppContext.Provider value={{
       clienteAtivo, lancamentos, setLancamentos,
       contas, setContas,
       metasCache, setMetasCache,
-      loading, erroEntrar, entrarCliente, sairCliente,
+      loading, erroEntrar, entrarCliente, sairCliente, recarregarCliente,
     }}>
       {children}
     </AppContext.Provider>

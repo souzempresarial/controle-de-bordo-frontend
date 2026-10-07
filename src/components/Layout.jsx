@@ -8,7 +8,7 @@ import ChatWidget from './ChatWidget';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
-  const { clienteAtivo } = useApp();
+  const { clienteAtivo, erroEntrar, loading: carregandoCliente, recarregarCliente } = useApp();
   const navigate = useNavigate();
   const { tema, toggleTema } = useTheme();
   const [sidebarAberta, setSidebarAberta] = useState(false);
@@ -155,6 +155,12 @@ export default function Layout({ children, usuario, onLogout }) {
       </nav>
 
       <main className="main">
+        {erroEntrar && !carregandoCliente && (
+          <div className="aviso-carregamento" role="alert">
+            <span>{erroEntrar}</span>
+            <button type="button" className="btn btn-sm" onClick={recarregarCliente}>Tentar de novo</button>
+          </div>
+        )}
         {children}
       </main>
 

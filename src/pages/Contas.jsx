@@ -138,6 +138,7 @@ export default function Contas() {
   function fecharModal() { setModalAberto(false); setEditandoId(null); }
 
   async function salvar() {
+    if (!clienteAtivo?.id) { setErroForm('Os dados do cliente não carregaram. Feche esta janela e clique em "Tentar de novo" no aviso do topo, ou selecione o cliente de novo.'); return; }
     if (!form.descricao.trim()) { setErroForm('Informe a descrição'); return; }
     if (!form.valor || parseFloat(form.valor) <= 0) { setErroForm('Informe um valor válido'); return; }
     if (!form.categoria) { setErroForm('Selecione a categoria'); return; }

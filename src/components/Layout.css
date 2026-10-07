@@ -332,3 +332,12 @@ tr:hover td { background: var(--surface2); }
 .field select option { background: var(--surface2); }
 .field.span2 { grid-column: span 2; }
 .form-erro { color: var(--danger); font-size: 13px; text-align: center; }
+
+.aviso-carregamento {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius, 10px);
+  border: 1px solid var(--saida); background: color-mix(in srgb, var(--saida) 9%, var(--surface));
+  color: var(--text); font-size: 13px;
+}
+.aviso-carregamento .btn { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.aviso-carregamento .btn:hover { border-color: var(--accent); color: var(--accent); }
