@@ -6,7 +6,7 @@ import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
 
 const BANCOS = [
-  'Banco do Brasil', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
+  'Banco do Brasil', 'Banco Inter', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
   'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
   'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone', 'SumUp',
 ];
