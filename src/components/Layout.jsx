@@ -12,6 +12,15 @@ export default function Layout({ children, usuario, onLogout }) {
   const navigate = useNavigate();
   const { tema, toggleTema } = useTheme();
   const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [recolhida, setRecolhida] = useState(() => {
+    try { return localStorage.getItem('sf_sidebar_recolhida') === '1'; } catch { return false; }
+  });
+  function alternarRecolhida() {
+    setRecolhida(r => {
+      try { localStorage.setItem('sf_sidebar_recolhida', r ? '0' : '1'); } catch { /* só não lembra */ }
+      return !r;
+    });
+  }
   const [perfilAberto, setPerfilAberto]   = useState(false);
   const [perfilForm, setPerfilForm]       = useState({ nome: '', email: '', telefone: '', senhaAtual: '', novaSenha: '' });
   const [perfilMsg, setPerfilMsg]         = useState('');
@@ -67,7 +76,7 @@ export default function Layout({ children, usuario, onLogout }) {
   }
 
   return (
-    <div className="app">
+    <div className={`app${recolhida ? ' app--sidebar-recolhida' : ''}`}>
       <header className="topbar">
         <div className="topbar-left">
           <button className="hamburger" onClick={() => setSidebarAberta(true)} aria-label="Abrir menu">
@@ -98,40 +107,54 @@ export default function Layout({ children, usuario, onLogout }) {
 
       <nav className={`sidebar${sidebarAberta ? ' sidebar--aberta' : ''}`}>
         <button className="sidebar-fechar" onClick={fecharSidebar}>✕</button>
-        <span className="nav-section">Menu</span>
-        {podeVer('chat') && <NavLink to="/chat" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        <div className="sidebar-topo">
+          <span className="nav-section">Menu</span>
+          <button
+            type="button"
+            className="sidebar-recolher"
+            onClick={alternarRecolhida}
+            aria-label={recolhida ? 'Expandir menu' : 'Recolher menu'}
+            title={recolhida ? 'Expandir menu' : 'Recolher menu'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>
+              {recolhida ? <polyline points="13,9 16,12 13,15"/> : <polyline points="16,9 13,12 16,15"/>}
+            </svg>
+          </button>
+        </div>
+        {podeVer('chat') && <NavLink to="/chat" title="SOUZ AI" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
           SOUZ AI
         </NavLink>}
-        {podeVer('dashboard') && <NavLink to="/dashboard" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('dashboard') && <NavLink to="/dashboard" title="Visão Geral" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Visão Geral
         </NavLink>}
-        {podeVer('lancamentos') && <NavLink to="/lancamentos" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('lancamentos') && <NavLink to="/lancamentos" title="Lançamentos" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           Lançamentos
         </NavLink>}
-        {podeVer('relatorio') && <NavLink to="/relatorio" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('relatorio') && <NavLink to="/relatorio" title="Resumo Executivo" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Resumo Executivo
         </NavLink>}
-        {podeVer('contas') && <NavLink to="/contas" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('contas') && <NavLink to="/contas" title="Gestão de Contas" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Gestão de Contas
         </NavLink>}
-        {podeVer('financeiro') && <NavLink to="/financeiro" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('financeiro') && <NavLink to="/financeiro" title="Financeiro" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
           Financeiro
         </NavLink>}
-        {podeVer('upgrade') && <NavLink to="/upgrade" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('upgrade') && <NavLink to="/upgrade" title="Controle de Upgrade" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
           Controle de Upgrade
         </NavLink>}
-        {podeVer('exportar') && <NavLink to="/exportar" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('exportar') && <NavLink to="/exportar" title="Exportar" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar
         </NavLink>}
-        {podeVer('integracoes') && <NavLink to="/integracoes" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {podeVer('integracoes') && <NavLink to="/integracoes" title="Integrações" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="6" height="10" rx="1"/><rect x="16" y="7" width="6" height="10" rx="1"/><path d="M8 12h8"/><path d="M11 9l-3 3 3 3"/><path d="M13 9l3 3-3 3"/></svg>
           Integrações
         </NavLink>}
@@ -150,7 +173,7 @@ export default function Layout({ children, usuario, onLogout }) {
         {isAdmin && (
           <>
             <span className="nav-section">Admin</span>
-            <NavLink to="/ranking" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+            <NavLink to="/ranking" title="Ranking" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
               <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
               Ranking
             </NavLink>

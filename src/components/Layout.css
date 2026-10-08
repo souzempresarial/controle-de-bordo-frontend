@@ -341,3 +341,32 @@ tr:hover td { background: var(--surface2); }
 }
 .aviso-carregamento .btn { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .aviso-carregamento .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Barra lateral recolhível (desktop) ── */
+.app { transition: grid-template-columns .2s ease; }
+.sidebar-topo { display: flex; align-items: center; justify-content: space-between; }
+.sidebar-recolher {
+  display: grid; place-items: center; width: 30px; height: 30px; margin-right: 2px;
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: none;
+  color: var(--text2); cursor: pointer;
+}
+.sidebar-recolher:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+.sidebar-recolher:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.app--sidebar-recolhida { grid-template-columns: 64px 1fr; }
+.app--sidebar-recolhida .sidebar { padding-inline: 8px; }
+.app--sidebar-recolhida .sidebar-topo { justify-content: center; }
+.app--sidebar-recolhida .nav-section { display: none; }
+.app--sidebar-recolhida .nav-btn { font-size: 0; gap: 0; justify-content: center; padding: 10px 0; }
+.app--sidebar-recolhida .nav-btn.active { padding-left: 0; }
+
+@media (prefers-reduced-motion: reduce) { .app { transition: none; } }
+
+/* No celular o menu é a gaveta do ☰; recolher não se aplica */
+@media (max-width: 768px) {
+  .sidebar-recolher { display: none; }
+  .app.app--sidebar-recolhida { grid-template-columns: 1fr; }
+  .app--sidebar-recolhida .sidebar { padding-inline: 10px; }
+  .app--sidebar-recolhida .nav-section { display: block; }
+  .app--sidebar-recolhida .nav-btn { font-size: 13px; gap: 10px; justify-content: flex-start; padding: 9px 12px; }
+}
