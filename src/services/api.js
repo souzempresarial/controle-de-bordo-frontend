@@ -79,6 +79,7 @@ export const API = {
   chatEnviar:    (cid, dados)     => apiFetch(`/clientes/${cid}/chat`, { method: 'POST', body: JSON.stringify(dados) }),
   chatHistorico: (cid)            => apiFetch(`/clientes/${cid}/chat/historico`),
   chatLimpar:    (cid)            => apiFetch(`/clientes/${cid}/chat/historico`, { method: 'DELETE' }),
+  chatTranscrever: (cid, dados)   => apiFetch(`/clientes/${cid}/chat/transcrever`, { method: 'POST', body: JSON.stringify(dados) }),
 
   listarContas:  (cid)            => apiFetch(`/clientes/${cid}/contas`),
   criarConta:    (cid, dados)     => apiFetch(`/clientes/${cid}/contas`, { method: 'POST', body: JSON.stringify(dados) }),

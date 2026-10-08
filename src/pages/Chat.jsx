@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import TextoFormatado from '../components/TextoFormatado';
+import BotaoMicrofone from '../components/BotaoMicrofone';
 import { MESES_FULL } from '../services/utils';
 import './Chat.css';
 
@@ -43,6 +44,11 @@ export default function Chat() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mandar(input); }
   }
 
+  function receberDitado(texto) {
+    setInput(atual => (atual.trim() ? `${atual.trim()} ${texto}` : texto));
+    inputRef.current?.focus();
+  }
+
   function usarSugestao(s) {
     if (s.enviar) return mandar(s.texto);
     setInput(s.texto);
@@ -64,6 +70,7 @@ export default function Chat() {
         aria-label="Mensagem para a SOUZ AI"
         disabled={!clienteAtivo}
       />
+      <BotaoMicrofone onTexto={receberDitado} disabled={carregando} />
       <button type="submit" className="souz-chat-enviar" disabled={!input.trim() || carregando} aria-label="Enviar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
       </button>
