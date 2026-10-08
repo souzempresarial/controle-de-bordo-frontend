@@ -4,6 +4,7 @@ import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
 import { calcDREBase } from '../services/dre';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
+import ImportarPatrimonio from '../components/ImportarPatrimonio';
 import './Financeiro.css';
 
 // ── DRE CALCULATION ──────────────────────────────────────────────────────────
@@ -615,6 +616,20 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   const getCapital = (campo) => capital[campo] || 0;
   const totalCapital = CAPITAL_CAMPOS.reduce((a, { campo }) => a + getCapital(campo), 0);
 
+  const [importando, setImportando] = useState(false);
+  const [importInfo, setImportInfo] = useState(null);
+  useEffect(() => {
+    if (!clienteAtivo?.id) return;
+    setImportInfo(null);
+    API.patrimonioResumo(clienteAtivo.id, periodo).then(setImportInfo).catch(() => {});
+  }, [clienteAtivo, periodo]);
+
+  function patrimonioSalvo(novoCapital, itens) {
+    setCapitalCache(prev => ({ ...prev, [periodo]: { ...(prev[periodo] || {}), ...novoCapital } }));
+    setImportInfo({ itens, importado_em: new Date().toISOString() });
+    setImportando(false);
+  }
+
   function abrirModalCapital() {
     const form = {};
     CAPITAL_CAMPOS.forEach(({ campo }) => { form[campo] = capital[campo] != null ? String(capital[campo]) : ''; });
@@ -666,7 +681,10 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     const totalFornecPagar    = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
     const totalOutrasPagar    = aPagar.filter(l => !['Fornecedores (Estoque)','Dívidas / Empréstimos','Impostos'].includes(l.categoria)).reduce((a,l) => a+l.valor, 0);
     const totalEmprestimosPagar = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos' && c.status === 'pendente').reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);
-    const totalImpostosPagar  = lancAteAno.filter(l => l.tipo === 'Saída' && l.categoria === 'Impostos' && l.status === 'Confirmado').reduce((a,l) => a+l.valor, 0);
+    // Passivo é o imposto que ainda falta pagar (lançamento pendente ou conta a pagar em aberto), não o que já foi pago
+    const totalImpostosPagar  = aPagar.filter(l => l.categoria === 'Impostos').reduce((a,l) => a+l.valor, 0)
+                              + contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Impostos' && c.status === 'pendente'
+                                  && String(c.vencimento || '').slice(0, 7) <= periodo).reduce((a,c) => a + parseFloat(c.valor || 0), 0);
     const totalPassivo        = totalFornecPagar + totalEmprestimosPagar + totalImpostosPagar + totalOutrasPagar;
     const pl               = totalAtivo - totalPassivo;
     const endividamento    = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
@@ -675,6 +693,8 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   }, [lancamentos, periodo, contas]);
 
   const { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalEmprestimosPagar, totalImpostosPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
+  // O card mostra o Ativo dos Recursos em Capital; o endividamento tem que usar o mesmo Ativo
+  const endividamentoCapital = totalCapital > 0 ? (totalPassivo / totalCapital * 100) : 0;
 
   const Linha = ({ label, val, indent = false, neg = false }) => {
     const cor = val === 0 ? 'var(--text2)' : neg ? 'var(--saida)' : val > 0 ? 'var(--entrada)' : 'var(--saida)';
@@ -718,7 +738,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
           </div>
           <div className="card">
             <div className="card-label">Endividamento</div>
-            <div className="card-value" style={{ color: endividamento < 50 ? 'var(--entrada)' : endividamento < 80 ? 'var(--warn)' : 'var(--saida)' }}>{fmtPct(endividamento)}</div>
+            <div className="card-value" style={{ color: endividamentoCapital < 50 ? 'var(--entrada)' : endividamentoCapital < 80 ? 'var(--warn)' : 'var(--saida)' }}>{totalCapital > 0 ? fmtPct(endividamentoCapital) : '—'}</div>
             <div className="card-sub">Passivo / Ativo</div>
           </div>
         </div>
@@ -736,8 +756,16 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         <div className="table-panel" style={{ padding: '16px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>ATIVO</h3>
-            <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando(true)}>⬇ Importar Patrimônio</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
+            </div>
           </div>
+          {importInfo?.itens > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>
+              Estoque importado do Mercado Phone em {new Date(importInfo.importado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {importInfo.itens} itens aprovados
+            </div>
+          )}
           <Grupo label="Recursos em Capital" />
           {CAPITAL_CAMPOS.map(({ campo, label }) => (
             <Linha key={campo} label={label} val={getCapital(campo)} indent />
@@ -761,6 +789,10 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
           <LinhaTotal label="TOTAL PASSIVO + PL" val={totalCapital} final />
         </div>
       </div>
+
+      {importando && (
+        <ImportarPatrimonio clienteId={clienteAtivo.id} periodo={periodo} onFechar={() => setImportando(false)} onSalvo={patrimonioSalvo} />
+      )}
 
       {modalCapital && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalCapital(false)}>

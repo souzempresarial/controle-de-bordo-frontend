@@ -76,6 +76,10 @@ export const API = {
   limparLancamentos: (cid)         => apiFetch(`/clientes/${cid}/lancamentos`, { method: 'DELETE' }),
 
   // Contas
+  patrimonioPreview: (cid)        => apiFetch(`/clientes/${cid}/mercadophone/patrimonio/preview`),
+  patrimonioSalvar:  (cid, dados) => apiFetch(`/clientes/${cid}/mercadophone/patrimonio`, { method: 'POST', body: JSON.stringify(dados) }),
+  patrimonioResumo:  (cid, mes)   => apiFetch(`/clientes/${cid}/mercadophone/patrimonio/${mes}`),
+
   chatEnviar:    (cid, dados)     => apiFetch(`/clientes/${cid}/chat`, { method: 'POST', body: JSON.stringify(dados) }),
   chatHistorico: (cid)            => apiFetch(`/clientes/${cid}/chat/historico`),
   chatLimpar:    (cid)            => apiFetch(`/clientes/${cid}/chat/historico`, { method: 'DELETE' }),
