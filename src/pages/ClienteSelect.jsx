@@ -90,7 +90,7 @@ export default function ClienteSelect({ onLogout }) {
     setEntrando(cliente.id);
     try {
       await entrarCliente(cliente);
-      navigate('/dashboard');
+      navigate('/chat');
     } catch {
       setErro('Erro ao carregar dados do cliente');
       setEntrando(null);

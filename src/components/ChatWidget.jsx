@@ -1,100 +1,41 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useChat } from '../context/ChatContext';
+import TextoFormatado from './TextoFormatado';
 import './ChatWidget.css';
-
-const API_URL = import.meta.env.PROD
-  ? '/api'
-  : (import.meta.env.VITE_DEV_API || 'https://kwgnbh1nbj.execute-api.sa-east-1.amazonaws.com');
-
-// Markdown mínimo da IA (**negrito** e listas) sem injetar HTML
-function negrito(linha) {
-  return linha.split(/(\*\*[^*]+\*\*)/g).map((parte, i) =>
-    parte.length > 4 && parte.startsWith('**') && parte.endsWith('**')
-      ? <strong key={i}>{parte.slice(2, -2)}</strong>
-      : parte
-  );
-}
-
-function TextoFormatado({ texto }) {
-  return texto.split('\n').map((linha, i) => {
-    const semTitulo = linha.replace(/^#{1,6}\s+/, '');
-    const item = semTitulo.match(/^\s*[-*•]\s+(.*)$/);
-    if (item) return <div key={i} className="chat-item">• {negrito(item[1])}</div>;
-    return <div key={i}>{semTitulo.trim() ? negrito(semTitulo) : ' '}</div>;
-  });
-}
 
 export default function ChatWidget() {
   const { clienteAtivo } = useApp();
+  const { mensagens, carregando, enviar, limpar } = useChat();
+  const { pathname } = useLocation();
   const usuarioNome = sessionStorage.getItem('sf_nome') || '';
-  const [aberto, setAberto]       = useState(false);
-  const [mensagens, setMensagens] = useState([]);
-  const [input, setInput]         = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const fimRef  = useRef(null);
+  const [aberto, setAberto] = useState(false);
+  const [input, setInput]   = useState('');
+  const fimRef   = useRef(null);
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (clienteAtivo) {
-      setMensagens([{
-        role: 'assistant',
-        content: `Olá${usuarioNome ? ', ' + usuarioNome.split(' ')[0] : ''}! Sou a SOUZ, assistente financeira da Souz Finance. Como posso ajudar com a gestão da sua loja hoje?`,
-      }]);
-    }
-  }, [clienteAtivo?.id]);
 
   useEffect(() => {
     if (aberto) {
       fimRef.current?.scrollIntoView({ behavior: 'smooth' });
       inputRef.current?.focus();
     }
-  }, [aberto, mensagens]);
+  }, [aberto, mensagens, carregando]);
 
-  if (!clienteAtivo) return null;
+  // Na tela SOUZ AI o chat já ocupa a página inteira
+  if (!clienteAtivo || pathname === '/chat') return null;
 
-  async function enviar(e) {
+  function onSubmit(e) {
     e.preventDefault();
-    const texto = input.trim();
-    if (!texto || carregando) return;
-
-    const novasMensagens = [...mensagens, { role: 'user', content: texto }];
-    setMensagens(novasMensagens);
+    if (!input.trim() || carregando) return;
+    enviar(input);
     setInput('');
-    setCarregando(true);
-
-    // histórico sem a msg de boas-vindas (só as reais)
-    const historico = novasMensagens.slice(1, -1);
-
-    try {
-      const res = await fetch(`${API_URL}/clientes/${clienteAtivo.id}/chat`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: texto, historico, clienteNome: clienteAtivo.nome, usuarioNome }),
-      });
-
-      const resBody = await res.text();
-      let data;
-      try { data = JSON.parse(resBody); } catch { throw new Error(resBody.slice(0, 120)); }
-      if (!res.ok) throw new Error(data.detalhe || data.erro || 'Erro no servidor');
-      setMensagens(m => [...m, { role: 'assistant', content: data.resposta || 'Não entendi, pode reformular?' }]);
-    } catch (err) {
-      setMensagens(m => [...m, { role: 'assistant', content: `Erro: ${err.message}` }]);
-    } finally {
-      setCarregando(false);
-    }
   }
 
-  function limpar() {
-    setMensagens([{
-      role: 'assistant',
-      content: `Olá, ${clienteAtivo.nome}! Pode me dizer o que deseja lançar, por exemplo: "Vendi R$500 de iPhone no cartão hoje".`,
-    }]);
-  }
+  const boasVindas = `Olá${usuarioNome ? ', ' + usuarioNome.split(' ')[0] : ''}! Sou a SOUZ, assistente financeira da Souz Finance. Como posso ajudar com a gestão da sua loja hoje?`;
 
   return (
     <>
-      {/* Botão flutuante */}
       <button
         className={`chat-fab${aberto ? ' chat-fab--ativo' : ''}`}
         onClick={() => setAberto(a => !a)}
@@ -107,7 +48,6 @@ export default function ChatWidget() {
         }
       </button>
 
-      {/* Painel de chat */}
       {aberto && (
         <div className="chat-panel">
           <div className="chat-header">
@@ -126,6 +66,9 @@ export default function ChatWidget() {
           </div>
 
           <div className="chat-mensagens">
+            <div className="chat-msg chat-msg--assistant">
+              <span className="chat-msg-texto"><TextoFormatado texto={boasVindas} /></span>
+            </div>
             {mensagens.map((m, i) => (
               <div key={i} className={`chat-msg chat-msg--${m.role}`}>
                 <span className="chat-msg-texto">
@@ -135,15 +78,13 @@ export default function ChatWidget() {
             ))}
             {carregando && (
               <div className="chat-msg chat-msg--assistant">
-                <span className="chat-digitando">
-                  <span /><span /><span />
-                </span>
+                <span className="chat-digitando"><span /><span /><span /></span>
               </div>
             )}
             <div ref={fimRef} />
           </div>
 
-          <form className="chat-input-area" onSubmit={enviar}>
+          <form className="chat-input-area" onSubmit={onSubmit}>
             <input
               ref={inputRef}
               type="text"

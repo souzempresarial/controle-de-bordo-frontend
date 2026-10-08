@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { API } from './services/api';
 import { AppProvider } from './context/AppContext';
+import { ChatProvider } from './context/ChatContext';
+import Chat from './pages/Chat';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -86,6 +88,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppProvider>
+        <ChatProvider>
         <Routes>
           {/* Login */}
           <Route
@@ -95,13 +98,14 @@ export default function App() {
                 ? <Navigate to={
                     papel === 'admin' ? '/ranking' :
                     papel === 'funcionario' ? (getPrimeiraPermissaoFuncionario() || '/dashboard') :
-                    '/dashboard'
+                    '/chat'
                   } replace />
                 : <Login onLogin={handleLogin} />
             }
           />
 
           {/* Páginas dentro do Layout */}
+          <Route path="/chat"        element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="chat"><Chat /></PrivateLayout>} />
           <Route path="/dashboard"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="dashboard"><Dashboard /></PrivateLayout>} />
           <Route path="/lancamentos" element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="lancamentos"><Lancamentos /></PrivateLayout>} />
           <Route path="/relatorio"   element={<PrivateLayout usuario={usuario} onLogout={handleLogout} slug="relatorio"><Relatorio /></PrivateLayout>} />
@@ -121,7 +125,7 @@ export default function App() {
                 ? <Navigate to="/ranking" replace />
                 : papel === 'funcionario'
                 ? <Navigate to={getPrimeiraPermissaoFuncionario() || '/dashboard'} replace />
-                : <Navigate to="/dashboard" replace />
+                : <Navigate to="/chat" replace />
             }
           />
 
@@ -145,6 +149,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ChatProvider>
       </AppProvider>
     </BrowserRouter>
   );
