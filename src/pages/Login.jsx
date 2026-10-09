@@ -215,7 +215,7 @@ export default function Login({ onLogin }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
             <p style={{ fontSize: 14, color: 'var(--text2)', textAlign: 'center', lineHeight: 1.6 }}>
               Enviamos um link de verificação para <strong style={{ color: 'var(--text)' }}>{email}</strong>.
-              Clique no link para ativar sua conta.
+              Clique no link para confirmar seu e-mail. Depois disso, a equipe SOUZ Finance libera o seu acesso.
             </p>
             {erro  && <div className="login-erro">{erro}</div>}
             {info  && <div style={{ color: 'var(--entrada)', fontSize: 13, textAlign: 'center' }}>{info}</div>}
