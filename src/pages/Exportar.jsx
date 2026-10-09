@@ -1,6 +1,6 @@
 ﻿import { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { fmt, hoje } from '../services/utils';
+import { fmt, hoje, upgradeNoCaixa } from '../services/utils';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, APORTE_CATS } from '../services/constants';
 import { calcDREBase } from '../services/dre';
 import './Exportar.css';
@@ -55,7 +55,7 @@ export default function Exportar() {
     const lmDFC      = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
     const entBruto   = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
     const dedInlineDFC = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
-    const upInlineDFC  = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a, l) => a + l.valorUpgrade, 0);
+    const upInlineDFC  = lmDFC.reduce((a, l) => a + upgradeNoCaixa(l), 0);
     const entCaixa   = entBruto - upInlineDFC;
     const saiCaixa   = lmDFC.filter(l => l.tipo === 'Saída').reduce((a, l) => a + l.valor, 0) + dedInlineDFC;
     const geracaoCaixa = entCaixa - saiCaixa;

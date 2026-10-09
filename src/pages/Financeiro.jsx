@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
 import { calcDREBase } from '../services/dre';
-import { fmt, fmtPct, hoje, MESES, MESES_FULL } from '../services/utils';
+import { fmt, fmtPct, hoje, MESES, MESES_FULL, upgradeNoCaixa } from '../services/utils';
 import ImportarPatrimonio from '../components/ImportarPatrimonio';
 import './Financeiro.css';
 
@@ -374,21 +374,21 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       const lm        = lancDFC.filter(l => l.data.startsWith(pfx));
       const entBruto     = lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
       const dedInline    = lm.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
-      const upgradeInline = lm.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
+      const upgradeInline = lm.reduce((a,l) => a + upgradeNoCaixa(l), 0);
       const ent          = entBruto - upgradeInline;
       const sai          = lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
       const catVal    = (cat) => {
         if (cat === 'Permuta - Upgrade') return 0;
         const base = lm.filter(l => l.categoria === cat).reduce((a, l) => {
           const val = (l.tipo === 'Entrada' && (l.valorUpgrade || 0) > 0)
-            ? l.valor - l.valorUpgrade
+            ? l.valor - upgradeNoCaixa(l)
             : l.valor;
           return a + val;
         }, 0);
         return cat === 'Deduções das Vendas' ? base + dedInline : base;
       };
       const subVal = (cat, sub) => lm.filter(l => l.categoria === cat && l.subcategoria === sub).reduce((a, l) => {
-        const val = (l.tipo === 'Entrada' && (l.valorUpgrade || 0) > 0) ? l.valor - l.valorUpgrade : l.valor;
+        const val = l.valor - upgradeNoCaixa(l);
         return a + val;
       }, 0);
       return { ent, sai, saldo: ent - sai, catVal, subVal };
@@ -659,7 +659,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
     const entDFCBruto   = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
     const dedInline     = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
-    const upgradeInline = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
+    const upgradeInline = lancDFC.reduce((a,l) => a + upgradeNoCaixa(l), 0);
     const entDFC        = entDFCBruto - upgradeInline;
     const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
     const caixa         = entDFC - saiDFC;
@@ -1043,7 +1043,7 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const projUni    = uni > 0 ? Math.round(uni / diasPassados * diasNoMes) : 0;
     const projTicket = projUni > 0 ? (fatAparelhos + ritmo * diasRestantes * (fatAparelhos / fat)) / projUni : ticket;
 
-    const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + (l.valorRecebido != null ? l.valorRecebido : l.valor - (l.valorUpgrade || 0)), 0);
+    const entCaixa  = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + (l.valorRecebido != null ? l.valorRecebido : l.valor - upgradeNoCaixa(l)), 0);
     const saiCaixa  = lm.filter(l => l.tipo === 'Saída'  && !l.isCMV && l.status !== 'Pendente').reduce((a,l) => a + l.valor, 0);
     const caixaLiq  = entCaixa - saiCaixa;
     const projCaixa = diasPassados > 0 ? caixaLiq / diasPassados * diasNoMes : caixaLiq;

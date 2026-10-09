@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
-import { fmt, fmtData, hoje, MESES } from '../services/utils';
+import { fmt, fmtData, hoje, MESES, upgradeNoCaixa } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
@@ -117,7 +117,7 @@ function calcularTotais(lista) {
   lista
     .filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && l.status !== 'Pendente')
     .forEach(l => {
-      if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? (l.valor - (l.valorUpgrade || 0));
+      if (l.tipo === 'Entrada') entradas += l.valorRecebido ?? (l.valor - upgradeNoCaixa(l));
       else if (l.tipo === 'Saída') saidas += l.valor;
     });
   return { entradas, saidas, saldo: entradas - saidas };

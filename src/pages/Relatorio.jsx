@@ -2,7 +2,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS, APORTE_CATS } from '../services/constants';
-import { fmt, fmtPct, hoje, MESES } from '../services/utils';
+import { fmt, fmtPct, hoje, MESES, upgradeNoCaixa } from '../services/utils';
 import './Relatorio.css';
 
 function calcPeriodo(lancamentos, inicio, fim) {
@@ -38,7 +38,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const lmDFC        = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
   const entBruto     = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
   const dedInline    = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
-  const upgradeInline = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a, l) => a + l.valorUpgrade, 0);
+  const upgradeInline = lmDFC.reduce((a, l) => a + upgradeNoCaixa(l), 0);
   const entCaixa     = entBruto - upgradeInline;
   const saiCaixa     = lmDFC.filter(l => l.tipo === 'Saída').reduce((a, l) => a + l.valor, 0) + dedInline;
   const caixaLiq     = entCaixa - saiCaixa;

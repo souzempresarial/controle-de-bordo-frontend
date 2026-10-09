@@ -44,7 +44,8 @@ export const CATEGORIAS_TRANSF = {
 
 // Constantes de classificação financeira — usadas em Dashboard, Relatorio, Financeiro e Layout
 export const CMVCATS       = ['Custos Variáveis Diretos'];
-export const DEDUCOES_CATS = ['Deduções das Vendas', 'Downgrade'];
+// Downgrade não é dedução: é o dinheiro devolvido na compra do aparelho que entrou no estoque (só afeta o caixa)
+export const DEDUCOES_CATS = ['Deduções das Vendas'];
 export const SGA_CATS      = ['Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
 export const NAOOP_CATS    = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
 export const GASTOS_CATS   = [...DEDUCOES_CATS, ...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
