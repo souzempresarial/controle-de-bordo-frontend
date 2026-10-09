@@ -149,7 +149,7 @@ export default function Lancamentos() {
                 pagamento:     t.pagamento || '',
                 valorUpgrade:  t.valorUpgrade ? String(t.valorUpgrade) : '',
                 isUpgrade:     t.isUpgrade || false,
-                deducaoCartao: '',
+                deducaoCartao: t.deducaoSugerida ? String(t.deducaoSugerida) : '',
                 cmvOverride:   '',
                 categoria:     t.categoria    || '',
                 subcategoria:  t.subcategoria || '',
@@ -589,7 +589,7 @@ export default function Lancamentos() {
       pagamento:    edit.pagamento  || t.pagamento  || '',
       isUpgrade:    edit.isUpgrade ?? t.isUpgrade,
       valorUpgrade: (edit.isUpgrade ?? t.isUpgrade) && edit.valorUpgrade ? parseFloat(edit.valorUpgrade) : (t.valorUpgrade || ''),
-      deducao:      edit.pagamento === 'Crédito' && parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
+      deducao:      parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
       cmvValor:     parseFloat(edit.cmvOverride) > 0 ? parseFloat(edit.cmvOverride) : t.cmvValor,
       categoria:    edit.categoria    || t.categoria    || '',
       subcategoria: edit.subcategoria || t.subcategoria || '',
@@ -645,6 +645,7 @@ export default function Lancamentos() {
           pagamento:    edit.pagamento || t.pagamento || '',
           isUpgrade:    isUp,
           valorUpgrade: isUp ? parseFloat(edit.valorUpgrade ?? t.valorUpgrade) || '' : '',
+          deducao:      parseFloat(edit.deducaoCartao) > 0 ? parseFloat(edit.deducaoCartao) : null,
         };
       });
     if (!paraImportar.length) return;
@@ -845,6 +846,7 @@ export default function Lancamentos() {
                             </span>
                             {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
                             {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
+                            {parseFloat(edit.deducaoCartao) > 0 && <span title="Taxa/dedução — recebido = valor − dedução" style={{ fontSize: 10, fontWeight: 600, color: 'var(--saida)', background: 'color-mix(in srgb, var(--saida) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>− {fmt(parseFloat(edit.deducaoCartao))} taxa · recebido {fmt((parseFloat(edit.valor) || t.valor) - parseFloat(edit.deducaoCartao))}</span>}
                           </div>
                           {t.resumoPagamentos && (
                             <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 3 }}>{t.resumoPagamentos}</div>
@@ -950,7 +952,7 @@ export default function Lancamentos() {
                                   {getSubcats(edit.categoria || t.categoria || '').map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                               </div>
-                              {edit.pagamento === 'Crédito' && (
+                              {(edit.pagamento === 'Crédito' || parseFloat(edit.deducaoCartao) > 0) && (
                                 <div>
                                   <div style={{ fontSize: 10, color: 'var(--text2)', marginBottom: 3 }}>Dedução (R$)</div>
                                   <input

@@ -57,6 +57,16 @@ export default function Integracoes() {
     }
   }
 
+  async function alternarLiquido(c) {
+    setMsg(''); setErro('');
+    try {
+      const r = await API.mpConfigurarChave(clienteAtivo.id, c.id, { valorLiquido: !c.valor_liquido });
+      setChaves(prev => prev.map(x => (x.id === c.id ? { ...x, valor_liquido: r.chave.valor_liquido } : x)));
+    } catch (err) {
+      setErro(err.message || 'Erro ao salvar a configuração');
+    }
+  }
+
   async function remover(id) {
     setRemovendoId(id); setMsg(''); setErro('');
     try {
@@ -135,6 +145,13 @@ export default function Integracoes() {
                   <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'monospace', marginTop: 2 }}>
                     {c.api_key_masked}
                   </div>
+                  <label
+                    title="Ligue se a loja digita no Mercado Phone o valor unitário já sem a taxa do cartão. A diferença para o valor cobrado do cliente entra como dedução na importação."
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    <input type="checkbox" checked={!!c.valor_liquido} onChange={() => alternarLiquido(c)} />
+                    O valor unitário já vem líquido (lançar a taxa como dedução)
+                  </label>
                 </div>
                 {confirmRemover === c.id ? (
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

@@ -117,6 +117,7 @@ export const API = {
   mpStatus:        (cid)                  => apiFetch(`/clientes/${cid}/mercadophone/status`),
   mpListarChaves:  (cid)                  => apiFetch(`/clientes/${cid}/mercadophone/chaves`),
   mpAdicionarChave:(cid, nome, apiKey)    => apiFetch(`/clientes/${cid}/mercadophone/chaves`, { method: 'POST', body: JSON.stringify({ nome, apiKey }) }),
+  mpConfigurarChave: (cid, chaveId, cfg)  => apiFetch(`/clientes/${cid}/mercadophone/chaves/${chaveId}`, { method: 'PATCH', body: JSON.stringify(cfg) }),
   mpRemoverChave:  (cid, chaveId)         => apiFetch(`/clientes/${cid}/mercadophone/chaves/${chaveId}`, { method: 'DELETE' }),
   mpSalvarChave:   (cid, apiKey)          => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }), // legado
   mpPreview:       (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
