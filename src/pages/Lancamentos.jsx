@@ -846,6 +846,7 @@ export default function Lancamentos() {
                             </span>
                             {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
                             {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
+                            {t.categoriaPeloHistorico && <span title='Mesma categoria usada antes para este produto' style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', background: 'color-mix(in srgb, var(--entrada) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>✓ histórico</span>}
                             {parseFloat(edit.deducaoCartao) > 0 && <span title="Taxa/dedução — recebido = valor − dedução" style={{ fontSize: 10, fontWeight: 600, color: 'var(--saida)', background: 'color-mix(in srgb, var(--saida) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>− {fmt(parseFloat(edit.deducaoCartao))} taxa · recebido {fmt((parseFloat(edit.valor) || t.valor) - parseFloat(edit.deducaoCartao))}</span>}
                           </div>
                           {t.resumoPagamentos && (
