@@ -67,6 +67,7 @@ export default function Lancamentos() {
 
   // Mercado Phone — inline pending
   const [mpConfigurado, setMpConfigurado]       = useState(null);
+  const [mpPeriodo, setMpPeriodo]               = useState(null);   // { inicio, fim } do quadro "Buscar no MP" aberto
   const [mpPendentes, setMpPendentes]           = useState([]);
   const [mpCarregando, setMpCarregando]         = useState(false);
   const [mpConfirmandoSet, setMpConfirmandoSet] = useState(new Set()); // keys: mpItemKey
@@ -125,13 +126,23 @@ export default function Lancamentos() {
       .catch(() => setMpConfigurado(false));
   }, [clienteAtivo?.id]);
 
-  // Busca manual de pendentes MP (vendas + OS)
-  function buscarMpPendentes(mes) {
-    const mesAlvo = mes || filtroMes;
-    if (!mesAlvo || !mpConfigurado || !clienteAtivo) return;
-    const [y, m] = mesAlvo.split('-');
-    const inicio = `${mesAlvo}-01`;
-    const fim    = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10);
+  // Períodos de atalho para a busca no MP (datas locais, YYYY-MM-DD)
+  function periodoMp(tipo) {
+    const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const h = new Date();
+    if (tipo === 'ontem') { const d = new Date(h); d.setDate(d.getDate() - 1); return { inicio: iso(d), fim: iso(d) }; }
+    if (tipo === '7dias') { const d = new Date(h); d.setDate(d.getDate() - 6); return { inicio: iso(d), fim: iso(h) }; }
+    if (tipo === 'mes') {
+      const [y, m] = (filtroMes || iso(h).slice(0, 7)).split('-').map(Number);
+      return { inicio: `${y}-${String(m).padStart(2, '0')}-01`, fim: iso(new Date(y, m, 0)) };
+    }
+    return { inicio: iso(h), fim: iso(h) };
+  }
+
+  // Busca manual de pendentes MP (vendas + OS) no período escolhido
+  function buscarMpPendentes(inicio, fim) {
+    if (!inicio || !fim || inicio > fim || !mpConfigurado || !clienteAtivo) return;
+    setMpPeriodo(null);
 
     // Vendas
     setMpCarregando(true);
@@ -679,15 +690,37 @@ export default function Lancamentos() {
               return <option key={m} value={m}>{new Date(y, mo-1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</option>;
             })}
           </select>
-          {mpConfigurado && filtroMes && (
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => buscarMpPendentes(filtroMes)}
-              disabled={mpCarregando || osCarregando}
-              title="Buscar vendas e OS pendentes do Mercado Phone para este mês"
-            >
-              {(mpCarregando || osCarregando) ? '⏳ Buscando...' : '🔄 Buscar no MP'}
-            </button>
+          {mpConfigurado && (
+            <div className="mp-busca">
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setMpPeriodo(p => (p ? null : periodoMp(filtroMes ? 'mes' : 'ontem')))}
+                disabled={mpCarregando || osCarregando}
+                aria-expanded={!!mpPeriodo}
+                title="Buscar vendas e OS pendentes do Mercado Phone em um período"
+              >
+                {(mpCarregando || osCarregando) ? '⏳ Buscando...' : '🔄 Buscar no MP'}
+              </button>
+              {mpPeriodo && (
+                <div className="mp-busca-painel" role="dialog" aria-label="Período da busca no Mercado Phone">
+                  <div className="mp-busca-atalhos">
+                    {[['ontem', 'Ontem'], ['7dias', 'Últimos 7 dias'], ['mes', filtroMes ? 'Mês do filtro' : 'Este mês']].map(([k, l]) => (
+                      <button key={k} type="button" className="btn btn-ghost btn-sm" onClick={() => setMpPeriodo(periodoMp(k))}>{l}</button>
+                    ))}
+                  </div>
+                  <div className="mp-busca-datas">
+                    <label>De<input id="mp-inicio" type="date" value={mpPeriodo.inicio} onChange={e => setMpPeriodo(p => ({ ...p, inicio: e.target.value }))} /></label>
+                    <label>Até<input id="mp-fim" type="date" value={mpPeriodo.fim} onChange={e => setMpPeriodo(p => ({ ...p, fim: e.target.value }))} /></label>
+                  </div>
+                  {mpPeriodo.inicio > mpPeriodo.fim && <div className="mp-busca-erro">A data inicial deve ser antes da final.</div>}
+                  <div className="mp-busca-acoes">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMpPeriodo(null)}>Cancelar</button>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={!mpPeriodo.inicio || !mpPeriodo.fim || mpPeriodo.inicio > mpPeriodo.fim}
+                      onClick={() => buscarMpPendentes(mpPeriodo.inicio, mpPeriodo.fim)}>Buscar</button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           <button
             className="btn btn-ghost btn-sm"
@@ -752,7 +785,7 @@ export default function Lancamentos() {
           </div>
         )}
 
-        {filtrados.length === 0 ? (
+        {filtrados.length === 0 && !mpPendentes.length && !osPendentes.length && !mpCarregando && !osCarregando ? (
           <div className="empty-state">
             <div className="icon">📭</div>
             <div>Nenhum lançamento encontrado</div>
