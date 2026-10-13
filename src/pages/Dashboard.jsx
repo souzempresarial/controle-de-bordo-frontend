@@ -72,7 +72,7 @@ function AlertaVencimentos({ contas, onVerContas }) {
   );
 }
 
-const GRUPOS_RECEITA = ['Aparelhos', 'Acessórios', 'Assistência Técnica'];
+const GRUPOS_RECEITA = ['Aparelhos', 'Acessórios', 'Outros Produtos', 'Assistência Técnica', 'Outras receitas'];
 
 function lerGruposAbertos() {
   try { return new Set(JSON.parse(localStorage.getItem('dash_linhas_abertas') || '[]')); }
@@ -258,13 +258,10 @@ export default function Dashboard() {
 
   const resumoProdutos = useMemo(() => {
     const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
-    const GRUPO_AT = ['Assistência Técnica'];
-    const GRUPO_ACESS = ['Acessórios', 'Outros Produtos'];
     const map = {};
     entradas.forEach(l => {
-      const grupo = GRUPO_AT.includes(l.categoria) ? 'Assistência Técnica'
-                  : GRUPO_ACESS.includes(l.categoria) ? 'Acessórios'
-                  : 'Aparelhos';
+      // Cada categoria de venda é uma linha; o resto (ex.: receitas não operacionais) fica em Outras receitas
+      const grupo = GRUPOS_RECEITA.includes(l.categoria) ? l.categoria : 'Outras receitas';
       const key = grupo + ':' + (l.subcategoria || l.categoria || 'Outro');
       if (!map[key]) map[key] = { produto: l.subcategoria || l.categoria || 'Outro', grupo, unidades: 0, faturamento: 0, lucro: 0, descricoes: [] };
       map[key].unidades    += (l.quantidade ?? 1);
