@@ -3,6 +3,9 @@ export const fmtPct  = (v) => (v !== null && v !== undefined) ? v.toFixed(2) + '
 export const fmtData = (d) => { if (!d) return '—'; const s = String(d).slice(0, 10); const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 export const hoje    = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
+// Taxa/desconto gravado dentro da própria venda (valor − valor recebido), mesma regra do DRE (calcDREBase)
+export const deducaoNaVenda = (l) => (l.tipo === 'Entrada' && l.valorRecebido != null && l.subcategoria !== 'Upgrade' ? l.valor - l.valorRecebido : 0);
+
 // Quanto do aparelho recebido na troca sai do caixa da venda. No downgrade o aparelho vale mais que a venda:
 // a entrada no caixa fica zero e a diferença devolvida ao cliente já está na saída "Downgrade" — senão conta duas vezes
 export const upgradeNoCaixa = (l) => (l.tipo === 'Entrada' && l.valorUpgrade > 0 ? Math.min(l.valorUpgrade, l.valor) : 0);

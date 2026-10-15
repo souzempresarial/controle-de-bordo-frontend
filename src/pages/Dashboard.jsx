@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
-import { fmt, fmtData, hoje, MESES, upgradeNoCaixa } from '../services/utils';
+import { fmt, fmtData, hoje, MESES, upgradeNoCaixa, deducaoNaVenda } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
@@ -226,14 +226,16 @@ export default function Dashboard() {
   const fatAp         = aparelhos.reduce((a, l) => a + l.valor, 0);
   const apGrupoIds    = new Set(aparelhos.filter(l => l.grupoId).map(l => l.grupoId));
   const cmvAp         = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-  const dedAp         = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const dedAp         = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0)
+                      + aparelhos.reduce((a, l) => a + deducaoNaVenda(l), 0);
 
   const aparelhosPrev  = lprev.filter(l => l.tipo === 'Entrada' && !l.isCMV && l.status !== 'Pendente' && l.categoria === 'Aparelhos');
   const unidadesPrev   = aparelhosPrev.reduce((a, l) => a + (l.quantidade ?? 1), 0);
   const fatApPrev      = aparelhosPrev.reduce((a, l) => a + l.valor, 0);
   const apGrupoIdsPrev = new Set(aparelhosPrev.filter(l => l.grupoId).map(l => l.grupoId));
   const cmvApPrev      = lprev.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIdsPrev.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-  const dedApPrev      = lprev.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIdsPrev.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const dedApPrev      = lprev.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIdsPrev.has(l.grupoId)).reduce((a, l) => a + l.valor, 0)
+                       + aparelhosPrev.reduce((a, l) => a + deducaoNaVenda(l), 0);
 
   const lucPorAp      = unidades > 0 ? (fatAp - cmvAp - dedAp) / unidades : 0;
   const lucPorApPrev  = unidadesPrev > 0 ? (fatApPrev - cmvApPrev - dedApPrev) / unidadesPrev : 0;
@@ -268,7 +270,7 @@ export default function Dashboard() {
       map[key].faturamento += l.valor;
       const cmvL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && (x.isCMV || CMVCATS.includes(x.categoria))).reduce((a, x) => a + x.valor, 0) : 0;
       const dedL = l.grupoId ? lm.filter(x => x.grupoId === l.grupoId && x.tipo === 'Saída' && DEDUCOES_CATS.includes(x.categoria)).reduce((a, x) => a + x.valor, 0) : 0;
-      map[key].lucro += l.valor - cmvL - dedL;
+      map[key].lucro += l.valor - cmvL - dedL - deducaoNaVenda(l);
       if (l.descricao && !map[key].descricoes.includes(l.descricao)) map[key].descricoes.push(l.descricao);
     });
     return Object.values(map).sort((a, b) => b.faturamento - a.faturamento);

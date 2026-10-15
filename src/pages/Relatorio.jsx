@@ -2,7 +2,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS, APORTE_CATS } from '../services/constants';
-import { fmt, fmtPct, hoje, MESES, upgradeNoCaixa } from '../services/utils';
+import { fmt, fmtPct, hoje, MESES, upgradeNoCaixa, deducaoNaVenda } from '../services/utils';
 import './Relatorio.css';
 
 function calcPeriodo(lancamentos, inicio, fim) {
@@ -23,7 +23,8 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const ticket      = uni > 0 ? fatAp / uni : 0;
   const apGrupoIds  = new Set(aps.filter(l => l.grupoId).map(l => l.grupoId));
   const cmvAp       = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-  const dedAp       = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const dedAp       = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && apGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0)
+                    + aps.reduce((a, l) => a + deducaoNaVenda(l), 0);
   const lucMedio    = uni > 0 ? (fatAp - cmvAp - dedAp) / uni : 0;
 
   const accs        = lm.filter(l => l.tipo === 'Entrada' && l.categoria === 'Acessórios' && !l.isCMV && l.status !== 'Pendente');
@@ -31,7 +32,8 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const uniAcc      = accs.reduce((a, l) => a + (l.quantidade || 1), 0);
   const accGrupoIds = new Set(accs.filter(l => l.grupoId).map(l => l.grupoId));
   const cmvAcc      = lm.filter(l => (l.isCMV || CMVCATS.includes(l.categoria)) && l.grupoId && accGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
-  const dedAcc      = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && accGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0);
+  const dedAcc      = lm.filter(l => l.tipo === 'Saída' && DEDUCOES_CATS.includes(l.categoria) && l.grupoId && accGrupoIds.has(l.grupoId)).reduce((a, l) => a + l.valor, 0)
+                    + accs.reduce((a, l) => a + deducaoNaVenda(l), 0);
   const lucAcc      = fatAcc - cmvAcc - dedAcc;
   const lucMedioAcc = uniAcc > 0 ? lucAcc / uniAcc : 0;
 
