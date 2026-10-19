@@ -102,6 +102,13 @@ export const API = {
   // Recursos em Capital
   buscarCapital: (cid, mes)        => apiFetch(`/clientes/${cid}/capital/${mes}`),
   salvarCapital: (cid, mes, dados) => apiFetch(`/clientes/${cid}/capital/${mes}`, { method: 'POST', body: JSON.stringify(dados) }),
+  // Fechamento do mês (saldo por conta e caixa em espécie)
+  fechamentoBuscar:      (cid, mes)                => apiFetch(`/clientes/${cid}/fechamento/${mes}`),
+  fechamentoSalvarSaldo: (cid, mes, contaId, campo, valor) => apiFetch(`/clientes/${cid}/fechamento/${mes}/saldos`, { method: 'PUT', body: JSON.stringify({ contaId, campo, valor }) }),
+  fechamentoCriarConta:  (cid, nome, tipo)         => apiFetch(`/clientes/${cid}/fechamento/contas`, { method: 'POST', body: JSON.stringify({ nome, tipo }) }),
+  fechamentoEditarConta: (cid, contaId, dados)     => apiFetch(`/clientes/${cid}/fechamento/contas/${contaId}`, { method: 'PATCH', body: JSON.stringify(dados) }),
+  fechamentoFechar:      (cid, mes)                => apiFetch(`/clientes/${cid}/fechamento/${mes}/fechar`, { method: 'POST' }),
+  fechamentoReabrir:     (cid, mes)                => apiFetch(`/clientes/${cid}/fechamento/${mes}/reabrir`, { method: 'POST' }),
 
   // Upgrade
   listarAparelhos:  (cid)            => apiFetch(`/clientes/${cid}/upgrade`),

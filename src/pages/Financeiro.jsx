@@ -5,6 +5,7 @@ import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants
 import { calcDREBase } from '../services/dre';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL, upgradeNoCaixa } from '../services/utils';
 import ImportarPatrimonio from '../components/ImportarPatrimonio';
+import FechamentoMes from '../components/FechamentoMes';
 import './Financeiro.css';
 
 // ── DRE CALCULATION ──────────────────────────────────────────────────────────
@@ -1181,6 +1182,7 @@ export default function Financeiro() {
       <div className="abas">
         <button className={`aba-btn ${aba === 'dre'    ? 'active' : ''}`} onClick={() => setAba('dre')}>DRE</button>
         <button className={`aba-btn ${aba === 'fluxo'  ? 'active' : ''}`} onClick={() => setAba('fluxo')}>Fluxo de Caixa</button>
+        <button className={`aba-btn ${aba === 'fechamento' ? 'active' : ''}`} onClick={() => setAba('fechamento')}>Fechamento</button>
         <button className={`aba-btn ${aba === 'balanco' ? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
         <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Upgrades</button>
         <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
@@ -1188,6 +1190,7 @@ export default function Financeiro() {
 
       {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
+      {aba === 'fechamento' && <FechamentoMes lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} ano={ano} setAno={setAno} />}
       {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
