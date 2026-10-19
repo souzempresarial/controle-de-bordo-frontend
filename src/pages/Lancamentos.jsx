@@ -837,7 +837,7 @@ export default function Lancamentos() {
                         <li key={a.id}>
                           <label htmlFor={`mp-conf-${a.id}`}>
                             <input type="checkbox" id={`mp-conf-${a.id}`} checked={mpConf.marcados.has(a.id)} onChange={() => marcarAjuste(a.id)} disabled={mpConf.aplicando} />
-                            <span className={`mp-conf-tipo mp-conf-tipo-${a.tipo}`}>{{ cancelada: 'Cancelada', sumiu: 'Não encontrada', trocado: 'Item trocado', removido: 'Item removido', alterado: 'Alterada' }[a.tipo]}</span>
+                            <span className={`mp-conf-tipo mp-conf-tipo-${a.tipo}`}>{{ cancelada: 'Cancelada', dobro: 'Em dobro', sumiu: 'Não encontrada', trocado: 'Item trocado', removido: 'Item removido', alterado: 'Alterada' }[a.tipo]}</span>
                             <span className="mp-conf-desc">{fmtData(a.data)} · {a.descricao}</span>
                             <span className="mp-conf-valor">
                               {a.tipo === 'alterado' && a.valorAtual === a.valorNovo ? fmt(a.valorAtual)

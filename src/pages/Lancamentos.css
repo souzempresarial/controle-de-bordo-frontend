@@ -64,7 +64,7 @@
 .mp-conf-lista input { accent-color: var(--primary); }
 .mp-conf-lista input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .mp-conf-tipo { font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
-.mp-conf-tipo-cancelada, .mp-conf-tipo-removido { color: var(--saida); background: color-mix(in srgb, var(--saida) 12%, transparent); }
+.mp-conf-tipo-cancelada, .mp-conf-tipo-removido, .mp-conf-tipo-dobro { color: var(--saida); background: color-mix(in srgb, var(--saida) 12%, transparent); }
 .mp-conf-tipo-alterado { color: #d97706; background: #d9770618; }
 .mp-conf-tipo-trocado  { color: #7c3aed; background: #7c3aed18; }
 .mp-conf-tipo-sumiu    { color: var(--text2); background: color-mix(in srgb, var(--text2) 12%, transparent); }
