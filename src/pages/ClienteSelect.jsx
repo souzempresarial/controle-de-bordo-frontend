@@ -201,12 +201,13 @@ export default function ClienteSelect({ onLogout }) {
                 <div key={c.id} className="cliente-card-wrapper">
                   {/* Card do cliente */}
                   <div className={`cliente-card ${entrando === c.id ? 'loading' : ''}`} style={{ cursor: 'default' }}>
+                    {/* obs guarda o nome da loja: ela vem em destaque e a pessoa embaixo */}
                     <div className="cliente-avatar" style={{ background: `${c.cor}22`, color: c.cor }}>
-                      {initials(c.nome)}
+                      {initials(c.obs?.trim() || c.nome)}
                     </div>
                     <div className="cliente-info">
-                      <div className="nome">{c.nome}</div>
-                      <div className="meta">{c.obs || 'Sem observação'}</div>
+                      <div className="nome">{c.obs?.trim() || c.nome}</div>
+                      <div className="meta">{c.obs?.trim() ? c.nome : 'Nome da loja não informado'}</div>
                     </div>
                     <div className="cliente-acoes">
                       <button
@@ -297,12 +298,12 @@ export default function ClienteSelect({ onLogout }) {
               <div className="modal-body">
                 <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
                   <div className="field">
-                    <label>Nome</label>
-                    <input type="text" placeholder="Nome do cliente" value={formCliente.nome} onChange={e => setFormCliente(f => ({ ...f, nome: e.target.value }))} />
+                    <label htmlFor="novo-cliente-nome">Nome do responsável</label>
+                    <input id="novo-cliente-nome" type="text" placeholder="Ex.: Carlson Junior" value={formCliente.nome} onChange={e => setFormCliente(f => ({ ...f, nome: e.target.value }))} />
                   </div>
                   <div className="field">
-                    <label>Observação</label>
-                    <input type="text" placeholder="Opcional" value={formCliente.obs} onChange={e => setFormCliente(f => ({ ...f, obs: e.target.value }))} />
+                    <label htmlFor="novo-cliente-loja">Nome da loja</label>
+                    <input id="novo-cliente-loja" type="text" placeholder="Ex.: Aura" value={formCliente.obs} onChange={e => setFormCliente(f => ({ ...f, obs: e.target.value }))} />
                   </div>
                   <div className="field">
                     <label>Cor</label>

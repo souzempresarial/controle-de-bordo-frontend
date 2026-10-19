@@ -87,7 +87,9 @@ export default function Layout({ children, usuario, onLogout }) {
 
         <div className="topbar-right">
           {clienteAtivo && (
-            <div className="cliente-chip">{clienteAtivo.nome}</div>
+            <div className="cliente-chip" title={clienteAtivo.obs?.trim() ? `${clienteAtivo.obs.trim()} · ${clienteAtivo.nome}` : clienteAtivo.nome}>
+              {clienteAtivo.obs?.trim() || clienteAtivo.nome}
+            </div>
           )}
           <button onClick={abrirPerfil} className="btn-topbar" title="Meu perfil" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
