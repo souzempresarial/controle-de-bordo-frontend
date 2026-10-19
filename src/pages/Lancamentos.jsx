@@ -170,7 +170,7 @@ export default function Lancamentos() {
           return n;
         });
       })
-      .catch(() => setMpPendentes([]))
+      .catch(e => { setMpPendentes([]); alert(e.message || 'Não consegui buscar as vendas do Mercado Phone. Tente de novo.'); })
       .finally(() => setMpCarregando(false));
 
     // Ordens de Serviço
