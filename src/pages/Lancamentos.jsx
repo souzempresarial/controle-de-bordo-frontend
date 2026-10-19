@@ -74,6 +74,7 @@ export default function Lancamentos() {
   const [mpImportandoTodos, setMpImportandoTodos] = useState(false);
   const [mpExpanded, setMpExpanded]             = useState(new Set()); // keys: mpItemKey
   const [mpEdits, setMpEdits]                   = useState({});        // mpItemKey → {valor,quantidade,pagamento,valorUpgrade}
+  const [mpConf, setMpConf]                     = useState(null);      // conferência com o MP: { inicio, fim, ajustes, marcados, carregando, aplicando, erro, lote }
 
   // Ordens de Serviço — MP
   const [osPendentes, setOsPendentes]         = useState([]);
@@ -120,6 +121,7 @@ export default function Lancamentos() {
   useEffect(() => {
     setMpPendentes([]);
     setOsPendentes([]);
+    setMpConf(null);
     if (!clienteAtivo) return;
     API.mpStatus(clienteAtivo.id)
       .then(({ configurado }) => setMpConfigurado(configurado))
@@ -137,6 +139,44 @@ export default function Lancamentos() {
       return { inicio: `${y}-${String(m).padStart(2, '0')}-01`, fim: iso(new Date(y, m, 0)) };
     }
     return { inicio: iso(h), fim: iso(h) };
+  }
+
+  // Conferência: o que já foi importado ainda bate com o MP? (venda cancelada, valor/custo editado, item trocado)
+  function conferirMp(inicio, fim) {
+    if (!inicio || !fim || inicio > fim || !clienteAtivo) return;
+    setMpPeriodo(null);
+    setMpConf({ inicio, fim, ajustes: [], marcados: new Set(), carregando: true });
+    API.mpConferir(clienteAtivo.id, inicio, fim)
+      .then(({ ajustes }) => setMpConf(c => ({ ...c, carregando: false, ajustes, marcados: new Set(ajustes.filter(a => a.marcado).map(a => a.id)) })))
+      .catch(e => setMpConf(c => ({ ...c, carregando: false, erro: e.message || 'Não consegui conferir com o Mercado Phone. Tente de novo.' })));
+  }
+
+  function marcarAjuste(id) {
+    setMpConf(c => { const s = new Set(c.marcados); s.has(id) ? s.delete(id) : s.add(id); return { ...c, marcados: s }; });
+  }
+
+  async function aplicarConferencia() {
+    const ids = [...mpConf.marcados];
+    if (!ids.length) return;
+    setMpConf(c => ({ ...c, aplicando: true, erro: '' }));
+    try {
+      const { aplicados, loteId } = await API.mpConferirAplicar(clienteAtivo.id, mpConf.inicio, mpConf.fim, ids);
+      setLancamentos(await API.listarLancamentos(clienteAtivo.id));
+      setMpConf(c => ({ ...c, aplicando: false, ajustes: c.ajustes.filter(a => !ids.includes(a.id)), marcados: new Set(), lote: loteId ? { id: loteId, qtd: aplicados } : null }));
+    } catch (e) {
+      setMpConf(c => ({ ...c, aplicando: false, erro: e.message || 'Não consegui aplicar as correções. Nada foi alterado; tente de novo.' }));
+    }
+  }
+
+  async function desfazerConferencia() {
+    setMpConf(c => ({ ...c, aplicando: true, erro: '' }));
+    try {
+      await API.mpConferirDesfazer(clienteAtivo.id, mpConf.lote.id);
+      setLancamentos(await API.listarLancamentos(clienteAtivo.id));
+      conferirMp(mpConf.inicio, mpConf.fim);
+    } catch (e) {
+      setMpConf(c => ({ ...c, aplicando: false, erro: e.message || 'Não consegui desfazer. Tente de novo.' }));
+    }
   }
 
   // Busca manual de pendentes MP (vendas + OS) no período escolhido
@@ -645,7 +685,7 @@ export default function Lancamentos() {
 
   async function mpImportarTodos() {
     const paraImportar = mpPendentes
-      .filter(t => !t.possivelDuplicata && !mpUpgradeSemValor(t))
+      .filter(t => !t.possivelDuplicata && !t.preVenda && !mpUpgradeSemValor(t))
       .map(t => {
         const edit = mpEdits[t.mpItemKey] || {};
         const isUp = edit.isUpgrade ?? t.isUpgrade;
@@ -715,6 +755,9 @@ export default function Lancamentos() {
                   {mpPeriodo.inicio > mpPeriodo.fim && <div className="mp-busca-erro">A data inicial deve ser antes da final.</div>}
                   <div className="mp-busca-acoes">
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMpPeriodo(null)}>Cancelar</button>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!mpPeriodo.inicio || !mpPeriodo.fim || mpPeriodo.inicio > mpPeriodo.fim}
+                      title="Compara o que já foi importado com o Mercado Phone de agora: vendas canceladas, valores e custos editados, itens trocados"
+                      onClick={() => conferirMp(mpPeriodo.inicio, mpPeriodo.fim)}>Conferir importados</button>
                     <button type="button" className="btn btn-primary btn-sm" disabled={!mpPeriodo.inicio || !mpPeriodo.fim || mpPeriodo.inicio > mpPeriodo.fim}
                       onClick={() => buscarMpPendentes(mpPeriodo.inicio, mpPeriodo.fim)}>Buscar</button>
                   </div>
@@ -765,6 +808,60 @@ export default function Lancamentos() {
           </div>
         )}
 
+        {mpConf && (
+          <section className="mp-conf" aria-label="Conferência com o Mercado Phone" aria-busy={mpConf.carregando || mpConf.aplicando}>
+            <div className="mp-conf-topo">
+              <div>
+                <strong>Conferência com o Mercado Phone</strong>
+                <span className="mp-conf-periodo">{fmtData(mpConf.inicio)} a {fmtData(mpConf.fim)}</span>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMpConf(null)}>Fechar</button>
+            </div>
+            {mpConf.carregando ? (
+              <p className="mp-conf-msg">Comparando o que foi importado com o Mercado Phone…</p>
+            ) : (
+              <>
+                {mpConf.lote && (
+                  <div className="mp-conf-feito">
+                    <span>{mpConf.lote.qtd} correç{mpConf.lote.qtd === 1 ? 'ão aplicada' : 'ões aplicadas'}.</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={desfazerConferencia} disabled={mpConf.aplicando}>Desfazer</button>
+                  </div>
+                )}
+                {mpConf.erro && <p className="mp-conf-erro">{mpConf.erro}</p>}
+                {!mpConf.ajustes.length ? (
+                  !mpConf.erro && <p className="mp-conf-msg">Tudo certo: o que foi importado nesse período bate com o Mercado Phone.</p>
+                ) : (
+                  <>
+                    <ul className="mp-conf-lista">
+                      {mpConf.ajustes.map(a => (
+                        <li key={a.id}>
+                          <label htmlFor={`mp-conf-${a.id}`}>
+                            <input type="checkbox" id={`mp-conf-${a.id}`} checked={mpConf.marcados.has(a.id)} onChange={() => marcarAjuste(a.id)} disabled={mpConf.aplicando} />
+                            <span className={`mp-conf-tipo mp-conf-tipo-${a.tipo}`}>{{ cancelada: 'Cancelada', sumiu: 'Não encontrada', trocado: 'Item trocado', removido: 'Item removido', alterado: 'Alterada' }[a.tipo]}</span>
+                            <span className="mp-conf-desc">{fmtData(a.data)} · {a.descricao}</span>
+                            <span className="mp-conf-valor">
+                              {a.tipo === 'alterado' && a.valorAtual === a.valorNovo ? fmt(a.valorAtual)
+                                : a.tipo === 'trocado' ? `sai ${fmt(a.valorAtual)}`
+                                : <>{fmt(a.valorAtual)} → {fmt(a.valorNovo)}</>}
+                            </span>
+                          </label>
+                          <div className="mp-conf-motivo">{a.motivo}</div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mp-conf-acoes">
+                      <span>{mpConf.marcados.size} de {mpConf.ajustes.length} selecionad{mpConf.ajustes.length === 1 ? 'a' : 'as'} · o que for apagado ou alterado pode ser desfeito</span>
+                      <button type="button" className="btn btn-primary btn-sm" onClick={aplicarConferencia} disabled={mpConf.aplicando || !mpConf.marcados.size}>
+                        {mpConf.aplicando ? 'Corrigindo…' : `Corrigir ${mpConf.marcados.size} selecionad${mpConf.marcados.size === 1 ? 'a' : 'as'}`}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
         {filtrados.length > 0 && (
           <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 13, flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--text2)' }}>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</span>
@@ -813,9 +910,10 @@ export default function Lancamentos() {
                   <tr><td colSpan={11} style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text2)' }}>Buscando pendentes do Mercado Phone...</td></tr>
                 )}
                 {mpPendentes.length > 0 && !mpCarregando && (() => {
-                  const importaveis   = mpPendentes.filter(t => !t.possivelDuplicata && !mpUpgradeSemValor(t));
+                  const importaveis   = mpPendentes.filter(t => !t.possivelDuplicata && !t.preVenda && !mpUpgradeSemValor(t));
                   const upgradeCount  = mpPendentes.filter(mpUpgradeSemValor).length;
                   const dupCount      = mpPendentes.filter(t => t.possivelDuplicata).length;
+                  const preVendaCount = mpPendentes.filter(t => t.preVenda).length;
                   return (
                     <tr>
                       <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--primary) 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
@@ -823,6 +921,7 @@ export default function Lancamentos() {
                           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                             {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
                             {dupCount > 0 && <span style={{ color: '#d97706', marginLeft: 8 }}>· {dupCount} possível duplicata</span>}
+                            {preVendaCount > 0 && <span style={{ color: '#0891b2', marginLeft: 8 }}>· {preVendaCount} pré-venda em aberto</span>}
                             {upgradeCount > 0 && <span style={{ color: '#7c3aed', marginLeft: 8 }}>· {upgradeCount} upgrade sem valor do aparelho</span>}
                           </span>
                           <button
@@ -830,7 +929,7 @@ export default function Lancamentos() {
                             style={{ marginLeft: 'auto' }}
                             onClick={mpImportarTodos}
                             disabled={mpImportandoTodos || importaveis.length === 0}
-                            title="Importa tudo exceto possíveis duplicatas e upgrades sem valor do aparelho"
+                            title="Importa tudo exceto possíveis duplicatas, pré-vendas em aberto e upgrades sem valor do aparelho"
                           >
                             {mpImportandoTodos ? 'Importando...' : `✓ Importar ${importaveis.length} de uma vez`}
                           </button>
@@ -878,6 +977,7 @@ export default function Lancamentos() {
                               Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
                             </span>
                             {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
+                            {t.preVenda && <span title="Venda ainda em aberto no MP: importe quando o aparelho for entregue" style={{ fontSize: 10, fontWeight: 600, color: '#0891b2', background: '#0891b218', borderRadius: 3, padding: '1px 5px' }}>⏸ Pré-venda em aberto</span>}
                             {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
                             {t.categoriaPeloHistorico && <span title='Mesma categoria usada antes para este produto' style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', background: 'color-mix(in srgb, var(--entrada) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>✓ histórico</span>}
                             {parseFloat(edit.deducaoCartao) > 0 && <span title="Taxa/dedução — recebido = valor − dedução" style={{ fontSize: 10, fontWeight: 600, color: 'var(--saida)', background: 'color-mix(in srgb, var(--saida) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>− {fmt(parseFloat(edit.deducaoCartao))} taxa · recebido {fmt((parseFloat(edit.valor) || t.valor) - parseFloat(edit.deducaoCartao))}</span>}

@@ -122,6 +122,9 @@ export const API = {
   mpSalvarChave:   (cid, apiKey)          => apiFetch(`/clientes/${cid}/mercadophone/chave`, { method: 'PUT', body: JSON.stringify({ apiKey }) }), // legado
   mpPreview:       (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
   mpImportar:      (cid, transacoes)      => apiFetch(`/clientes/${cid}/mercadophone/importar`, { method: 'POST', body: JSON.stringify({ transacoes }) }),
+  mpConferir:      (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/conferir`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
+  mpConferirAplicar:  (cid, dI, dF, ids)  => apiFetch(`/clientes/${cid}/mercadophone/conferir/aplicar`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF, ids }) }),
+  mpConferirDesfazer: (cid, loteId)       => apiFetch(`/clientes/${cid}/mercadophone/conferir/desfazer`, { method: 'POST', body: JSON.stringify({ loteId }) }),
   mpOsPreview:     (cid, dI, dF)          => apiFetch(`/clientes/${cid}/mercadophone/os-preview`, { method: 'POST', body: JSON.stringify({ dataInicio: dI, dataFim: dF }) }),
   mpOsImportar:    (cid, ordens)          => apiFetch(`/clientes/${cid}/mercadophone/os-importar`, { method: 'POST', body: JSON.stringify({ ordens }) }),
   // Extrato

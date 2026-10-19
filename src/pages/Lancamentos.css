@@ -39,5 +39,36 @@
 .mp-busca-datas label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text2); }
 .mp-busca-datas input { font-size: 13px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); color: var(--text); }
 .mp-busca-erro { font-size: 12px; color: var(--saida); }
-.mp-busca-acoes { display: flex; justify-content: flex-end; gap: 6px; }
+.mp-busca-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 @media (max-width: 640px) { .mp-busca-painel { width: min(300px, calc(100vw - 32px)); } }
+
+/* Conferência dos importados com o Mercado Phone */
+.mp-conf {
+  margin: 12px 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+}
+.mp-conf-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.mp-conf-topo strong { font-size: 14px; }
+.mp-conf-periodo { margin-left: 8px; font-size: 12px; color: var(--text2); }
+.mp-conf-msg { margin: 0; font-size: 13px; color: var(--text2); }
+.mp-conf-erro { margin: 0; font-size: 13px; color: var(--saida); }
+.mp-conf-feito {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; font-weight: 600;
+  color: var(--entrada); padding: 6px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--entrada) 10%, transparent);
+}
+.mp-conf-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; max-height: 360px; overflow-y: auto; }
+.mp-conf-lista li { padding: 8px 2px; border-top: 1px solid var(--border); }
+.mp-conf-lista li:first-child { border-top: 0; }
+.mp-conf-lista label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; cursor: pointer; font-size: 13px; }
+.mp-conf-lista input { accent-color: var(--primary); }
+.mp-conf-lista input:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.mp-conf-tipo { font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+.mp-conf-tipo-cancelada, .mp-conf-tipo-removido { color: var(--saida); background: color-mix(in srgb, var(--saida) 12%, transparent); }
+.mp-conf-tipo-alterado { color: #d97706; background: #d9770618; }
+.mp-conf-tipo-trocado  { color: #7c3aed; background: #7c3aed18; }
+.mp-conf-tipo-sumiu    { color: var(--text2); background: color-mix(in srgb, var(--text2) 12%, transparent); }
+.mp-conf-desc { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.mp-conf-valor { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.mp-conf-motivo { margin: 2px 0 0 24px; font-size: 12px; color: var(--text2); }
+.mp-conf-acoes { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--text2); }
