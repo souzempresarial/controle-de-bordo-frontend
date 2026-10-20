@@ -3,51 +3,8 @@ import { useApp } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import TextoFormatado from '../components/TextoFormatado';
 import BotaoMicrofone from '../components/BotaoMicrofone';
-import { API } from '../services/api';
-import { MESES_FULL, hoje } from '../services/utils';
+import { MESES_FULL } from '../services/utils';
 import './Chat.css';
-
-const dm = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-const chaveOculto = (cid, periodo) => `sf_resumo_oculto_${cid}_${periodo}`;
-
-// Resumo escrito da semana passada (gerado toda segunda); some quando fica velho ou quando a pessoa oculta
-function useResumoSemana(clienteAtivo) {
-  const [resumo, setResumo] = useState(null);
-  useEffect(() => {
-    setResumo(null);
-    if (!clienteAtivo) return;
-    let vivo = true;
-    API.chatResumoSemana(clienteAtivo.id)
-      .then(r => {
-        if (!vivo || !r?.resumo) return;
-        const limite = new Date(`${hoje()}T12:00:00`); limite.setDate(limite.getDate() - 8);
-        if (r.fim < limite.toISOString().slice(0, 10)) return;
-        let oculto = false;
-        try { oculto = localStorage.getItem(chaveOculto(clienteAtivo.id, r.periodo)) === '1'; } catch { /* sem storage, mostra */ }
-        if (!oculto) setResumo(r);
-      })
-      .catch(() => {});
-    return () => { vivo = false; };
-  }, [clienteAtivo]);
-  function ocultar() {
-    try { localStorage.setItem(chaveOculto(clienteAtivo.id, resumo.periodo), '1'); } catch { /* só não lembra */ }
-    setResumo(null);
-  }
-  return [resumo, ocultar];
-}
-
-function CartaoResumo({ resumo, onOcultar, onPerguntar, desabilitado }) {
-  return (
-    <section className="souz-resumo" aria-label="Resumo da semana">
-      <div className="souz-resumo-cab">
-        <span className="souz-resumo-titulo">Resumo da semana · {dm(resumo.inicio)} a {dm(resumo.fim)}</span>
-        <button type="button" className="souz-resumo-fechar" onClick={onOcultar} aria-label="Ocultar resumo da semana">Ocultar</button>
-      </div>
-      <div className="souz-resumo-texto"><TextoFormatado texto={resumo.resumo} /></div>
-      <button type="button" className="souz-resumo-perguntar" onClick={onPerguntar} disabled={desabilitado}>Conversar sobre a semana</button>
-    </section>
-  );
-}
 
 function nomeSaudacao(clienteAtivo) {
   // Admin olhando um cliente vê o nome da loja; o próprio cliente vê o primeiro nome dele
@@ -70,7 +27,6 @@ export default function Chat() {
   const { clienteAtivo } = useApp();
   const { mensagens, carregando, enviar, limpar } = useChat();
   const [input, setInput] = useState('');
-  const [resumoSemana, ocultarResumo] = useResumoSemana(clienteAtivo);
   const fimRef   = useRef(null);
   const inputRef = useRef(null);
   const vazio = mensagens.length === 0;
@@ -100,10 +56,6 @@ export default function Chat() {
   }
 
   const nome = nomeSaudacao(clienteAtivo);
-  const cartaoResumo = resumoSemana && (
-    <CartaoResumo resumo={resumoSemana} onOcultar={ocultarResumo} desabilitado={carregando || !clienteAtivo}
-      onPerguntar={() => mandar(`Como foi a semana de ${dm(resumoSemana.inicio)} a ${dm(resumoSemana.fim)}? O que preciso olhar?`)} />
-  );
 
   const caixa = (
     <form className="souz-chat-caixa" onSubmit={e => { e.preventDefault(); mandar(input); }}>
@@ -134,7 +86,6 @@ export default function Chat() {
           </div>
           <h1>Olá{nome ? `, ${nome}` : ''}! O que gostaria de saber hoje?</h1>
           <p>Pergunte sobre vendas, gastos e resultados, ou registre um lançamento escrevendo como falaria.</p>
-          {cartaoResumo}
           {caixa}
           <div className="souz-chat-sugestoes">
             {sugestoes().map(s => (
@@ -155,7 +106,6 @@ export default function Chat() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={limpar} disabled={carregando}>Nova conversa</button>
       </div>
       <div className="souz-chat-mensagens" aria-live="polite">
-        {cartaoResumo}
         {mensagens.map((m, i) => (
           <div key={i} className={`souz-msg souz-msg--${m.role}${m.erro ? ' souz-msg--erro' : ''}`}>
             {m.role === 'assistant'

@@ -91,27 +91,3 @@
 @media (prefers-reduced-motion: reduce) {
   .souz-chat-sugestoes button, .souz-chat-enviar { transition: none; }
 }
-
-/* ── Resumo escrito da semana passada (gerado toda segunda) ── */
-.souz-resumo {
-  width: 100%; text-align: left;
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 14px 16px; border-radius: 14px;
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
-}
-.souz-chat-mensagens > .souz-resumo { margin-bottom: 4px; }
-.souz-resumo-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.souz-resumo-titulo { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
-.souz-resumo-fechar { font: inherit; font-size: 12px; background: none; border: 0; padding: 2px 4px; color: var(--text2); cursor: pointer; }
-.souz-resumo-fechar:hover { color: var(--text); }
-.souz-resumo-texto { font-size: 14px; line-height: 1.6; color: var(--text); word-break: break-word; }
-.souz-resumo-texto .chat-item { padding-left: 12px; text-indent: -10px; }
-.souz-resumo-perguntar {
-  align-self: flex-start; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-  border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  border-radius: 999px; padding: 6px 12px;
-}
-.souz-resumo-perguntar:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.souz-resumo-perguntar:disabled { opacity: .5; cursor: default; }
-.souz-resumo-fechar:focus-visible, .souz-resumo-perguntar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
