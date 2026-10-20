@@ -15,6 +15,8 @@ const FILTROS = [
   { id: 'peca',      label: 'Peças e serviços' },
   { id: 'alerta',    label: 'Com alerta' },
 ];
+// Loja grande passa de 6 mil produtos: desenhar tudo de uma vez trava a tela (os totais continuam somando tudo)
+const POR_VEZ = 200;
 
 // Revisão item a item do estoque do Mercado Phone antes de entrar no Balanço
 export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSalvo }) {
@@ -23,6 +25,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
   const [filtro, setFiltro]     = useState('todos');
   const [busca, setBusca]       = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [limite, setLimite]     = useState(POR_VEZ);
 
   const [ano, mes] = periodo.split('-');
   const nomeMes = `${MESES_FULL[parseInt(mes) - 1]}/${ano}`;
@@ -41,6 +44,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
       (!b || i.descricao.toLowerCase().includes(b) || (i.imei || '').includes(b))
     );
   }, [itens, filtro, busca]);
+  useEffect(() => { setLimite(POR_VEZ); }, [filtro, busca]);
 
   const aprovados = (itens || []).filter(i => i.aprovado && i.quantidade > 0);
   const totalPor = d => aprovados.filter(i => i.destino === d).reduce((s, i) => s + i.quantidade * i.custo, 0);
@@ -108,8 +112,8 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
                 </div>
                 <input id="imp-busca" type="search" placeholder="Buscar produto ou IMEI" value={busca} onChange={e => setBusca(e.target.value)} />
                 <div className="imp-massa">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => marcarVisiveis(true)}>Marcar visíveis</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => marcarVisiveis(false)}>Desmarcar visíveis</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => marcarVisiveis(true)}>Marcar todos do filtro</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => marcarVisiveis(false)}>Desmarcar todos do filtro</button>
                 </div>
               </div>
 
@@ -127,7 +131,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
                     </tr>
                   </thead>
                   <tbody>
-                    {visiveis.map(i => (
+                    {visiveis.slice(0, limite).map(i => (
                       <tr key={i._k} className={`${i.aprovado ? '' : 'imp-off'} ${i.alertas.length ? 'imp-com-alerta' : ''}`}>
                         <td>
                           <input type="checkbox" checked={i.aprovado} onChange={e => mudar(i._k, 'aprovado', e.target.checked)}
@@ -165,6 +169,14 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
                     ))}
                     {visiveis.length === 0 && (
                       <tr><td colSpan={7} className="imp-vazio">Nenhum item neste filtro.</td></tr>
+                    )}
+                    {visiveis.length > limite && (
+                      <tr>
+                        <td colSpan={7} className="imp-vazio">
+                          Mostrando {limite} de {visiveis.length} · use a busca ou os filtros para achar um item{' '}
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLimite(l => l + POR_VEZ)}>Mostrar mais {Math.min(POR_VEZ, visiveis.length - limite)}</button>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
