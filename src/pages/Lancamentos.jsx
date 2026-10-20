@@ -1,15 +1,10 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto } from '../services/constants';
+import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto, BANCOS } from '../services/constants';
+import SelectBanco from '../components/SelectBanco';
 import { fmt, fmtData, hoje } from '../services/utils';
 import './Lancamentos.css';
-
-const BANCOS = [
-  'Banco do Brasil', 'Banco Inter', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
-  'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
-  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone', 'SumUp',
-];
 
 const formVazio = (l, cmv, bancoAtivo) => ({
   data: l.data || hoje(),
@@ -1453,10 +1448,7 @@ export default function Lancamentos() {
                 </div>
                 <div className="field">
                   <label>Banco</label>
-                  <select value={form.banco} onChange={e => setField('banco', e.target.value)}>
-                    <option value="">— selecione —</option>
-                    {bancosOrdenados.map(b => <option key={b}>{b}</option>)}
-                  </select>
+                  <SelectBanco value={form.banco || ''} onChange={v => setField('banco', v)} opcoes={bancosOrdenados} />
                 </div>
                 <div className="field">
                   <label>Pagamento</label>

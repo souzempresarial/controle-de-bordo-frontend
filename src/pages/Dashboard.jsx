@@ -2,7 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
-import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto } from '../services/constants';
+import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto, BANCOS } from '../services/constants';
+import SelectBanco from '../components/SelectBanco';
 import { fmt, fmtData, hoje, MESES, upgradeNoCaixa, deducaoNaVenda } from '../services/utils';
 import './Dashboard.css';
 
@@ -122,12 +123,6 @@ function calcularTotais(lista) {
     });
   return { entradas, saidas, saldo: entradas - saidas };
 }
-
-const BANCOS = [
-  'Banco do Brasil', 'Banco Inter', 'Bradesco', 'C6 Bank', 'Caixa Econômica Federal',
-  'Infinity Pay', 'Intermediadora', 'Itaú', 'Mercado Pago',
-  'Nubank', 'PagBank', 'Santander', 'Sicoob', 'Sicredi', 'Stone', 'SumUp',
-];
 
 const formVazio = (bancoDefault = '') => ({
   data: hoje(), tipo: 'Saída', valor: '', descricao: '', categoria: '',
@@ -766,10 +761,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Banco</label>
-                  <select value={form.banco} onChange={e => setField('banco', e.target.value)}>
-                    <option value="">— selecione —</option>
-                    {bancosOrdenados.map(b => <option key={b}>{b}</option>)}
-                  </select>
+                  <SelectBanco value={form.banco || ''} onChange={v => setField('banco', v)} opcoes={bancosOrdenados} />
                 </div>
                 <div className="field">
                   <label>Pagamento</label>
