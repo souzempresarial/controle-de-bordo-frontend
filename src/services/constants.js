@@ -1,6 +1,6 @@
 ﻿export const CATEGORIAS_ENTRADA = {
   '— Receitas Operacionais —': null,
-  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Upgrade','Outro'],
+  'Aparelhos':             ['iPhone','Android','Apple Watch','AirPods','Mac','iPad','Smartwatch','Notebook','Upgrade','Outro'],
   'Acessórios':            ['Acessórios Geral','Fonte Turbo','Brindes','Premium','Kit 3 em 1','Capa e Película','Cabo / Carregador','Outro'],
   'Assistência Técnica':   ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Garantia','Outro'],
   'Outros Produtos':       ['Perfumes','Bebidas','Informática','Eletrônicos','JBL','Outro'],
@@ -35,7 +35,7 @@ export const CATEGORIAS_SAIDA = {
 };
 
 export const CATEGORIAS_CMV = {
-  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
+  'Custos Variáveis Diretos': ['Aparelhos iPhone','Aparelhos Android','iPad','MacBook','Apple Watch','AirPods','Smartwatch','Notebook','Upgrade','Acessórios','Embalagens','Brindes','Assistência Técnica','Perda de Mercadoria','Outros'],
 };
 
 export const CATEGORIAS_TRANSF = {
@@ -66,6 +66,7 @@ export function getCmvSubAuto(categoria, subcategoria) {
       'iPhone': 'Aparelhos iPhone', 'Android': 'Aparelhos Android',
       'Apple Watch': 'Apple Watch',  'AirPods': 'AirPods',
       'Mac': 'MacBook',              'iPad': 'iPad',
+      'Smartwatch': 'Smartwatch',    'Notebook': 'Notebook',
     };
     return map[subcategoria] || (subcategoria ? 'Outros' : '');
   }
