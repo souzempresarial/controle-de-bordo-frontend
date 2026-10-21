@@ -66,6 +66,8 @@ export const API = {
   listarClientes:  ()           => apiFetch('/clientes'),
   criarCliente:    (dados)      => apiFetch('/clientes', { method: 'POST', body: JSON.stringify(dados) }),
   editarCliente:   (id, dados)  => apiFetch(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
+  buscarCliente:   (id)         => apiFetch(`/clientes/${id}`),
+  salvarRegrasCliente: (id, regras) => apiFetch(`/clientes/${id}/regras`, { method: 'PUT', body: JSON.stringify({ regras }) }),
   excluirCliente:  (id)         => apiFetch(`/clientes/${id}`, { method: 'DELETE' }),
 
   // Lançamentos

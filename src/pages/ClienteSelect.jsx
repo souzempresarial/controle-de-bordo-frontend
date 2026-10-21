@@ -24,6 +24,12 @@ export default function ClienteSelect({ onLogout }) {
   const [usuarios, setUsuarios]         = useState({});   // { [clienteId]: [...] }
   const [loadingU, setLoadingU]         = useState({});
 
+  // Ficha "Regras do cliente"
+  const [regrasAberto, setRegrasAberto]     = useState(null); // clienteId
+  const [regrasTexto, setRegrasTexto]       = useState('');
+  const [regrasSalvando, setRegrasSalvando] = useState(false);
+  const [regrasMsg, setRegrasMsg]           = useState('');
+
   // Modal cliente
   const [modalCliente, setModalCliente] = useState(false);
   const [formCliente, setFormCliente]   = useState(formClienteVazio());
@@ -82,7 +88,29 @@ export default function ClienteSelect({ onLogout }) {
       setExpandido(null);
     } else {
       setExpandido(id);
+      setRegrasAberto(null);
       if (!usuarios[id]) carregarUsuarios(id);
+    }
+  }
+
+  function toggleRegras(c) {
+    if (regrasAberto === c.id) { setRegrasAberto(null); return; }
+    setRegrasAberto(c.id);
+    setExpandido(null);
+    setRegrasTexto(c.regras || '');
+    setRegrasMsg('');
+  }
+
+  async function salvarRegras(id) {
+    setRegrasSalvando(true); setRegrasMsg('');
+    try {
+      const atualizado = await API.salvarRegrasCliente(id, regrasTexto);
+      setClientes(prev => prev.map(c => (c.id === id ? { ...c, regras: atualizado.regras } : c)));
+      setRegrasMsg('Regras salvas');
+    } catch {
+      setRegrasMsg('Não consegui salvar. Tente de novo.');
+    } finally {
+      setRegrasSalvando(false);
     }
   }
 
@@ -224,6 +252,13 @@ export default function ClienteSelect({ onLogout }) {
                         👥 Usuários
                       </button>
                       <button
+                        className={`btn btn-ghost btn-sm ${regrasAberto === c.id ? 'active' : ''}`}
+                        onClick={() => toggleRegras(c)}
+                        title={c.regras || 'Nenhuma regra particular cadastrada'}
+                      >
+                        📋 Regras{c.regras ? ' •' : ''}
+                      </button>
+                      <button
                         className="btn btn-ghost btn-sm btn-excluir"
                         onClick={() => setConfirmCliente(c.id)}
                       >
@@ -231,6 +266,30 @@ export default function ClienteSelect({ onLogout }) {
                       </button>
                     </div>
                   </div>
+
+                  {/* Ficha "Regras do cliente": só o que é particular da loja; a regra base vale para todos */}
+                  {regrasAberto === c.id && (
+                    <div className="usuarios-painel">
+                      <div className="usuarios-painel-header">
+                        <label htmlFor={`regras-${c.id}`}>Regras de {c.obs?.trim() || c.nome}</label>
+                      </div>
+                      <textarea
+                        id={`regras-${c.id}`}
+                        className="regras-texto"
+                        rows={5}
+                        placeholder="Ex.: Só o varejo conta. Não lançar retiradas do Fulano (não é sócio)."
+                        value={regrasTexto}
+                        onChange={e => setRegrasTexto(e.target.value)}
+                      />
+                      <div className="regras-rodape">
+                        <span className="regras-dica">Regra base, igual para todos: a entrada é o valor que o Mercado Phone mostra no faturamento; o custo também vem do MP.</span>
+                        {regrasMsg && <span className="regras-msg">{regrasMsg}</span>}
+                        <button className="btn btn-primary btn-sm" onClick={() => salvarRegras(c.id)} disabled={regrasSalvando}>
+                          {regrasSalvando ? 'Salvando...' : 'Salvar regras'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Painel de usuários expandido */}
                   {expandido === c.id && (

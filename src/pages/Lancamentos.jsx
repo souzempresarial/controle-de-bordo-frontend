@@ -112,6 +112,14 @@ export default function Lancamentos() {
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
 
+  // Ficha "Regras do cliente" (cadastro): lembrete do que é particular da loja na hora de lançar
+  const [regrasCliente, setRegrasCliente] = useState('');
+  useEffect(() => {
+    setRegrasCliente('');
+    if (!clienteAtivo) return;
+    API.buscarCliente(clienteAtivo.id).then(c => setRegrasCliente(c.regras || '')).catch(() => {});
+  }, [clienteAtivo?.id]);
+
   // Verifica se MP está configurado ao entrar no cliente; limpa pendentes ao trocar
   useEffect(() => {
     setMpPendentes([]);
@@ -708,6 +716,12 @@ export default function Lancamentos() {
 
   return (
     <div className="lancamentos-page">
+      {regrasCliente && (
+        <details className="regras-cliente">
+          <summary>📋 Regras desta loja</summary>
+          <div className="regras-cliente-texto">{regrasCliente}</div>
+        </details>
+      )}
       <div className="table-panel">
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
