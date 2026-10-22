@@ -112,14 +112,6 @@ export default function Lancamentos() {
 
   const semCMV = useMemo(() => lancamentos.filter(l => !(l.isCMV && l.grupoId)), [lancamentos]);
 
-  // Ficha "Regras do cliente" (cadastro): lembrete do que é particular da loja na hora de lançar
-  const [regrasCliente, setRegrasCliente] = useState('');
-  useEffect(() => {
-    setRegrasCliente('');
-    if (!clienteAtivo) return;
-    API.buscarCliente(clienteAtivo.id).then(c => setRegrasCliente(c.regras || '')).catch(() => {});
-  }, [clienteAtivo?.id]);
-
   // Verifica se MP está configurado ao entrar no cliente; limpa pendentes ao trocar
   useEffect(() => {
     setMpPendentes([]);
@@ -243,7 +235,18 @@ export default function Lancamentos() {
     if (filtroBanco) lista = lista.filter(l => l.banco === filtroBanco);
     if (busca) {
       const b = busca.toLowerCase();
+      // Busca por valor: "1.248,33", "1248.33", "R$ 50" → valor exato; sem centavos ("50") acha de 50,00 a 50,99
+      const txtValor = busca.replace(/r\$\s*/i, '').trim();
+      const ehValor  = /^\d{1,3}(\.\d{3})*(,\d{1,2})?$|^\d+([.,]\d{1,2})?$/.test(txtValor);
+      const temCent  = /[.,]\d{1,2}$/.test(txtValor) && !/^\d{1,3}\.\d{3}$/.test(txtValor);
+      const valorBusca = ehValor
+        ? parseFloat(/,/.test(txtValor) ? txtValor.replace(/\./g, '').replace(',', '.') : (/^\d{1,3}(\.\d{3})+$/.test(txtValor) ? txtValor.replace(/\./g, '') : txtValor))
+        : null;
+      const bateValor = l => valorBusca !== null && (temCent
+        ? Math.abs(l.valor - valorBusca) < 0.005
+        : Math.floor(l.valor) === Math.floor(valorBusca));
       lista = lista.filter(l =>
+        bateValor(l) ||
         (l.descricao||'').toLowerCase().includes(b) ||
         (l.categoria||'').toLowerCase().includes(b) ||
         (l.subcategoria||'').toLowerCase().includes(b) ||
@@ -716,12 +719,6 @@ export default function Lancamentos() {
 
   return (
     <div className="lancamentos-page">
-      {regrasCliente && (
-        <details className="regras-cliente">
-          <summary>📋 Regras desta loja</summary>
-          <div className="regras-cliente-texto">{regrasCliente}</div>
-        </details>
-      )}
       <div className="table-panel">
         <div className="table-header">
           <h2>Todos os Lançamentos</h2>
@@ -731,7 +728,7 @@ export default function Lancamentos() {
             title="Novo lançamento de entrada"
           >+ Novo Lançamento</button>
           <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
-          <input className="search-box" placeholder="🔍 Buscar..." value={busca} onChange={e => setBusca(e.target.value)} />
+          <input className="search-box" placeholder="🔍 Buscar nome ou valor..." value={busca} onChange={e => setBusca(e.target.value)} />
           <select className="filter-select" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
             <option value="">Todos os meses</option>
             {todosMeses.map(m => {
