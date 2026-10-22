@@ -47,7 +47,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const margemBruta = fat > 0 ? lucBruto / fat * 100 : 0;
 
   const cvIndiretos = lm.filter(l => l.tipo === 'Saída' && l.categoria === 'Custos Variáveis Indiretos' && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
-  const custoFixos  = lm.filter(l => l.tipo === 'Saída' && ['Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'].includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
+  const custoFixos  = lm.filter(l => l.tipo === 'Saída' && ['Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Marketing','Softwares / Tecnologias','Serviços Terceirizados','Impostos'].includes(l.categoria) && l.status !== 'Pendente').reduce((a, l) => a + l.valor, 0);
 
   return { fat, cmvTotal, sga, naoOp, gastos, lucBruto, lucLiq,
            uni, fatAp, ticket, lucMedio, uniAcc, fatAcc, cmvAcc, lucAcc, lucMedioAcc,

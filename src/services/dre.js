@@ -28,10 +28,11 @@ export function calcDREBase(lm) {
   const ocupacao     = sai('Despesas com Ocupação');
   const pessoal      = sai('Despesas com Pessoal');
   const variaveis    = sai('Despesas Variáveis');
+  const marketing    = sai('Marketing');
   const softwares    = sai('Softwares / Tecnologias');
   const terceiros    = sai('Serviços Terceirizados');
   const impostos     = sai('Impostos');
-  const sga          = ocupacao + pessoal + variaveis + softwares + terceiros + impostos;
+  const sga          = ocupacao + pessoal + variaveis + marketing + softwares + terceiros + impostos;
   const pontoEq      = (margContrib && margContrib > 0) ? (sga / (margContrib / 100)) : null;
   const ebitda       = contribuicao - sga;
   const margEbitda   = recBruta > 0 ? (ebitda / recBruta * 100) : null;
@@ -47,7 +48,7 @@ export function calcDREBase(lm) {
     aparelhos, acessorios, assistencia, outrosProd,
     subscricao, recNaoOp, recBruta, deducoes, recLiquida,
     cmvDir, cmvTotal, custosVarInd, lucroBruto, contribuicao, margContrib, pontoEq,
-    ocupacao, pessoal, variaveis, softwares, terceiros, impostos, sga,
+    ocupacao, pessoal, variaveis, marketing, softwares, terceiros, impostos, sga,
     ebitda, margEbitda, recFin, despJuros, despNaoOp, resFin,
     lucroLiq, margem,
   };

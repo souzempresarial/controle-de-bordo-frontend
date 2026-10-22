@@ -22,13 +22,14 @@ export const CATEGORIAS_SAIDA = {
   'Custos Variáveis Indiretos':['Comissões do Vendedor','Bônus de Indicação','Motoboy','Freelancers','Horas Extras de Colaboradores','Outro'],
   '— Despesas SG&A —': null,
   'Despesas com Ocupação': ['Luz','Operadora Celular','Internet','Água','Aluguel / Condomínio / IPTU','Segurança','Seguro do Imóvel','Outro'],
-  'Despesas com Pessoal':  ['Vales - Transporte & Refeição','13º & Férias','INSS & FGTS','Adiantamento','Folha de Pagamento','Pró-Labore / PLR','Outro'],
-  'Despesas Variáveis':    ['Mídia Paga','Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Uber','Deslocamento','Alimentação','Eventos','Veículo','Fatura de Cartão','Outro'],
-  'Softwares / Tecnologias':['CRM','Sistema ERP','Outro'],
-  'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Google Meu Negócio','Assistência Técnica','Assessoria de Marketing','Advogado','Consultoria','Outro'],
-  'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Darf','Outro'],
+  'Despesas com Pessoal':  ['Vales - Transporte & Refeição','13º & Férias','INSS & FGTS','Adiantamento','Folha de Pagamento','Pró-Labore / PLR','Plano de Saúde','Rescisão e Acertos','Exames e Medicina do Trabalho','Outro'],
+  'Despesas Variáveis':    ['Tarifas Bancárias','Frete','Garantia','Manutenções / Reparos','Treinamentos','Uber','Deslocamento','Alimentação','Suprimentos','Eventos','Veículo','Fatura de Cartão','Outro'],
+  'Marketing':             ['Tráfego Pago','Agência / Gestor de Tráfego','Produção de Conteúdo','Influenciadores','Patrocínio','Ações e Brindes de Marketing','Mídia Offline','Google Meu Negócio','Outro'],
+  'Softwares / Tecnologias':['CRM','Sistema ERP','Assinaturas e Apps','Site, Domínio e Hospedagem','Sistema Fiscal / Emissor de NF','Outro'],
+  'Serviços Terceirizados':['Assessoria Contábil','BPO Terceirização','Emissão de NF-e','Serviços Gerais (Limpeza)','Assistência Técnica','Advogado','Consultoria','Outro'],
+  'Impostos':              ['DAS - Simples Nacional','DAS - MEIs','Darf','ICMS / Estadual','Taxas Municipais','Outro'],
   '— Não-Operacional —': null,
-  'Saídas Não-Operacionais':['Suprimentos','Obras','Despesas Extras','Decorações','Manutenções em Equipamentos','Patrocínio','Momento Recreativo','Outro'],
+  'Saídas Não-Operacionais':['Despesas Extras','Decorações','Momento Recreativo','Outro'],
   'Dívidas / Empréstimos': ['Parcela de Empréstimo','Juros','Amortização','IOF','Multa','Cheque Especial','Cartão de Crédito PJ','Outro'],
   '— Investimento —': null,
   'Investimentos':         ['Equipamentos','Reformas','Computadores','Veículos','Imóveis','Outro'],
@@ -46,7 +47,7 @@ export const CATEGORIAS_TRANSF = {
 export const CMVCATS       = ['Custos Variáveis Diretos'];
 // Downgrade não é dedução: é o dinheiro devolvido na compra do aparelho que entrou no estoque (só afeta o caixa)
 export const DEDUCOES_CATS = ['Deduções das Vendas'];
-export const SGA_CATS      = ['Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
+export const SGA_CATS      = ['Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Marketing','Softwares / Tecnologias','Serviços Terceirizados','Impostos'];
 export const NAOOP_CATS    = ['Dívidas / Empréstimos','Saídas Não-Operacionais'];
 export const GASTOS_CATS   = [...DEDUCOES_CATS, ...SGA_CATS, ...NAOOP_CATS, 'Investimentos'];
 export const APORTE_CATS   = ['Aportes e Transferências'];

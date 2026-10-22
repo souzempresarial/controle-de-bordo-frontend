@@ -299,6 +299,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
               <RowExp label="(-) Despesas com Ocupação"   cat="Despesas com Ocupação"   vals={mv.map(v => v.ocupacao)}  tot={S('ocupacao')}  neg />
               <RowExp label="(-) Despesas com Pessoal"    cat="Despesas com Pessoal"    vals={mv.map(v => v.pessoal)}   tot={S('pessoal')}   neg />
               <RowExp label="(-) Despesas Variáveis"      cat="Despesas Variáveis"      vals={mv.map(v => v.variaveis)} tot={S('variaveis')} neg />
+              <RowExp label="(-) Marketing"              cat="Marketing"              vals={mv.map(v => v.marketing)} tot={S('marketing')} neg />
               <RowExp label="(-) Softwares / Tecnologias" cat="Softwares / Tecnologias" vals={mv.map(v => v.softwares)} tot={S('softwares')} neg />
               <RowExp label="(-) Serviços Terceirizados"  cat="Serviços Terceirizados"  vals={mv.map(v => v.terceiros)} tot={S('terceiros')} neg />
               <RowExp label="(-) Impostos"              cat="Impostos"              vals={mv.map(v => v.impostos)} tot={S('impostos')} neg />
@@ -334,7 +335,7 @@ const DFC_GRUPOS = [
   {
     sep: 'SAÍDAS',
     grupos: [
-      { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Softwares / Tecnologias','Serviços Terceirizados','Impostos'] },
+      { label: 'SAÍDAS OPERACIONAIS', cats: ['Fornecedores (Estoque)','Deduções das Vendas','Custos Variáveis Diretos','Custos Variáveis Indiretos','Despesas com Ocupação','Despesas com Pessoal','Despesas Variáveis','Marketing','Softwares / Tecnologias','Serviços Terceirizados','Impostos'] },
       { label: 'SAÍDAS NÃO-OPERACIONAIS', cats: ['Saídas Não-Operacionais','Dívidas / Empréstimos'] },
       { label: 'INVESTIMENTOS', cats: ['Investimentos'] },
     ],
