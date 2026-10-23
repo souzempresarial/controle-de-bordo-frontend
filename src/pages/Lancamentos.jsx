@@ -27,6 +27,83 @@ const formVazio = (l, cmv, bancoAtivo) => ({
   recebimentoAnterior: l.quantidade === 0,
 });
 
+// Ícone de cada lançamento: sigla e cor fixas por categoria (no lugar do logo do favorecido da referência)
+const CORES_CAT = {
+  'Aparelhos': '#16a34a', 'Acessórios': '#0d9488', 'Assistência Técnica': '#0891b2', 'Outros Produtos': '#65a30d',
+  'Fornecedores (Estoque)': '#2563eb', 'Custos Variáveis Diretos': '#475569', 'Deduções das Vendas': '#b45309',
+  'Custos Variáveis Indiretos': '#c2410c', 'Despesas com Pessoal': '#9333ea', 'Despesas com Ocupação': '#7c3aed',
+  'Despesas Variáveis': '#db2777', 'Marketing': '#e11d48', 'Softwares / Tecnologias': '#4f46e5',
+  'Serviços Terceirizados': '#0369a1', 'Impostos': '#a16207', 'Dívidas / Empréstimos': '#dc2626',
+  'Saídas Não-Operacionais': '#78716c', 'Investimentos': '#15803d', 'Aportes e Transferências': '#0f766e',
+};
+function corCategoria(cat) {
+  if (CORES_CAT[cat]) return CORES_CAT[cat];
+  let h = 0;
+  for (const ch of String(cat || '')) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h} 55% 42%)`;
+}
+function siglaCategoria(cat) {
+  const palavras = String(cat || '?').replace(/[()/]/g, ' ').split(/\s+/).filter(p => p.length > 2);
+  return (palavras.length > 1 ? palavras[0][0] + palavras[1][0] : (palavras[0] || '?').slice(0, 2)).toUpperCase();
+}
+
+// Variação contra o mês anterior; em saídas, cair é o lado bom
+function Tend({ v, inverso }) {
+  if (v == null || !Number.isFinite(v)) return <span className="lc-tend neutra">sem mês anterior</span>;
+  const bom = inverso ? v <= 0 : v >= 0;
+  return <span className={`lc-tend ${bom ? 'bom' : 'ruim'}`}>{v >= 0 ? '▲' : '▼'} {Math.abs(v).toFixed(1)}% <small>vs mês anterior</small></span>;
+}
+
+// Cards do topo: saldo, entradas e saídas do mês, comparados com o mês anterior
+function CardsMes({ resumo }) {
+  const { mes, atual, ant } = resumo;
+  // Sem mês no filtro: total de todo o período, sem comparação com mês anterior
+  const [ano, mesNum] = (mes || '').split('-').map(Number);
+  const nomeMes = mes ? new Date(ano, mesNum - 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' }) : 'todo o período';
+  const varia = (a, b) => (ant && b ? ((a - b) / Math.abs(b)) * 100 : null);
+  const total = atual.ent + atual.sai;
+  const pctEnt = total ? (atual.ent / total) * 100 : 50;
+  const pctAntEnt = ant?.ent ? Math.min(100, (atual.ent / ant.ent) * 100) : (ant ? 0 : 100);
+  const pctSaiEnt = atual.ent ? Math.min(100, (atual.sai / atual.ent) * 100) : 0;
+  return (
+    <div className="lc-cards" aria-label={`Resumo de ${nomeMes}`}>
+      <div className="lc-card">
+        <div className="lc-card-rot">Saldo · {nomeMes}</div>
+        <div className="lc-card-linha">
+          <strong className={atual.saldo >= 0 ? 'ent' : 'sai'}>{fmt(atual.saldo)}</strong>
+          {ant ? <Tend v={varia(atual.saldo, ant.saldo)} /> : <span className="lc-tend neutra">todos os meses</span>}
+        </div>
+        <div className="lc-barra dupla" aria-hidden="true">
+          <span className="sai" style={{ width: `${100 - pctEnt}%` }} />
+          <span className="ent" style={{ width: `${pctEnt}%` }} />
+        </div>
+        <div className="lc-card-rodape"><span>saídas {fmt(atual.sai)}</span><span>entradas {fmt(atual.ent)}</span></div>
+      </div>
+      <div className="lc-card">
+        <div className="lc-card-rot">Entradas · {nomeMes}</div>
+        <div className="lc-card-linha">
+          <strong className="ent">{fmt(atual.ent)}</strong>
+          {ant && <Tend v={varia(atual.ent, ant.ent)} />}
+        </div>
+        <div className="lc-barra" aria-hidden="true"><span className="ent" style={{ width: `${pctAntEnt}%` }} /></div>
+        <div className="lc-card-rodape">
+          {ant ? <><span>{ant.ent ? `${pctAntEnt.toFixed(0)}% do mês anterior` : '—'}</span><span>mês anterior {fmt(ant.ent)}</span></>
+            : <span>escolha um mês para comparar com o anterior</span>}
+        </div>
+      </div>
+      <div className="lc-card">
+        <div className="lc-card-rot">Saídas · {nomeMes}</div>
+        <div className="lc-card-linha">
+          <strong className="sai">{fmt(atual.sai)}</strong>
+          {ant && <Tend v={varia(atual.sai, ant.sai)} inverso />}
+        </div>
+        <div className="lc-barra" aria-hidden="true"><span className="sai" style={{ width: `${pctSaiEnt}%` }} /></div>
+        <div className="lc-card-rodape"><span>{atual.ent ? `${pctSaiEnt.toFixed(0)}% das entradas` : '—'}</span>{ant && <span>mês anterior {fmt(ant.sai)}</span>}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Lancamentos() {
   const { lancamentos, setLancamentos, clienteAtivo } = useApp();
 
@@ -274,6 +351,55 @@ export default function Lancamentos() {
     return { entradas, saidas, saldo: entradas - saidas };
   }, [filtrados]);
 
+  // Cards do topo: o mês do filtro comparado com o anterior; em "Todos os meses", o total do período inteiro.
+  // Mesma conta do resumo da lista (entrada pelo valor recebido, sem CMV de venda, sem transferência)
+  const resumoMes = useMemo(() => {
+    const somar = pfx => {
+      const lm = semCMV.filter(l => l.data.startsWith(pfx));
+      const ent = lm.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + parseFloat(l.valorRecebido ?? l.valor), 0);
+      const sai = lm.filter(l => l.tipo === 'Saída').reduce((a, l) => a + parseFloat(l.valor), 0);
+      return { ent, sai, saldo: ent - sai };
+    };
+    if (!filtroMes) return { mes: null, atual: somar(''), ant: null };
+    const [y, m] = filtroMes.split('-').map(Number);
+    const anterior = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+    return { mes: filtroMes, atual: somar(filtroMes), ant: somar(anterior) };
+  }, [semCMV, filtroMes]);
+
+  // Seleção para ações em lote; troca de filtro limpa a seleção (o que some da lista não fica marcado escondido)
+  const [selecionados, setSelecionados] = useState(new Set());
+  const [loteCat, setLoteCat] = useState(null);   // { categoria, subcategoria, salvando, erro }
+  useEffect(() => { setSelecionados(new Set()); }, [filtroTipo, filtroCat, filtroSub, filtroMes, filtroBanco, busca, clienteAtivo?.id]);
+  const selecionadosLista = useMemo(() => filtrados.filter(l => selecionados.has(l.id)), [filtrados, selecionados]);
+  const todosMarcados = filtrados.length > 0 && selecionadosLista.length === filtrados.length;
+  function marcar(id) {
+    setSelecionados(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  }
+  function marcarTodos() {
+    setSelecionados(todosMarcados ? new Set() : new Set(filtrados.map(l => l.id)));
+  }
+
+  async function mudarCategoriaLote() {
+    if (!loteCat?.categoria) return;
+    setLoteCat(c => ({ ...c, salvando: true, erro: '' }));
+    const atualizados = new Map();
+    let falhas = 0;
+    for (const l of selecionadosLista) {
+      try {
+        const novo = await API.editarLancamento(clienteAtivo.id, l.id, {
+          tipo: l.tipo, valor: l.valor, data: l.data, categoria: loteCat.categoria, subcategoria: loteCat.subcategoria || null,
+          descricao: l.descricao, pagamento: l.pagamento, status: l.status, quantidade: l.quantidade, obs: l.obs,
+          valor_recebido: l.valorRecebido, grupo_id: l.grupoId, valor_upgrade: l.valorUpgrade, qtd_upgrade: l.qtdUpgrade, banco: l.banco,
+        });
+        atualizados.set(l.id, novo);
+      } catch { falhas++; }
+    }
+    if (atualizados.size) setLancamentos(prev => prev.map(l => atualizados.get(l.id) || l));
+    if (falhas) { setLoteCat(c => ({ ...c, salvando: false, erro: `${falhas} não foram alterados. Tente de novo.` })); return; }
+    setLoteCat(null);
+    setSelecionados(new Set());
+  }
+
   const cats     = form ? getCatsPorTipo(form.tipo) : {};
   const subcats  = form ? getSubcats(form.categoria) : [];
   const cmvCats  = CATEGORIAS_CMV;
@@ -460,7 +586,7 @@ export default function Lancamentos() {
     setApagandoTodos(true);
     const removidos = new Set();
     try {
-      for (const l of filtrados) {
+      for (const l of selecionadosLista) {
         try {
           await API.excluirLancamento(clienteAtivo.id, l.id);
           removidos.add(l.id);
@@ -473,6 +599,7 @@ export default function Lancamentos() {
       }
     } finally {
       if (removidos.size) setLancamentos(prev => prev.filter(l => !removidos.has(l.id)));
+      setSelecionados(new Set());
       setApagandoTodos(false);
       setConfirmandoTodos(false);
     }
@@ -718,24 +845,16 @@ export default function Lancamentos() {
   }
 
   return (
-    <div className="lancamentos-page">
-      <div className="table-panel">
-        <div className="table-header">
-          <h2>Todos os Lançamentos</h2>
+    <div className="lancamentos-page lc">
+      <div className="lc-topo">
+        <h1 className="lc-titulo">Conciliações Bancárias</h1>
+        <div className="lc-acoes">
           <button
             className="btn btn-primary btn-sm"
             onClick={() => abrirNovo('Entrada')}
             title="Novo lançamento de entrada"
-          >+ Novo Lançamento</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar Extrato</button>
-          <input className="search-box" placeholder="🔍 Buscar nome ou valor..." value={busca} onChange={e => setBusca(e.target.value)} />
-          <select className="filter-select" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
-            <option value="">Todos os meses</option>
-            {todosMeses.map(m => {
-              const [y, mo] = m.split('-');
-              return <option key={m} value={m}>{new Date(y, mo-1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</option>;
-            })}
-          </select>
+          >+ Novo lançamento</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar extrato</button>
           {mpConfigurado && (
             <div className="mp-busca">
               <button
@@ -771,18 +890,39 @@ export default function Lancamentos() {
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      <CardsMes resumo={resumoMes} />
+
+      <div className="table-panel lc-painel">
+        <div className="lc-toolbar">
+          <input className="lc-busca" id="lc-busca" type="search" placeholder="Buscar nome ou valor" aria-label="Buscar lançamento por nome ou valor"
+            value={busca} onChange={e => setBusca(e.target.value)} />
+          <select className="filter-select" aria-label="Mês" value={filtroMes} onChange={e => setFiltroMes(e.target.value)}>
+            <option value="">Todos os meses</option>
+            {todosMeses.map(m => {
+              const [y, mo] = m.split('-');
+              return <option key={m} value={m}>{new Date(y, mo-1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</option>;
+            })}
+          </select>
           <button
-            className="btn btn-ghost btn-sm"
+            className={`btn btn-ghost btn-sm lc-filtros-btn${filtrosPanelAberto ? ' ativo' : ''}`}
             onClick={() => setFiltrosPanelAberto(v => !v)}
-            style={{ position: 'relative', color: filtrosPanelAberto ? 'var(--primary)' : undefined, borderColor: filtrosPanelAberto ? 'var(--primary)' : undefined }}
+            aria-expanded={filtrosPanelAberto}
           >
-            🔍 Filtrar
+            Filtros
             {[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length > 0 && (
-              <span style={{ position: 'absolute', top: -6, right: -6, background: 'var(--primary)', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                {[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length}
-              </span>
+              <span className="lc-filtros-n">{[filtroTipo, filtroCat, filtroSub, filtroBanco].filter(Boolean).length}</span>
             )}
           </button>
+          {filtrados.length > 0 && (
+            <div className="lc-totais">
+              <span>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</span>
+              {totaisFiltro.entradas > 0 && <span className="ent">+{fmt(totaisFiltro.entradas)}</span>}
+              {totaisFiltro.saidas > 0 && <span className="sai">−{fmt(totaisFiltro.saidas)}</span>}
+            </div>
+          )}
         </div>
 
         {/* Painel de filtros secundários colapsável */}
@@ -868,23 +1008,13 @@ export default function Lancamentos() {
           </section>
         )}
 
-        {filtrados.length > 0 && (
-          <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 13, flexWrap: 'wrap' }}>
-            <span style={{ color: 'var(--text2)' }}>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</span>
-            {totaisFiltro.entradas > 0 && <span style={{ color: 'var(--entrada)', fontWeight: 700 }}>Entradas: +{fmt(totaisFiltro.entradas)}</span>}
-            {totaisFiltro.saidas   > 0 && <span style={{ color: 'var(--saida)',   fontWeight: 700 }}>Saídas: -{fmt(totaisFiltro.saidas)}</span>}
-            {totaisFiltro.entradas > 0 && totaisFiltro.saidas > 0 && (
-              <span style={{ color: totaisFiltro.saldo >= 0 ? 'var(--entrada)' : 'var(--saida)', fontWeight: 700 }}>
-                Saldo: {fmt(totaisFiltro.saldo)}
-              </span>
-            )}
-            <button
-              className="btn btn-sm"
-              style={{ marginLeft: 'auto', background: '#f03e3e22', color: '#f03e3e', border: '1px solid #f03e3e44' }}
-              onClick={() => setConfirmandoTodos(true)}
-            >
-              🗑 Apagar {filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}
-            </button>
+        {selecionadosLista.length > 0 && (
+          <div className="lc-lote" role="region" aria-label="Ações nos selecionados">
+            <strong>{selecionadosLista.length} selecionado{selecionadosLista.length !== 1 ? 's' : ''}</strong>
+            <span className="lc-lote-soma">{fmt(selecionadosLista.reduce((a, l) => a + (l.tipo === 'Saída' ? -l.valor : l.valor), 0))}</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => setLoteCat({ categoria: '', subcategoria: '', salvando: false, erro: '' })}>Mudar categoria</button>
+            <button className="btn btn-ghost btn-sm lc-lote-apagar" onClick={() => setConfirmandoTodos(true)}>Apagar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>
           </div>
         )}
 
@@ -894,7 +1024,10 @@ export default function Lancamentos() {
             <div>Nenhum lançamento encontrado</div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <>
+          {/* Pendentes do Mercado Phone e OS: tabela própria, com o layout de revisão de sempre */}
+          {(mpCarregando || mpPendentes.length > 0 || osCarregando || osPendentes.length > 0) && (
+          <div className="lc-pendentes" style={{ overflowX: 'auto' }}>
             <table>
               <thead>
                 <tr>
@@ -1357,44 +1490,68 @@ export default function Lancamentos() {
                   </>
                 )}
 
-                {/* Lançamentos confirmados */}
+              </tbody>
+            </table>
+          </div>
+          )}
+
+          {/* Lançamentos confirmados */}
+          {filtrados.length > 0 && (
+          <div className="lc-tabela-wrap">
+            <table className="lc-tabela">
+              <thead>
+                <tr>
+                  <th className="lc-check">
+                    <input type="checkbox" id="lc-marcar-todos" checked={todosMarcados} onChange={marcarTodos}
+                      aria-label={todosMarcados ? 'Desmarcar todos' : `Marcar os ${filtrados.length} lançamentos da lista`} />
+                  </th>
+                  {[['descricao', 'Descrição'], ['data', 'Data'], ['valor', 'Valor'], ['categoria', 'Categoria'], ['banco', 'Banco'], ['status', 'Status']].map(([col, label]) => (
+                    <th key={col} className={col === 'valor' ? 'num' : ''} aria-sort={sortCol === col ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+                      <button type="button" className="lc-ordenar" onClick={() => toggleSort(col)}>{label}<span aria-hidden="true">{sortIcon(col)}</span></button>
+                    </th>
+                  ))}
+                  <th aria-label="Ações"></th>
+                </tr>
+              </thead>
+              <tbody>
                 {filtradosOrdenados.map(l => {
                   const cmv = l.grupoId ? lancamentos.find(x => x.grupoId === l.grupoId && x.isCMV) : null;
+                  const rec = parseFloat(l.valorRecebido ?? l.valor);
+                  const lucro = cmv ? rec - cmv.valor : null;
+                  const marcado = selecionados.has(l.id);
                   return (
-                    <tr key={l.id}>
-                      <td className="id-cell">#{String(l.id).padStart(3,'0')}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{fmtData(l.data)}</td>
-                      <td><span className={`tipo-badge tipo-${l.tipo}`}>{l.tipo}</span></td>
-                      <td>{l.categoria}</td>
-                      <td style={{ color: 'var(--text2)' }}>{l.subcategoria || '—'}</td>
-                      <td>
-                        {l.descricao}
-                        {cmv && (
-                          <div style={{ marginTop: 4, display: 'flex', gap: 8, fontSize: 11 }}>
-                            <span style={{ background: '#f03e3e18', color: 'var(--saida)', borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>CMV {fmt(cmv.valor)}</span>
-                            {(() => {
-                              const rec   = parseFloat(l.valorRecebido ?? l.valor);
-                              const lucro = rec - cmv.valor;
-                              return (
-                                <span style={{ color: lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-                                  Lucro {fmt(lucro)} · Margem {rec > 0 ? (lucro / rec * 100).toFixed(2) : 0}%
-                                </span>
-                              );
-                            })()}
+                    <tr key={l.id} className={marcado ? 'marcado' : ''}>
+                      <td className="lc-check">
+                        <input type="checkbox" id={`lc-sel-${l.id}`} checked={marcado} onChange={() => marcar(l.id)} aria-label={`Selecionar ${l.descricao || l.categoria}`} />
+                      </td>
+                      <td className="lc-desc">
+                        <div className="lc-desc-linha">
+                          <span className="lc-ico" style={{ '--cor-cat': corCategoria(l.categoria) }} aria-hidden="true">{siglaCategoria(l.categoria)}</span>
+                          <div className="lc-desc-txt">
+                            <div className="lc-desc-nome">{l.descricao || <span className="lc-sem">Sem descrição</span>}</div>
+                            <div className="lc-desc-meta">
+                              <span>#{l.id}</span>
+                              {l.pagamento && <span>{l.pagamento}</span>}
+                              {cmv && <span className="lc-cmv">CMV {fmt(cmv.valor)}</span>}
+                              {cmv && <span style={{ color: lucro >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>lucro {fmt(lucro)} · {rec > 0 ? (lucro / rec * 100).toFixed(1) : 0}%</span>}
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </td>
-                      <td style={{ color: 'var(--text2)' }}>{l.banco || '—'}</td>
-                      <td style={{ color: 'var(--text2)' }}>{l.pagamento || '—'}</td>
-                      <td><span style={{ fontSize: 11, color: l.status === 'Pendente' ? 'var(--warn)' : 'var(--text2)' }}>{l.status}</span></td>
-                      <td style={{ textAlign: 'right', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                        {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '-' : ''}{fmt(l.valor)}
+                      <td className="lc-data">{fmtData(l.data)}</td>
+                      <td className={`num lc-valor lc-valor-${l.tipo === 'Entrada' ? 'ent' : l.tipo === 'Saída' ? 'sai' : 'transf'}`}>
+                        {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '−' : ''}{fmt(l.valor)}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)}>✏️</button>
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(l)}>🗑</button>
-                        </div>
+                        <span className="lc-cat" style={{ '--cor-cat': corCategoria(l.categoria) }}>
+                          {l.categoria}{l.subcategoria && <small>{l.subcategoria}</small>}
+                        </span>
+                      </td>
+                      <td className="lc-banco">{l.banco || '—'}</td>
+                      <td><span className={`lc-status${l.status === 'Pendente' ? ' pend' : ''}`}>{l.status}</span></td>
+                      <td className="lc-acoes-linha">
+                        <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)} aria-label={`Editar ${l.descricao || 'lançamento'}`}>✏️</button>
+                        <button className="btn btn-ghost btn-sm lc-del" onClick={() => setConfirmando(l)} aria-label={`Apagar ${l.descricao || 'lançamento'}`}>🗑</button>
                       </td>
                     </tr>
                   );
@@ -1402,6 +1559,8 @@ export default function Lancamentos() {
               </tbody>
             </table>
           </div>
+          )}
+          </>
         )}
       </div>
 
@@ -1573,12 +1732,13 @@ export default function Lancamentos() {
         <div className="modal-overlay" onClick={() => !apagandoTodos && setConfirmandoTodos(false)}>
           <div className="modal-box modal-small" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Apagar lançamentos filtrados</h3>
+              <h3>Apagar lançamentos selecionados</h3>
               <button className="modal-close" onClick={() => !apagandoTodos && setConfirmandoTodos(false)}>✕</button>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 14, color: 'var(--text)' }}>
-                Você está prestes a apagar <strong style={{ color: '#f03e3e' }}>{filtrados.length} lançamento{filtrados.length !== 1 ? 's' : ''}</strong> com os filtros atuais.
+                Você está prestes a apagar <strong style={{ color: '#f03e3e' }}>{selecionadosLista.length} lançamento{selecionadosLista.length !== 1 ? 's' : ''}</strong> selecionado{selecionadosLista.length !== 1 ? 's' : ''}
+                {' '}(com o CMV de cada venda junto).
               </p>
               <p style={{ fontSize: 13, color: 'var(--text2)' }}>
                 Esta ação não pode ser desfeita.
@@ -1587,7 +1747,47 @@ export default function Lancamentos() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setConfirmandoTodos(false)} disabled={apagandoTodos}>Cancelar</button>
               <button className="btn-danger" onClick={excluirTodos} disabled={apagandoTodos}>
-                {apagandoTodos ? 'Apagando...' : `Apagar ${filtrados.length}`}
+                {apagandoTodos ? 'Apagando...' : `Apagar ${selecionadosLista.length}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {loteCat && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !loteCat.salvando && setLoteCat(null)}>
+          <div className="modal-box modal-small" role="dialog" aria-labelledby="lote-cat-titulo">
+            <div className="modal-header">
+              <h3 id="lote-cat-titulo">Mudar categoria de {selecionadosLista.length} lançamento{selecionadosLista.length !== 1 ? 's' : ''}</h3>
+              <button className="modal-close" onClick={() => !loteCat.salvando && setLoteCat(null)} aria-label="Fechar">✕</button>
+            </div>
+            <div className="modal-body">
+              {new Set(selecionadosLista.map(l => l.tipo)).size > 1 && (
+                <p className="lc-aviso">A seleção tem entradas e saídas juntas. Escolha uma categoria que sirva para todas, ou selecione só um tipo.</p>
+              )}
+              <div className="form-grid">
+                <div className="field">
+                  <label htmlFor="lote-cat">Categoria</label>
+                  <select id="lote-cat" value={loteCat.categoria} onChange={e => setLoteCat(c => ({ ...c, categoria: e.target.value, subcategoria: '' }))}>
+                    <option value="">Escolha…</option>
+                    {Object.entries(getCatsPorTipo(selecionadosLista[0]?.tipo || 'Saída')).map(([cat, subs]) => (
+                      subs === null ? <option key={cat} disabled>{cat}</option> : <option key={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="lote-sub">Subcategoria</label>
+                  <select id="lote-sub" value={loteCat.subcategoria} onChange={e => setLoteCat(c => ({ ...c, subcategoria: e.target.value }))} disabled={!loteCat.categoria}>
+                    <option value="">—</option>
+                    {getSubcats(loteCat.categoria).map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              {loteCat.erro && <p className="lc-aviso lc-aviso-erro" role="alert">{loteCat.erro}</p>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setLoteCat(null)} disabled={loteCat.salvando}>Cancelar</button>
+              <button className="btn btn-primary" onClick={mudarCategoriaLote} disabled={loteCat.salvando || !loteCat.categoria}>
+                {loteCat.salvando ? 'Salvando…' : `Mudar ${selecionadosLista.length}`}
               </button>
             </div>
           </div>

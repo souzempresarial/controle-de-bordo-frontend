@@ -72,3 +72,114 @@
 .mp-conf-valor { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .mp-conf-motivo { margin: 2px 0 0 24px; font-size: 12px; color: var(--text2); }
 .mp-conf-acoes { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--text2); }
+
+/* ── Conciliações Bancárias: layout novo (cards do mês + tabela limpa) ───────── */
+.lc { display: flex; flex-direction: column; gap: 16px; }
+.lc .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.lc-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lc-titulo { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; color: var(--text); }
+.lc-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.lc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.lc-card {
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+}
+.lc-card-rot { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: capitalize; }
+.lc-card-linha { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.lc-card-linha strong { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lc-card-linha strong.ent { color: var(--entrada); }
+.lc-card-linha strong.sai { color: var(--saida); }
+.lc-tend { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.lc-tend small { font-weight: 400; color: var(--text2); }
+.lc-tend.bom { color: var(--entrada); }
+.lc-tend.ruim { color: var(--saida); }
+.lc-tend.neutra { color: var(--text2); font-weight: 400; }
+.lc-barra { display: flex; height: 26px; border-radius: 6px; overflow: hidden; background: var(--surface2); gap: 3px; }
+.lc-barra span { display: block; height: 100%; border-radius: 6px; min-width: 0; transition: width .3s; }
+.lc-barra span.ent { background: linear-gradient(90deg, color-mix(in srgb, var(--entrada) 45%, transparent), var(--entrada)); }
+.lc-barra span.sai { background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 80%, transparent), var(--saida)); }
+.lc-card-rodape { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
+
+.lc-painel { padding: 0; overflow: hidden; }
+.lc-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.lc-busca {
+  flex: 1 1 220px; min-width: 0; max-width: 340px; font-size: 13px; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text);
+}
+.lc-busca:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lc-filtros-btn { position: relative; }
+.lc-filtros-btn.ativo { color: var(--primary); border-color: var(--primary); }
+.lc-filtros-n {
+  margin-left: 6px; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; border-radius: 8px; font-size: 10px; font-weight: 700; background: var(--primary); color: #fff;
+}
+.lc-totais { margin-left: auto; display: flex; gap: 14px; font-size: 12.5px; color: var(--text2); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.lc-totais .ent { color: var(--entrada); font-weight: 700; }
+.lc-totais .sai { color: var(--saida); font-weight: 700; }
+
+.lc-lote {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface)); border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.lc-lote-soma { color: var(--text2); font-variant-numeric: tabular-nums; margin-right: auto; }
+.lc-lote-apagar { color: var(--saida) !important; }
+.lc-aviso { font-size: 12.5px; color: var(--text2); margin: 0 0 12px; line-height: 1.5; }
+.lc-aviso-erro { color: var(--saida); margin: 12px 0 0; }
+
+.lc-pendentes { border-bottom: 1px solid var(--border); }
+.lc-tabela-wrap { overflow-x: auto; }
+.lc-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lc-tabela thead th {
+  text-align: left; padding: 0 10px; height: 38px; background: var(--surface2);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.lc-tabela thead th.num { text-align: right; }
+.lc-ordenar {
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text2);
+}
+.lc-ordenar span { opacity: .6; }
+.lc-ordenar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.lc-tabela tbody td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.lc-tabela tbody tr:hover { background: color-mix(in srgb, var(--surface2) 70%, transparent); }
+.lc-tabela tbody tr.marcado { background: color-mix(in srgb, var(--primary) 7%, transparent); }
+.lc-check { width: 34px; text-align: center; }
+.lc-check input { cursor: pointer; }
+
+.lc-desc { min-width: 240px; }
+.lc-desc-linha { display: flex; align-items: center; gap: 10px; }
+.lc-ico {
+  flex: none; width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--cor-cat); background: color-mix(in srgb, var(--cor-cat) 14%, var(--surface));
+}
+.lc-desc-txt { min-width: 0; }
+.lc-desc-nome { font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.lc-sem { color: var(--text2); font-style: italic; font-weight: 400; }
+.lc-desc-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; font-size: 11px; color: var(--text2); }
+.lc-cmv { color: var(--saida); font-weight: 600; }
+.lc-data { white-space: nowrap; color: var(--text2); font-variant-numeric: tabular-nums; }
+.lc-valor { font-weight: 700; }
+.lc-valor-ent { color: var(--entrada); }
+.lc-valor-sai { color: var(--saida); }
+.lc-valor-transf { color: var(--transferencia, var(--text2)); }
+.lc-cat {
+  display: inline-flex; flex-direction: column; gap: 1px; padding: 3px 9px; border-radius: 7px; font-size: 12px; line-height: 1.3;
+  color: var(--text); background: color-mix(in srgb, var(--cor-cat) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--cor-cat) 25%, transparent);
+}
+.lc-cat small { font-size: 11px; color: var(--text2); }
+.lc-banco { color: var(--text2); white-space: nowrap; }
+.lc-status { font-size: 11px; color: var(--text2); }
+.lc-status.pend { color: var(--warn); font-weight: 600; }
+.lc-acoes-linha { white-space: nowrap; text-align: right; }
+.lc-acoes-linha .btn { padding: 4px 7px; }
+.lc-del { color: var(--danger) !important; }
+
+@media (max-width: 640px) {
+  .lc-titulo { font-size: 19px; }
+  .lc-card-linha strong { font-size: 19px; }
+  .lc-totais { margin-left: 0; width: 100%; }
+}
