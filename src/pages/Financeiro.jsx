@@ -4,7 +4,7 @@ import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
 import { calcDREBase } from '../services/dre';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL, upgradeNoCaixa } from '../services/utils';
-import ImportarPatrimonio from '../components/ImportarPatrimonio';
+import ImportarPatrimonio, { OrigemPatrimonio } from '../components/ImportarPatrimonio';
 import FechamentoMes from '../components/FechamentoMes';
 import './Financeiro.css';
 
@@ -618,7 +618,9 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   const getCapital = (campo) => capital[campo] || 0;
   const totalCapital = CAPITAL_CAMPOS.reduce((a, { campo }) => a + getCapital(campo), 0);
 
-  const [importando, setImportando] = useState(false);
+  // null · 'escolha' (card de origem) · 'mp' (API do Mercado Phone) · 'arquivo' (planilha em arquivoImport)
+  const [importando, setImportando] = useState(null);
+  const [arquivoImport, setArquivoImport] = useState(null);
   const [importInfo, setImportInfo] = useState(null);
   useEffect(() => {
     if (!clienteAtivo?.id) return;
@@ -629,7 +631,8 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   function patrimonioSalvo(novoCapital, itens) {
     setCapitalCache(prev => ({ ...prev, [periodo]: { ...(prev[periodo] || {}), ...novoCapital } }));
     setImportInfo({ itens, importado_em: new Date().toISOString() });
-    setImportando(false);
+    setImportando(null);
+    setArquivoImport(null);
   }
 
   function abrirModalCapital() {
@@ -666,6 +669,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
     const caixa         = entDFC - saiDFC;
 
+
     const totalAReceber = lancAteAno.filter(l =>
       l.tipo === 'Entrada' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria)
     ).reduce((a,l) => a + l.valor, 0);
@@ -682,7 +686,21 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     const aPagar              = lancAteAno.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
     const totalFornecPagar    = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
     const totalOutrasPagar    = aPagar.filter(l => !['Fornecedores (Estoque)','Dívidas / Empréstimos','Impostos'].includes(l.categoria)).reduce((a,l) => a+l.valor, 0);
-    const totalEmprestimosPagar = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos' && c.status === 'pendente').reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);
+    // Empréstimo entra no passivo a partir do mês da contratação (o mês antes da 1ª parcela) e o saldo do mês é
+    // o principal das parcelas que vencem depois dele, mais as vencidas que seguem em aberto
+    const parcelasEmp = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos');
+    const primeiraPorEmp = {};
+    parcelasEmp.forEach(c => {
+      const emp = String(c.descricao || '').split(' — Parcela')[0];
+      const venc = String(c.vencimento || '').slice(0, 7);
+      if (venc && (!primeiraPorEmp[emp] || venc < primeiraPorEmp[emp])) primeiraPorEmp[emp] = venc;
+    });
+    const mesAnterior = ym => { const [y, m] = ym.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`; };
+    const totalEmprestimosPagar = parcelasEmp.filter(c => {
+      const primeira = primeiraPorEmp[String(c.descricao || '').split(' — Parcela')[0]];
+      const venc = String(c.vencimento || '').slice(0, 7);
+      return primeira && mesAnterior(primeira) <= periodo && (venc > periodo || c.status === 'pendente');
+    }).reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);
     // Passivo é o imposto que ainda falta pagar (lançamento pendente ou conta a pagar em aberto), não o que já foi pago
     const totalImpostosPagar  = aPagar.filter(l => l.categoria === 'Impostos').reduce((a,l) => a+l.valor, 0)
                               + contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Impostos' && c.status === 'pendente'
@@ -759,7 +777,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>ATIVO</h3>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando(true)}>⬇ Importar Patrimônio</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando('escolha')}>⬇ Importar Patrimônio</button>
               <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
             </div>
           </div>
@@ -792,8 +810,17 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         </div>
       </div>
 
-      {importando && (
-        <ImportarPatrimonio clienteId={clienteAtivo.id} periodo={periodo} onFechar={() => setImportando(false)} onSalvo={patrimonioSalvo} />
+      {importando === 'escolha' && (
+        <OrigemPatrimonio
+          clienteId={clienteAtivo.id}
+          onMP={() => setImportando('mp')}
+          onArquivo={a => { setArquivoImport(a); setImportando('arquivo'); }}
+          onFechar={() => setImportando(null)}
+        />
+      )}
+      {(importando === 'mp' || (importando === 'arquivo' && arquivoImport)) && (
+        <ImportarPatrimonio clienteId={clienteAtivo.id} periodo={periodo} arquivo={importando === 'arquivo' ? arquivoImport : null}
+          onFechar={() => { setImportando(null); setArquivoImport(null); }} onSalvo={patrimonioSalvo} />
       )}
 
       {modalCapital && (

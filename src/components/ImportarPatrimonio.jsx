@@ -18,8 +18,9 @@ const FILTROS = [
 // Loja grande passa de 6 mil produtos: desenhar tudo de uma vez trava a tela (os totais continuam somando tudo)
 const POR_VEZ = 200;
 
-// Revisão item a item do estoque do Mercado Phone antes de entrar no Balanço
-export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSalvo }) {
+// Revisão item a item do estoque antes de entrar no Balanço. Origem: API do Mercado Phone ou, com `arquivo`
+// ({ nome, itens, vendidos }), a planilha da extensão / feita à mão — mesma revisão e mesmo salvamento
+export default function ImportarPatrimonio({ clienteId, periodo, arquivo, onFechar, onSalvo }) {
   const [itens, setItens]       = useState(null);
   const [erro, setErro]         = useState('');
   const [filtro, setFiltro]     = useState('todos');
@@ -31,10 +32,11 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
   const nomeMes = `${MESES_FULL[parseInt(mes) - 1]}/${ano}`;
 
   useEffect(() => {
+    if (arquivo) { setItens(arquivo.itens.map((i, idx) => ({ ...i, _k: idx }))); return; }
     API.patrimonioPreview(clienteId)
       .then(r => setItens(r.itens.map((i, idx) => ({ ...i, _k: idx }))))
       .catch(e => setErro(e.message));
-  }, [clienteId]);
+  }, [clienteId, arquivo]);
 
   const visiveis = useMemo(() => {
     if (!itens) return [];
@@ -63,7 +65,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
     try {
       const r = await API.patrimonioSalvar(clienteId, {
         mesChave: periodo,
-        itens: aprovados.map(({ _k, alertas, aprovado, loja, ...resto }) => resto),
+        itens: aprovados.map(({ _k, alertas, aprovado, loja, linha, ...resto }) => resto),
       });
       onSalvo(r.capital, r.itens);
     } catch (e) {
@@ -81,10 +83,18 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
         </div>
 
         <div className="modal-body imp-corpo">
-          <div className="imp-aviso" role="note">
-            <strong>A API do Mercado Phone pode conter erros.</strong> Ela costuma trazer duplicatas, aparelhos vendidos sem baixa e quantidades erradas.
-            Revise item a item: só o que estiver marcado entra no Balanço de {nomeMes}. Itens com problema já vêm desmarcados.
-          </div>
+          {arquivo ? (
+            <div className="imp-aviso" role="note">
+              <strong>Planilha {arquivo.nome}.</strong> {arquivo.itens.length} produtos parados em estoque
+              {arquivo.vendidos > 0 && <> · {arquivo.vendidos} com data de venda ficaram de fora</>}.
+              Revise item a item: só o que estiver marcado entra no Balanço de {nomeMes}. Itens sem custo ou com IMEI repetido já vêm desmarcados.
+            </div>
+          ) : (
+            <div className="imp-aviso" role="note">
+              <strong>A API do Mercado Phone pode conter erros.</strong> Ela costuma trazer duplicatas, aparelhos vendidos sem baixa e quantidades erradas.
+              Revise item a item: só o que estiver marcado entra no Balanço de {nomeMes}. Itens com problema já vêm desmarcados.
+            </div>
+          )}
 
           {!itens && !erro && <div className="imp-carregando">Lendo o estoque do Mercado Phone…</div>}
           {erro && <div className="imp-erro" role="alert">{erro}</div>}
@@ -123,7 +133,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
                     <tr>
                       <th aria-label="Aprovar"></th>
                       <th>Produto</th>
-                      <th>Situação no MP</th>
+                      <th>{arquivo ? 'Na planilha' : 'Situação no MP'}</th>
                       <th className="num">Qtd</th>
                       <th className="num">Custo unit.</th>
                       <th className="num">Total</th>
@@ -148,7 +158,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
                             <div className="imp-alertas">{i.alertas.map(a => <span key={a}>⚠ {a}</span>)}</div>
                           )}
                         </td>
-                        <td className="imp-sit">{i.disponibilidade || '—'}</td>
+                        <td className="imp-sit">{i.disponibilidade || (i.linha ? `Linha ${i.linha}` : '—')}</td>
                         <td className="num">
                           <input type="number" min="0" step="1" value={i.quantidade}
                             onChange={e => mudar(i._k, 'quantidade', Math.max(0, parseInt(e.target.value) || 0))}
@@ -190,6 +200,60 @@ export default function ImportarPatrimonio({ clienteId, periodo, onFechar, onSal
           <button className="btn btn-primary" onClick={salvar} disabled={!itens || !aprovados.length || salvando}>
             {salvando ? 'Salvando…' : `Salvar ${aprovados.length} itens no Balanço (${fmt(totalGeral)})`}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Card de escolha da origem: API do Mercado Phone (fluxo antigo) ou planilha XLSX (extensão do MP / feita à mão)
+export function OrigemPatrimonio({ clienteId, onMP, onArquivo, onFechar }) {
+  const [lendo, setLendo] = useState(false);
+  const [erro, setErro]   = useState('');
+  const [temMP, setTemMP] = useState(true);
+  useEffect(() => {
+    API.mpStatus(clienteId).then(r => setTemMP(!!r.configurado)).catch(() => {});
+  }, [clienteId]);
+
+  async function escolherArquivo(e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setLendo(true); setErro('');
+    try {
+      const { lerPlanilhaEstoque } = await import('../services/patrimonioArquivo');
+      const r = await lerPlanilhaEstoque(f);
+      onArquivo({ nome: f.name, ...r });
+    } catch (err) {
+      setErro(err.message || 'Não consegui ler essa planilha.');
+      setLendo(false);
+    }
+  }
+
+  async function baixarModelo() {
+    const { baixarModeloEstoque } = await import('../services/patrimonioArquivo');
+    baixarModeloEstoque();
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !lendo && onFechar()}>
+      <div className="modal-box imp-origem" role="dialog" aria-labelledby="imp-origem-titulo">
+        <div className="modal-header">
+          <h3 id="imp-origem-titulo">Importar Patrimônio</h3>
+          <button className="modal-close" onClick={onFechar} disabled={lendo} aria-label="Fechar">✕</button>
+        </div>
+        <div className="modal-body imp-origem-corpo">
+          <button type="button" className="imp-opcao" onClick={onMP} disabled={!temMP || lendo}>
+            <strong>Importar do Mercado Phone</strong>
+            <span>{temMP ? 'Lê o estoque direto pela API do Mercado Phone.' : 'Este cliente não tem o Mercado Phone conectado.'}</span>
+          </button>
+          <label className={`imp-opcao ${lendo ? 'imp-opcao-off' : ''}`} htmlFor="imp-arquivo">
+            <strong>{lendo ? 'Lendo a planilha…' : 'Importar de arquivo'}</strong>
+            <span>Planilha XLSX ou CSV gerada pela extensão do Mercado Phone, ou montada no modelo.</span>
+            <input id="imp-arquivo" type="file" accept=".xlsx,.xls,.csv" onChange={escolherArquivo} disabled={lendo} hidden />
+          </label>
+          {erro && <div className="imp-erro" role="alert">{erro}</div>}
+          <button type="button" className="btn btn-ghost btn-sm imp-modelo" onClick={baixarModelo}>⬇ Baixar planilha modelo</button>
         </div>
       </div>
     </div>
