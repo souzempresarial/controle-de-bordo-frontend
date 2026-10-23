@@ -54,3 +54,6 @@
 .fech-veredito.neutro { background: var(--surface2); color: var(--text2); }
 
 .fech-rodape { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--border); }
+
+/* Fechamento aberto pelo botão "Saldo" do Fluxo de Caixa */
+.fech-modal { width: min(960px, 96vw); max-width: none; max-height: 92vh; overflow-y: auto; }

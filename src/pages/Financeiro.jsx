@@ -357,6 +357,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   const [modalSI, setModalSI] = useState(false);
   const [siValor, setSiValor] = useState('');
   const [siMes, setSiMes]     = useState(0);
+  const [modalSaldo, setModalSaldo] = useState(false);   // fechamento do mês (saldo de cada conta no início e no fim)
 
   useEffect(() => {
     if (!clienteAtivo) return;
@@ -455,6 +456,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
           <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
             {anos.map(a => <option key={a}>{a}</option>)}
           </select>
+          <button className="btn btn-primary btn-sm" onClick={() => setModalSaldo(true)} title="Saldo de cada conta no início e no fim do mês">Saldo</button>
           <button className="btn btn-ghost btn-sm" onClick={() => { setSiValor(saldoInicial || ''); setSiMes(saldoMes); setModalSI(true); }}>
             {saldoInicial > 0 ? `Saldo Inicial: ${fmt(saldoInicial)}` : 'Saldo Inicial'}
           </button>
@@ -539,6 +541,20 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
           </table>
         </div>
       </div>
+
+      {modalSaldo && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalSaldo(false)}>
+          <div className="modal-box fech-modal" role="dialog" aria-label="Saldo das contas">
+            <div className="modal-header">
+              <h3>Saldo</h3>
+              <button className="modal-close" onClick={() => setModalSaldo(false)} aria-label="Fechar">✕</button>
+            </div>
+            <div className="modal-body">
+              <FechamentoMes lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalSI && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalSI(false)}>
@@ -1210,7 +1226,6 @@ export default function Financeiro() {
       <div className="abas">
         <button className={`aba-btn ${aba === 'dre'    ? 'active' : ''}`} onClick={() => setAba('dre')}>DRE</button>
         <button className={`aba-btn ${aba === 'fluxo'  ? 'active' : ''}`} onClick={() => setAba('fluxo')}>Fluxo de Caixa</button>
-        <button className={`aba-btn ${aba === 'fechamento' ? 'active' : ''}`} onClick={() => setAba('fechamento')}>Fechamento</button>
         <button className={`aba-btn ${aba === 'balanco' ? 'active' : ''}`} onClick={() => setAba('balanco')}>Balanço Patrimonial</button>
         <button className={`aba-btn ${aba === 'upgrade' ? 'active' : ''}`} onClick={() => setAba('upgrade')}>Upgrades</button>
         <button className={`aba-btn ${aba === 'proj'    ? 'active' : ''}`} onClick={() => setAba('proj')}>Projeção</button>
@@ -1218,7 +1233,6 @@ export default function Financeiro() {
 
       {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
-      {aba === 'fechamento' && <FechamentoMes lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} ano={ano} setAno={setAno} />}
       {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
