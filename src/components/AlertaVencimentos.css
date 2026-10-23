@@ -1,0 +1,39 @@
+/* Painel de contas a pagar (coluna da direita da Visão Geral) */
+.contas-painel {
+  height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+}
+.contas-painel-urgente { border-color: color-mix(in srgb, var(--saida) 45%, var(--border)); }
+.contas-painel-aviso { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
+.contas-painel-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.contas-painel-topo h2 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+
+.contas-painel-resumo { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: var(--surface2); }
+.contas-painel-total { display: flex; flex-direction: column; gap: 2px; }
+.contas-painel-total small { font-size: 11px; color: var(--text2); }
+.contas-painel-total strong { font-size: 22px; font-weight: 800; color: var(--saida); font-variant-numeric: tabular-nums; }
+.contas-painel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.contas-painel-chips .chip { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+.contas-painel-chips .chip.vencida { color: var(--saida); background: color-mix(in srgb, var(--saida) 14%, transparent); }
+.contas-painel-chips .chip.urgente { color: var(--saida); background: color-mix(in srgb, var(--saida) 8%, transparent); }
+.contas-painel-chips .chip.aviso { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+
+.contas-painel-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; flex: 1; max-height: 360px; }
+.contas-painel-lista li {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 9px 2px; border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+.contas-painel-lista li:first-child { border-top: 0; }
+.contas-painel-desc { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.contas-painel-desc span { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contas-painel-desc small { font-size: 11px; font-weight: 600; color: var(--warn); }
+.contas-painel-desc small.urgente, .contas-painel-desc small.vencida { color: var(--saida); }
+.contas-painel-valor { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.contas-painel-vazio { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 24px 8px; }
+.contas-painel-vazio span {
+  width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; color: var(--entrada); background: color-mix(in srgb, var(--entrada) 14%, transparent);
+}
+.contas-painel-vazio strong { font-size: 14px; color: var(--text); }
+.contas-painel-vazio small { font-size: 12px; color: var(--text2); }

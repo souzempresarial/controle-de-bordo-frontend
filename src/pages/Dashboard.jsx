@@ -4,6 +4,8 @@ import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGORIAS_CMV, getCmvSubAuto, BANCOS } from '../services/constants';
 import SelectBanco from '../components/SelectBanco';
+import AlertaVencimentos from '../components/AlertaVencimentos';
+import GraficoFluxo from '../components/GraficoFluxo';
 import { fmt, fmtData, hoje, MESES, upgradeNoCaixa, deducaoNaVenda } from '../services/utils';
 import './Dashboard.css';
 
@@ -11,66 +13,6 @@ function mesAnterior(mes) {
   const [ano, m] = mes.split('-');
   if (parseInt(m) === 1) return `${parseInt(ano) - 1}-12`;
   return `${ano}-${String(parseInt(m) - 1).padStart(2, '0')}`;
-}
-
-function diasAte(dataISO) {
-  const alvo = new Date(String(dataISO).slice(0, 10) + 'T00:00:00');
-  const base = new Date(hoje() + 'T00:00:00');
-  return Math.round((alvo - base) / 86400000);
-}
-
-function textoPrazo(dias) {
-  if (dias < -1) return `Venceu há ${-dias} dias`;
-  if (dias === -1) return 'Venceu ontem';
-  if (dias === 0)  return 'Vence hoje';
-  if (dias === 1)  return 'Vence amanhã';
-  return `Vence em ${dias} dias`;
-}
-
-function AlertaVencimentos({ contas, onVerContas }) {
-  const proximas = contas
-    .filter(c => c.tipo === 'pagar' && c.status === 'pendente' && c.vencimento)
-    .map(c => ({ ...c, dias: diasAte(c.vencimento) }))
-    .filter(c => c.dias <= 7)
-    .sort((a, b) => a.dias - b.dias);
-  if (!proximas.length) return null;
-
-  const vencidas = proximas.filter(c => c.dias < 0);
-  const hojeOuAmanha = proximas.filter(c => c.dias === 0 || c.dias === 1);
-  const semana = proximas.filter(c => c.dias > 1);
-  const total = proximas.reduce((s, c) => s + parseFloat(c.valor || 0), 0);
-  const nivel = vencidas.length || hojeOuAmanha.length ? 'urgente' : 'aviso';
-
-  const partes = [
-    vencidas.length && `${vencidas.length} vencida${vencidas.length > 1 ? 's' : ''}`,
-    hojeOuAmanha.length && `${hojeOuAmanha.length} vence${hojeOuAmanha.length > 1 ? 'm' : ''} hoje ou amanhã`,
-    semana.length && `${semana.length} nos próximos 7 dias`,
-  ].filter(Boolean);
-  const visiveis = proximas.slice(0, 5);
-
-  return (
-    <div className={`dash-alerta dash-alerta-${nivel}`} role="status">
-      <div className="dash-alerta-topo">
-        <div>
-          <div className="dash-alerta-titulo">{nivel === 'urgente' ? '🚨' : '⏰'} Contas a pagar: {partes.join(' · ')}</div>
-          <div className="dash-alerta-sub">Total {fmt(total)}</div>
-        </div>
-        <button className="btn btn-sm dash-alerta-btn" onClick={onVerContas}>Ver contas</button>
-      </div>
-      <ul className="dash-alerta-lista">
-        {visiveis.map(c => (
-          <li key={c.id}>
-            <span className={`dash-alerta-prazo ${c.dias < 0 ? 'vencida' : c.dias <= 1 ? 'urgente' : ''}`}>{textoPrazo(c.dias)}</span>
-            <span className="dash-alerta-desc">{c.descricao || c.subcategoria || c.categoria || 'Conta sem descrição'}</span>
-            <span className="dash-alerta-valor">{fmt(parseFloat(c.valor || 0))}</span>
-          </li>
-        ))}
-      </ul>
-      {proximas.length > visiveis.length && (
-        <div className="dash-alerta-mais">e mais {proximas.length - visiveis.length}</div>
-      )}
-    </div>
-  );
 }
 
 const GRUPOS_RECEITA = ['Aparelhos', 'Acessórios', 'Outros Produtos', 'Assistência Técnica', 'Outras receitas'];
@@ -240,19 +182,6 @@ export default function Dashboard() {
   const corCMV = cmvPct === null ? 'var(--text2)' : cmvPct <= 60 ? 'var(--entrada)' : cmvPct <= 75 ? 'var(--warn)' : 'var(--saida)';
   const corROI = roi === null ? 'var(--text2)' : roi >= 50 ? 'var(--entrada)' : roi >= 20 ? 'var(--warn)' : 'var(--saida)';
 
-  const [sortCol, setSortCol] = useState('data');
-  const [sortDir, setSortDir] = useState('desc');
-
-  function toggleSort(col) {
-    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortCol(col); setSortDir('asc'); }
-  }
-
-  function sortIcon(col) {
-    if (sortCol !== col) return ' ↕';
-    return sortDir === 'asc' ? ' ↑' : ' ↓';
-  }
-
   const resumoProdutos = useMemo(() => {
     const entradas = lm.filter(l => l.tipo === 'Entrada' && !l.isCMV && !APORTE_CATS.includes(l.categoria) && l.status !== 'Pendente');
     const map = {};
@@ -271,20 +200,6 @@ export default function Dashboard() {
     return Object.values(map).sort((a, b) => b.faturamento - a.faturamento);
   }, [lm]);
 
-  const semCMV = useMemo(() => {
-    return lm
-      .filter(l => !(l.isCMV && l.grupoId))
-      .sort((a, b) => {
-        let va = a[sortCol] ?? '';
-        let vb = b[sortCol] ?? '';
-        if (sortCol === 'valor') { va = parseFloat(va); vb = parseFloat(vb); }
-        else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
-        if (va < vb) return sortDir === 'asc' ? -1 : 1;
-        if (va > vb) return sortDir === 'asc' ? 1 : -1;
-        return 0;
-      })
-      .slice(0, 50);
-  }, [lm, sortCol, sortDir]);
 
   function setField(campo, valor) {
     setForm(f => {
@@ -513,7 +428,6 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <AlertaVencimentos contas={contas} onVerContas={() => navigate('/contas')} />
 
       {/* Seletor de período */}
       <div className="period-row">
@@ -528,66 +442,70 @@ export default function Dashboard() {
         <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); localStorage.setItem('dash_ano', e.target.value); }}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
+        <button className="btn btn-primary dash-novo" onClick={abrirNovo}>＋ Novo Lançamento</button>
       </div>
 
-      {/* 4 KPI cards */}
-      <div className="dash-kpis">
-        {[
-          {
-            label: 'Faturamento',
-            value: fmt(fat),
-            cor: '#22c55e',
-            sub: fatPrev > 0 ? `Mês anterior: ${fmt(fatPrev)}` : 'Sem dados anteriores',
-            delta: fatPrev > 0 ? ((fat - fatPrev) / fatPrev * 100) : null,
-          },
-          {
-            label: 'Gastos Totais',
-            value: fmt(gastos),
-            cor: '#ef4444',
-            sub: gastosPrev > 0 ? `Mês anterior: ${fmt(gastosPrev)}` : 'Sem dados anteriores',
-            delta: gastosPrev > 0 ? ((gastos - gastosPrev) / gastosPrev * 100) : null,
-            deltaInverso: true,
-          },
-          {
-            label: 'Lucro por Aparelho',
-            value: unidades > 0 ? fmt(lucPorAp) : '—',
-            cor: '#8b5cf6',
-            sub: lucPorApPrev > 0 ? `Mês anterior: ${fmt(lucPorApPrev)}` : 'Sem dados anteriores',
-            delta: lucPorApDelta,
-          },
-          {
-            label: 'Aparelhos Vendidos',
-            value: String(unidades),
-            cor: '#3b82f6',
-            sub: unidadesPrev > 0 ? `Mês anterior: ${unidadesPrev} un.` : 'Sem dados anteriores',
-            delta: unidadesPrev > 0 ? ((unidades - unidadesPrev) / unidadesPrev * 100) : null,
-          },
-        ].map(({ label, value, cor, sub, delta, deltaInverso }) => {
-          const deltaOk = delta !== null && delta !== undefined;
-          const deltaPos = deltaInverso ? delta < 0 : delta >= 0;
-          return (
-            <div key={label} className="dash-kpi-card" style={{ borderLeft: `4px solid ${cor}` }}>
-              <div className="dash-kpi-label">{label}</div>
-              <div className="dash-kpi-value" style={{ color: cor }}>{value}</div>
-              <div className="dash-kpi-footer">
-                {deltaOk && (
-                  <span style={{ color: deltaPos ? '#22c55e' : '#ef4444', fontWeight: 700, fontSize: 11 }}>
-                    {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-                  </span>
-                )}
-                <span className="dash-kpi-sub">{sub}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-
-      {/* Botão novo lançamento */}
-      <div>
-        <button className="btn btn-primary" onClick={abrirNovo}>
-          ＋ Novo Lançamento
-        </button>
+      {/* Topo: 4 cards e gráfico à esquerda, contas a pagar na coluna da direita */}
+      <div className="dash-topo">
+        <div className="dash-principal">
+          {/* 4 KPI cards */}
+          <div className="dash-kpis">
+            {[
+              {
+                label: 'Faturamento',
+                value: fmt(fat),
+                cor: '#22c55e',
+                sub: fatPrev > 0 ? `Mês anterior: ${fmt(fatPrev)}` : 'Sem dados anteriores',
+                delta: fatPrev > 0 ? ((fat - fatPrev) / fatPrev * 100) : null,
+              },
+              {
+                label: 'Gastos Totais',
+                value: fmt(gastos),
+                cor: '#ef4444',
+                sub: gastosPrev > 0 ? `Mês anterior: ${fmt(gastosPrev)}` : 'Sem dados anteriores',
+                delta: gastosPrev > 0 ? ((gastos - gastosPrev) / gastosPrev * 100) : null,
+                deltaInverso: true,
+              },
+              {
+                label: 'Lucro por Aparelho',
+                value: unidades > 0 ? fmt(lucPorAp) : '—',
+                cor: '#8b5cf6',
+                sub: lucPorApPrev > 0 ? `Mês anterior: ${fmt(lucPorApPrev)}` : 'Sem dados anteriores',
+                delta: lucPorApDelta,
+              },
+              {
+                label: 'Aparelhos Vendidos',
+                value: String(unidades),
+                cor: '#3b82f6',
+                sub: unidadesPrev > 0 ? `Mês anterior: ${unidadesPrev} un.` : 'Sem dados anteriores',
+                delta: unidadesPrev > 0 ? ((unidades - unidadesPrev) / unidadesPrev * 100) : null,
+              },
+            ].map(({ label, value, cor, sub, delta, deltaInverso }) => {
+              const deltaOk = delta !== null && delta !== undefined;
+              const deltaPos = deltaInverso ? delta < 0 : delta >= 0;
+              return (
+                <div key={label} className="dash-kpi-card" style={{ borderLeft: `4px solid ${cor}` }}>
+                  <div className="dash-kpi-label">{label}</div>
+                  <div className="dash-kpi-value" style={{ color: cor }}>{value}</div>
+                  <div className="dash-kpi-footer">
+                    {deltaOk && (
+                      <span style={{ color: deltaPos ? '#22c55e' : '#ef4444', fontWeight: 700, fontSize: 11 }}>
+                        {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                      </span>
+                    )}
+                    <span className="dash-kpi-sub">{sub}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+    
+    
+          <GraficoFluxo lancamentos={lancamentos} ano={ano} mes={mes} />
+        </div>
+        <div className="dash-lateral">
+          <AlertaVencimentos contas={contas} onVerContas={() => navigate('/contas')} />
+        </div>
       </div>
 
       {/* Linhas de Receita */}
@@ -638,74 +556,6 @@ export default function Dashboard() {
           </div>
         );
       })()}
-
-      {/* Tabela de últimos lançamentos */}
-      <div className="table-panel">
-        <div className="table-header">
-          <h2>Últimos lançamentos</h2>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/lancamentos')}>Ver todos →</button>
-        </div>
-
-        {semCMV.length === 0 ? (
-          <div className="empty-state">
-            <div className="icon">📭</div>
-            <div>Nenhum lançamento neste período</div>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  {[['data','Data'],['tipo','Tipo'],['categoria','Categoria'],['subcategoria','Subcategoria'],['descricao','Descrição'],['status','Status']].map(([col, label]) => (
-                    <th key={col} onClick={() => toggleSort(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-                      {label}{sortIcon(col)}
-                    </th>
-                  ))}
-                  <th style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('valor')}>Valor{sortIcon('valor')}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {semCMV.map(l => {
-                  const cmv = l.tipo !== 'Entrada' || !l.grupoId ? null
-      : lancamentos.find(x => x.grupoId === l.grupoId && x.id !== l.id && (x.isCMV || x.tipo === 'Saída'));
-                  return (
-                    <tr key={l.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>{fmtData(l.data)}</td>
-                      <td><span className={`tipo-badge tipo-${l.tipo}`}>{l.tipo}</span></td>
-                      <td>{l.categoria}</td>
-                      <td style={{ color: 'var(--text2)' }}>{l.subcategoria || '—'}</td>
-                      <td>
-                        {l.descricao}
-                        {cmv && (
-                          <div style={{ marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                            <span style={{ background: '#f03e3e18', color: 'var(--saida)', borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>CMV {fmt(cmv.valor)}</span>
-                            <span style={{ color: (l.valor - cmv.valor) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>Lucro {fmt(l.valor - cmv.valor)}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: 11, color: l.status === 'Pendente' ? 'var(--warn)' : 'var(--text2)' }}>
-                          {l.status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right', color: l.tipo === 'Entrada' ? 'var(--entrada)' : l.tipo === 'Saída' ? 'var(--saida)' : 'var(--transferencia)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                        {l.tipo === 'Entrada' ? '+' : l.tipo === 'Saída' ? '-' : ''}{fmt(l.valor)}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)}>✏️</button>
-                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(l)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
       {/* Modal Novo Lançamento */}
       {modalAberto && (
