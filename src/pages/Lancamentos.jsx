@@ -68,18 +68,6 @@ function CardsMes({ resumo }) {
   return (
     <div className="lc-cards" aria-label={`Resumo de ${nomeMes}`}>
       <div className="lc-card">
-        <div className="lc-card-rot">Saldo · {nomeMes}</div>
-        <div className="lc-card-linha">
-          <strong className={atual.saldo >= 0 ? 'ent' : 'sai'}>{fmt(atual.saldo)}</strong>
-          {ant ? <Tend v={varia(atual.saldo, ant.saldo)} /> : <span className="lc-tend neutra">todos os meses</span>}
-        </div>
-        <div className="lc-barra dupla" aria-hidden="true">
-          <span className="sai" style={{ width: `${100 - pctEnt}%` }} />
-          <span className="ent" style={{ width: `${pctEnt}%` }} />
-        </div>
-        <div className="lc-card-rodape"><span>saídas {fmt(atual.sai)}</span><span>entradas {fmt(atual.ent)}</span></div>
-      </div>
-      <div className="lc-card">
         <div className="lc-card-rot">Entradas · {nomeMes}</div>
         <div className="lc-card-linha">
           <strong className="ent">{fmt(atual.ent)}</strong>
@@ -99,6 +87,18 @@ function CardsMes({ resumo }) {
         </div>
         <div className="lc-barra" aria-hidden="true"><span className="sai" style={{ width: `${pctSaiEnt}%` }} /></div>
         <div className="lc-card-rodape"><span>{atual.ent ? `${pctSaiEnt.toFixed(0)}% das entradas` : '—'}</span>{ant && <span>mês anterior {fmt(ant.sai)}</span>}</div>
+      </div>
+      <div className="lc-card">
+        <div className="lc-card-rot">Saldo · {nomeMes}</div>
+        <div className="lc-card-linha">
+          <strong className={atual.saldo >= 0 ? 'ent' : 'sai'}>{fmt(atual.saldo)}</strong>
+          {ant ? <Tend v={varia(atual.saldo, ant.saldo)} /> : <span className="lc-tend neutra">todos os meses</span>}
+        </div>
+        <div className="lc-barra dupla" aria-hidden="true">
+          <span className="sai" style={{ width: `${100 - pctEnt}%` }} />
+          <span className="ent" style={{ width: `${pctEnt}%` }} />
+        </div>
+        <div className="lc-card-rodape"><span>saídas {fmt(atual.sai)}</span><span>entradas {fmt(atual.ent)}</span></div>
       </div>
     </div>
   );
