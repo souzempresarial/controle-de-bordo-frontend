@@ -354,9 +354,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
 
   const [saldoInicial, setSI] = useState(0);
   const [saldoMes, setSIMes]  = useState(0);
-  const [modalSI, setModalSI] = useState(false);
-  const [siValor, setSiValor] = useState('');
-  const [siMes, setSiMes]     = useState(0);
   const [modalSaldo, setModalSaldo] = useState(false);   // fechamento do mês (saldo de cada conta no início e no fim)
 
   useEffect(() => {
@@ -399,21 +396,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
     [lancDFC, lancamentos, ano]
   );
 
-  async function salvarSaldoInicial() {
-    const valor   = parseFloat(siValor) || 0;
-    const mes     = parseInt(siMes);
-    const prevSI  = saldoInicial;
-    const prevMes = saldoMes;
-    setSI(valor); setSIMes(mes);
-    try {
-      await API.salvarSaldo(clienteAtivo.id, ano, { valor, mes });
-    } catch(e) {
-      console.error(e);
-      setSI(prevSI); setSIMes(prevMes);
-    }
-    setModalSI(false);
-  }
-
   const d = (v, cor) => v === 0
     ? <span style={{ color: 'var(--text2)' }}>—</span>
     : <span style={{ color: cor || (v >= 0 ? 'var(--entrada)' : 'var(--saida)'), fontWeight: 600 }}>{fmt(v)}</span>;
@@ -433,7 +415,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       return { ini, fim: atual };
     });
   }, [mv, saldoInicial, saldoMes]);
-  const evoMes = evolucao[mesFiltro];
   const ultimaEvo = evolucao[evolucao.length - 1];
   const s = v => v == null ? <span style={{ color: 'var(--text2)' }}>—</span> : d(v);
 
@@ -442,11 +423,13 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
     <div>
       <div className="dfc-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
-          <div className="card">
-            <div className="card-label">Saldo Inicial — {MESES[mesFiltro]}</div>
-            <div className="card-value" style={{ color: 'var(--accent)' }}>{evoMes ? fmt(evoMes.ini) : '—'}</div>
-            {!evoMes && <div className="card-sub">Saldo inicial vale a partir de {MESES_FULL[saldoMes]}</div>}
-          </div>
+          {saldoInicial > 0 && (
+            <div className="card">
+              <div className="card-label">Saldo Inicial</div>
+              <div className="card-value" style={{ color: 'var(--accent)' }}>{fmt(saldoInicial)}</div>
+              <div className="card-sub">A partir de {MESES_FULL[saldoMes]}</div>
+            </div>
+          )}
           <div className="card">
             <div className="card-label">Entradas DFC — {MESES[mesFiltro]}</div>
             <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(mv[mesFiltro]?.ent || 0)}</div>
@@ -457,10 +440,9 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
           </div>
           <div className="card">
             <div className="card-label">Saldo Final — {MESES[mesFiltro]}</div>
-            <div className="card-value" style={{ color: (evoMes?.fim ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-              {evoMes ? fmt(evoMes.fim) : '—'}
+            <div className="card-value" style={{ color: (mv[mesFiltro]?.saldo ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+              {fmt(mv[mesFiltro]?.saldo ?? 0)}
             </div>
-            <div className="card-sub">Saldo do mês {fmt(mv[mesFiltro]?.saldo ?? 0)}</div>
           </div>
         </div>
         <div className="dfc-controls" style={{ display: 'flex', gap: 8 }}>
@@ -471,9 +453,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
             {anos.map(a => <option key={a}>{a}</option>)}
           </select>
           <button className="btn btn-primary btn-sm" onClick={() => setModalSaldo(true)} title="Saldo de cada conta no início e no fim do mês">Saldo</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setSiValor(saldoInicial || ''); setSiMes(saldoMes); setModalSI(true); }}>
-            {saldoInicial > 0 ? `Saldo Inicial: ${fmt(saldoInicial)}` : 'Saldo Inicial'}
-          </button>
         </div>
       </div>
 
@@ -506,7 +485,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
               {DFC_GRUPOS.map(({ sep, grupos }) => (
                 <>
                   <tr key={sep} className="row-sep">
-                    <td colSpan={14}>{sep}</td>
+                    <td>{sep}</td><td colSpan={13} />
                   </tr>
                   {grupos.map(({ label, cats }) => {
                     const grupoVals = mv.map(m => cats.reduce((a, c) => a + m.catVal(c), 0));
@@ -552,7 +531,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                 </>
               ))}
               <tr className="row-sep">
-                <td colSpan={14}>EVOLUÇÃO DO CAIXA</td>
+                <td>EVOLUÇÃO DO CAIXA</td><td colSpan={13} />
               </tr>
               <tr className="row-big">
                 <td>SALDO INICIAL</td>
@@ -578,38 +557,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
             </div>
             <div className="modal-body">
               <FechamentoMes lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalSI && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalSI(false)}>
-          <div className="modal-box modal-small">
-            <div className="modal-header">
-              <h3>Saldo Inicial — {ano}</h3>
-              <button className="modal-close" onClick={() => setModalSI(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 14 }}>
-                Valor em caixa no início do acompanhamento. Será o ponto de partida do Fluxo de Caixa.
-              </p>
-              <div className="form-grid">
-                <div className="field">
-                  <label>Mês de Início</label>
-                  <select value={siMes} onChange={e => setSiMes(parseInt(e.target.value))}>
-                    {MESES_FULL.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                  </select>
-                </div>
-                <div className="field">
-                  <label>Valor em Caixa (R$)</label>
-                  <input type="number" step="0.01" placeholder="0,00" value={siValor} onChange={e => setSiValor(e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setModalSI(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={salvarSaldoInicial}>Salvar</button>
             </div>
           </div>
         </div>

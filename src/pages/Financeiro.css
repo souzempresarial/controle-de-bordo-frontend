@@ -29,7 +29,7 @@
 .row-pct td   { font-style: italic; }
 .row-sub td   { background: transparent; }
 .row-final td { font-weight: 800; background: linear-gradient(#22c55e18, #22c55e18), var(--surface); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
-.row-sep td   { background: linear-gradient(#22c55e22, #22c55e22), var(--surface); color: #22c55e; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 12px; }
+.row-sep td   { background: linear-gradient(#22c55e22, #22c55e22), var(--surface); color: #22c55e; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 12px; white-space: nowrap; }
 
 /* ── DRE/DFC: nomes das linhas e meses fixos ao rolar ── */
 .dre-scroll { overflow: auto; max-height: calc(100vh - 220px); overscroll-behavior-x: contain; }
