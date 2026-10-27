@@ -20,6 +20,18 @@ const pct = v => `${v.toFixed(1).replace('.', ',')}%`;
 
 // Cada métrica: como somar um período (lançamentos daquele mês/dia) e o que mostrar na legenda e na dica
 const METRICAS = {
+  aparelhos: {
+    rotulo: 'Aparelhos',
+    // Aparelhos vendidos (sem a linha de upgrade, que é o aparelho que entrou na troca) e o faturamento deles
+    somar(lm) {
+      const v = lm.filter(x => x.tipo === 'Entrada' && x.categoria === 'Aparelhos' && x.subcategoria !== 'Upgrade' && x.status !== 'Pendente');
+      return { a: v.reduce((s, x) => s + (x.quantidade ?? 1), 0), b: v.reduce((s, x) => s + x.valor, 0) };
+    },
+    series: [{ chave: 'a', nome: 'Aparelhos vendidos', cor: COR_AP }],
+    eixo: v => `${Math.round(v)}`,
+    legenda: t => [['Aparelhos vendidos', `${t.a} un.`, COR_AP], ['Faturamento', fmt(t.b), null]],
+    dica: p => [['Aparelhos vendidos', `${p.a} un.`, COR_AP], ['Faturamento', fmt(p.b), null], ['Ticket médio', p.a ? fmt(p.b / p.a) : '—', null]],
+  },
   fluxo: {
     rotulo: 'Fluxo de caixa',
     // Mesma conta do Fluxo de Caixa: sem CMV, sem saída pendente; entrada sem o aparelho recebido na troca, saída + taxa da venda
@@ -34,18 +46,6 @@ const METRICAS = {
     eixo: curto,
     legenda: t => [['Entradas', fmt(t.a), COR_ENT], ['Saídas', fmt(t.b), COR_SAI, true]],
     dica: p => [['Entradas', fmt(p.a), COR_ENT], ['Saídas', fmt(p.b), COR_SAI], { rotulo: 'Saldo', valor: p.a - p.b, texto: `${p.a - p.b >= 0 ? '+' : ''}${fmt(p.a - p.b)}` }],
-  },
-  aparelhos: {
-    rotulo: 'Aparelhos',
-    // Aparelhos vendidos (sem a linha de upgrade, que é o aparelho que entrou na troca) e o faturamento deles
-    somar(lm) {
-      const v = lm.filter(x => x.tipo === 'Entrada' && x.categoria === 'Aparelhos' && x.subcategoria !== 'Upgrade' && x.status !== 'Pendente');
-      return { a: v.reduce((s, x) => s + (x.quantidade ?? 1), 0), b: v.reduce((s, x) => s + x.valor, 0) };
-    },
-    series: [{ chave: 'a', nome: 'Aparelhos vendidos', cor: COR_AP }],
-    eixo: v => `${Math.round(v)}`,
-    legenda: t => [['Aparelhos vendidos', `${t.a} un.`, COR_AP], ['Faturamento', fmt(t.b), null]],
-    dica: p => [['Aparelhos vendidos', `${p.a} un.`, COR_AP], ['Faturamento', fmt(p.b), null], ['Ticket médio', p.a ? fmt(p.b / p.a) : '—', null]],
   },
   lucro: {
     rotulo: 'Lucratividade',
@@ -78,8 +78,8 @@ function Dica({ active, payload, label, modo, mes, ano, metrica }) {
 }
 
 export default function GraficoFluxo({ lancamentos, ano, mes }) {
-  const [modo, setModo] = useState('mensal');
-  const [metrica, setMetrica] = useState('fluxo');
+  const [modo, setModo] = useState('diario');
+  const [metrica, setMetrica] = useState('aparelhos');
   const cfg = METRICAS[metrica];
 
   const dados = useMemo(() => {
