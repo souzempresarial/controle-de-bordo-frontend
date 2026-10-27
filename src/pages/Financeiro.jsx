@@ -422,18 +422,31 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   const totSai = mv.reduce((a,m) => a+m.sai, 0);
   const totSaldo = totEnt - totSai;
 
+  // Evolução do caixa: o saldo inicial informado vale a partir do mês escolhido;
+  // cada mês começa com o saldo final do anterior (Final = Inicial + Saldo do Mês)
+  const evolucao = useMemo(() => {
+    let atual = saldoInicial;
+    return mv.map((m, i) => {
+      if (i < saldoMes) return null;
+      const ini = atual;
+      atual = ini + m.saldo;
+      return { ini, fim: atual };
+    });
+  }, [mv, saldoInicial, saldoMes]);
+  const evoMes = evolucao[mesFiltro];
+  const ultimaEvo = evolucao[evolucao.length - 1];
+  const s = v => v == null ? <span style={{ color: 'var(--text2)' }}>—</span> : d(v);
+
 
   return (
     <div>
       <div className="dfc-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
-          {saldoInicial > 0 && (
-            <div className="card">
-              <div className="card-label">Saldo Inicial</div>
-              <div className="card-value" style={{ color: 'var(--accent)' }}>{fmt(saldoInicial)}</div>
-              <div className="card-sub">A partir de {MESES_FULL[saldoMes]}</div>
-            </div>
-          )}
+          <div className="card">
+            <div className="card-label">Saldo Inicial — {MESES[mesFiltro]}</div>
+            <div className="card-value" style={{ color: 'var(--accent)' }}>{evoMes ? fmt(evoMes.ini) : '—'}</div>
+            {!evoMes && <div className="card-sub">Saldo inicial vale a partir de {MESES_FULL[saldoMes]}</div>}
+          </div>
           <div className="card">
             <div className="card-label">Entradas DFC — {MESES[mesFiltro]}</div>
             <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(mv[mesFiltro]?.ent || 0)}</div>
@@ -444,9 +457,10 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
           </div>
           <div className="card">
             <div className="card-label">Saldo Final — {MESES[mesFiltro]}</div>
-            <div className="card-value" style={{ color: (mv[mesFiltro]?.saldo ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
-              {fmt(mv[mesFiltro]?.saldo ?? 0)}
+            <div className="card-value" style={{ color: (evoMes?.fim ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
+              {evoMes ? fmt(evoMes.fim) : '—'}
             </div>
+            <div className="card-sub">Saldo do mês {fmt(mv[mesFiltro]?.saldo ?? 0)}</div>
           </div>
         </div>
         <div className="dfc-controls" style={{ display: 'flex', gap: 8 }}>
@@ -537,6 +551,19 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                   })}
                 </>
               ))}
+              <tr className="row-sep">
+                <td colSpan={14}>EVOLUÇÃO DO CAIXA</td>
+              </tr>
+              <tr className="row-big">
+                <td>SALDO INICIAL</td>
+                {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.ini)}</td>)}
+                <td style={{ textAlign: 'right' }}>{s(evolucao[saldoMes]?.ini)}</td>
+              </tr>
+              <tr className="row-final">
+                <td>SALDO FINAL</td>
+                {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.fim)}</td>)}
+                <td style={{ textAlign: 'right' }}>{s(ultimaEvo?.fim)}</td>
+              </tr>
             </tbody>
           </table>
         </div>
