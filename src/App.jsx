@@ -98,7 +98,7 @@ export default function App() {
                 ? <Navigate to={
                     papel === 'admin' ? '/ranking' :
                     papel === 'funcionario' ? (getPrimeiraPermissaoFuncionario() || '/dashboard') :
-                    '/chat'
+                    '/dashboard'
                   } replace />
                 : <Login onLogin={handleLogin} />
             }
@@ -125,7 +125,7 @@ export default function App() {
                 ? <Navigate to="/ranking" replace />
                 : papel === 'funcionario'
                 ? <Navigate to={getPrimeiraPermissaoFuncionario() || '/dashboard'} replace />
-                : <Navigate to="/chat" replace />
+                : <Navigate to="/dashboard" replace />
             }
           />
 
