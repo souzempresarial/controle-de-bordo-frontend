@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icone from '../components/Icone';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API } from '../services/api';
 
@@ -29,12 +30,12 @@ export default function VerificarEmail() {
 
         {status === 'ok' && (
           <>
-            <div style={{ fontSize: 48 }}>✅</div>
+            <div style={{ color: 'var(--entrada)' }}><Icone nome="checkRedondo" tamanho={44} traco={1.6} /></div>
             <h2 style={{ margin: 0, fontSize: 20 }}>E-mail verificado!</h2>
             <p style={{ fontSize: 14, color: 'var(--text2)' }}>{msg}</p>
             <button
               onClick={() => navigate('/login')}
-              style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '12px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+              style={{ background: 'var(--destaque)', color: 'var(--destaque-texto)', border: 'none', borderRadius: 999, padding: '12px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
             >
               Fazer login
             </button>
@@ -43,7 +44,7 @@ export default function VerificarEmail() {
 
         {status === 'erro' && (
           <>
-            <div style={{ fontSize: 48 }}>❌</div>
+            <div style={{ color: 'var(--saida)' }}><Icone nome="alerta" tamanho={44} traco={1.6} /></div>
             <h2 style={{ margin: 0, fontSize: 20 }}>Link inválido ou expirado</h2>
             <p style={{ fontSize: 14, color: 'var(--text2)' }}>{msg}</p>
             <button

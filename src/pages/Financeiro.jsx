@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import Icone from '../components/Icone';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants';
@@ -9,10 +10,6 @@ import FechamentoMes from '../components/FechamentoMes';
 import './Financeiro.css';
 
 // ── DRE CALCULATION ──────────────────────────────────────────────────────────
-function calcDREMes(lancamentos, pfx) {
-  return calcDREBase(lancamentos.filter(l => l.data.startsWith(pfx)));
-}
-
 // ── DRE ──────────────────────────────────────────────────────────────────────
 // Abre a tabela com o mês selecionado como última coluna visível, mostrando os meses anteriores ao lado
 function useRolarParaMes(mesFiltro, ano, dados) {
@@ -44,8 +41,9 @@ function TituloComSetas({ titulo, scrollRef }) {
   );
 }
 
+const QUARTERS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
+
 function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, setMesFiltro, ano, setAno }) {
-  const scrollRef = useRolarParaMes(mesFiltro, ano, lancamentos);
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -56,11 +54,16 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
 
   const [expandedRows, setExpanded] = useState(new Set());
   const [mostrarAH, setMostrarAH]   = useState(false);
+  const [visao, setVisao]           = useState(() => Math.floor(mesFiltro / 3)); // 0 a 3 = Q1 a Q4, ou 'ano'
+  useEffect(() => { setVisao(v => (v === 'ano' ? v : Math.floor(mesFiltro / 3))); }, [mesFiltro]);
+  const colunas = useMemo(() => (visao === 'ano'
+    ? QUARTERS.map((meses, q) => ({ rotulo: `Q${q + 1}`, meses }))
+    : QUARTERS[visao].map(i => ({ rotulo: MESES[i], meses: [i] }))), [visao]);
   const ultimoMesComDados = ano < anoAtual ? 11 : ano > anoAtual ? -1 : Number(hoje().slice(5, 7)) - 1;
 
   // Análise Horizontal: variação contra o mês anterior. Em linhas de custo (neg), subir é ruim.
   const AH = ({ vals, i, neg }) => {
-    if (!mostrarAH || i === 0 || i > ultimoMesComDados) return null;
+    if (!mostrarAH || i === 0 || colunas[i].meses[0] > ultimoMesComDados) return null;
     const ant = vals[i - 1], atual = vals[i];
     if (!ant) return null;
     const pct = (atual - ant) / Math.abs(ant) * 100;
@@ -100,21 +103,24 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
     }
   }
 
-  const mv = useMemo(() =>
-    MESES.map((_, i) => {
-      const base   = calcDREMes(lancamentos, `${ano}-${String(i + 1).padStart(2, '0')}`);
-      const dep    = getManual(i, 'depreciacao');
-      const irpj   = getManual(i, 'irpj');
-      const lair   = base.ebitda + base.resFin - dep;
-      const lucroLiq = lair - irpj;
-      const margLiq  = base.recBruta > 0 ? (lucroLiq / base.recBruta * 100) : null;
-      return { ...base, dep, irpj, lair, lucroLiq, margLiq };
-    }),
-    [lancamentos, ano, getManual]
-  );
+  // Mesma conta para um mês ou vários: as margens saem do período inteiro, não da soma dos percentuais
+  const resultado = useCallback(meses => {
+    const prefixos = meses.map(i => `${ano}-${String(i + 1).padStart(2, '0')}`);
+    const base = calcDREBase(lancamentos.filter(l => prefixos.some(p => l.data.startsWith(p))));
+    const dep  = meses.reduce((a, i) => a + getManual(i, 'depreciacao'), 0);
+    const irpj = meses.reduce((a, i) => a + getManual(i, 'irpj'), 0);
+    const lair = base.ebitda + base.resFin - dep;
+    const lucroLiq = lair - irpj;
+    const margLiq  = base.recBruta > 0 ? (lucroLiq / base.recBruta * 100) : null;
+    return { ...base, dep, irpj, lair, lucroLiq, margLiq };
+  }, [lancamentos, ano, getManual]);
 
-  const S = (k) => mv.reduce((a, v) => a + (v[k] || 0), 0);
-  const tRecBruta    = S('recBruta'),    tLucroBruto   = S('lucroBruto');
+  const mv = useMemo(() => MESES.map((_, i) => resultado([i])), [resultado]);
+  const cv = useMemo(() => colunas.map(c => resultado(c.meses)), [colunas, resultado]);
+  const tv = useMemo(() => resultado(colunas.flatMap(c => c.meses)), [colunas, resultado]);
+
+  const S = (k) => tv[k] || 0;
+  const tRecBruta   = S('recBruta'),    tLucroBruto   = S('lucroBruto');
   const tSga         = S('sga'),         tEbitda       = S('ebitda');
   const tLucroLiq    = S('lucroLiq'),    tRecLiq       = S('recLiquida');
   const tCmv         = S('cmvTotal'),    tResFin       = S('resFin');
@@ -162,9 +168,9 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
     const fn = neg ? dn : d;
 
     const subcatRows = isExp ? subs.flatMap(sub => {
-      const subVals = MESES.map((_, i) => {
-        const pfx = `${ano}-${String(i + 1).padStart(2, '0')}`;
-        const lm  = lancamentos.filter(l => l.data.startsWith(pfx) && l.categoria === cat && l.subcategoria === sub);
+      const subVals = colunas.map(({ meses }) => {
+        const prefixos = meses.map(i => `${ano}-${String(i + 1).padStart(2, '0')}`);
+        const lm  = lancamentos.filter(l => prefixos.some(p => l.data.startsWith(p)) && l.categoria === cat && l.subcategoria === sub);
         if (tipo === 'Entrada') return lm.filter(l => l.tipo === 'Entrada').reduce((a,l) => a+l.valor, 0);
         if (tipo === 'Saída')   return lm.filter(l => l.tipo === 'Saída').reduce((a,l) => a+l.valor, 0);
         return lm.reduce((a,l) => a+l.valor, 0);
@@ -173,7 +179,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
       if (!subVals.some(v => v !== 0) && subTot === 0) return [];
       return [(
         <tr key={sub} className="row-sub">
-          <td style={{ paddingLeft: 36, fontSize: 11, color: 'var(--text2)', borderLeft: '2px solid #22c55e33' }}>{sub}</td>
+          <td style={{ paddingLeft: 36, fontSize: 11, color: 'var(--text2)', borderLeft: '2px solid color-mix(in srgb, var(--entrada) 20%, transparent)' }}>{sub}</td>
           {subVals.map((v, i) => <td key={i} style={{ textAlign: 'right', fontSize: 11 }}>{fn(v)}<AH vals={subVals} i={i} neg={neg} /></td>)}
           <td style={{ textAlign: 'right', fontSize: 11 }}>{fn(subTot)}</td>
         </tr>
@@ -206,23 +212,26 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
     </tr>
   );
 
-  const RowEdit = ({ label, campo }) => (
+  // Só se digita mês a mês: na visão por ano o trimestre mostra a soma
+  const RowEdit = ({ label, campo, chave }) => (
     <tr className="row-med">
       <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>{label}</td>
-      {MESES.map((_, i) => (
-        <td key={i} style={{ textAlign: 'right' }}>
-          <input
-            key={`${ano}-${campo}-${i}`}
-            type="number"
-            defaultValue={getManual(i, campo) || ''}
-            placeholder="—"
-            min="0" step="0.01"
-            className="dre-input"
-            onBlur={e => salvarManual(i, campo, e.target.value)}
-          />
+      {colunas.map(({ meses }, c) => (
+        <td key={c} style={{ textAlign: 'right' }}>
+          {meses.length === 1 ? (
+            <input
+              key={`${ano}-${campo}-${meses[0]}`}
+              type="number"
+              defaultValue={getManual(meses[0], campo) || ''}
+              placeholder="—"
+              min="0" step="0.01"
+              className="dre-input"
+              onBlur={e => salvarManual(meses[0], campo, e.target.value)}
+            />
+          ) : dn(cv[c][chave])}
         </td>
       ))}
-      <td style={{ textAlign: 'right' }}>{dn(S(campo))}</td>
+      <td style={{ textAlign: 'right' }}>{dn(S(chave))}</td>
     </tr>
   );
 
@@ -258,7 +267,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
             className={`ah-toggle ${mostrarAH ? 'ativo' : ''}`}
             onClick={() => setMostrarAH(v => !v)}
             aria-pressed={mostrarAH}
-            title="Análise Horizontal: variação de cada linha em relação ao mês anterior"
+            title="Análise Horizontal: variação de cada linha em relação à coluna anterior"
           >
             AH %
           </button>
@@ -266,54 +275,63 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
       </div>
 
       <div className="table-panel">
-        <div className="dre-scroll" ref={scrollRef}>
+        <div className="table-header">
+          <h2>DRE — Resultado do Exercício</h2>
+          <div className="dre-visoes" role="group" aria-label="Período da tabela">
+            {QUARTERS.map((meses, q) => (
+              <button key={q} type="button" className={visao === q ? 'ativo' : ''} aria-pressed={visao === q} title={`${MESES[meses[0]]} a ${MESES[meses[2]]}`} onClick={() => setVisao(q)}>Q{q + 1}</button>
+            ))}
+            <button type="button" className={visao === 'ano' ? 'ativo' : ''} aria-pressed={visao === 'ano'} title="Os quatro trimestres do ano" onClick={() => setVisao('ano')}>Ano</button>
+          </div>
+        </div>
+        <div className="dre-scroll">
           <table className="dre-table">
             <thead>
               <tr>
-                <th style={{ minWidth: 280 }}><TituloComSetas titulo="DRE — Resultado do Exercício" scrollRef={scrollRef} /></th>
-                {MESES.map((m, i) => <th key={m} data-mes={i} className={i === mesFiltro ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
-                <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
+                <th style={{ minWidth: 280 }}>Conta</th>
+                {colunas.map(c => <th key={c.rotulo} className={c.meses.includes(mesFiltro) ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 110 }}>{c.rotulo}</th>)}
+                <th style={{ textAlign: 'right', minWidth: 120 }}>{visao === 'ano' ? 'TOTAL' : `TOTAL Q${visao + 1}`}</th>
               </tr>
             </thead>
             <tbody>
-              <RowBig label="RECEITA BRUTA" vals={mv.map(v => v.recBruta)} tot={tRecBruta} />
-              <RowExp label="(+) Aparelhos"           cat="Aparelhos"           vals={mv.map(v => v.aparelhos)}   tot={S('aparelhos')}   tipo="Entrada" />
-              <RowExp label="(+) Acessórios"          cat="Acessórios"          vals={mv.map(v => v.acessorios)}  tot={S('acessorios')}  tipo="Entrada" />
-              <RowExp label="(+) Assistência Técnica" cat="Assistência Técnica" vals={mv.map(v => v.assistencia)} tot={S('assistencia')} tipo="Entrada" />
-              <RowExp label="(+) Outros Produtos"     cat="Outros Produtos"     vals={mv.map(v => v.outrosProd)}  tot={S('outrosProd')}  tipo="Entrada" />
-              <RowExp label="(+) Receitas Não-Operacionais" cat="Receitas Não-Operacionais" vals={mv.map(v => v.recNaoOp)} tot={S('recNaoOp')} tipo="Entrada" />
-              <RowExp label="(-) Deduções das Vendas" cat="Deduções das Vendas" vals={mv.map(v => v.deducoes)} tot={S('deducoes')} neg />
-              <RowBig label="(=) RECEITA LÍQUIDA" vals={mv.map(v => v.recLiquida)} tot={tRecLiq} />
-              <RowBig label="(-) CMV — Custo de Mercadoria Vendida" vals={mv.map(v => v.cmvTotal)} tot={tCmv} neg />
-              <RowExp label="(-) Custos Variáveis Diretos" cat="Custos Variáveis Diretos" vals={mv.map(v => v.cmvDir)} tot={S('cmvDir')} neg tipo={null} />
-              <RowBig label="(=) LUCRO BRUTO" vals={mv.map(v => v.lucroBruto)} tot={tLucroBruto} />
-              <RowExp label="(-) Custos Variáveis Indiretos" cat="Custos Variáveis Indiretos" vals={mv.map(v => v.custosVarInd)} tot={tCustosVarInd} neg />
-              <RowBig label="(=) MARGEM DE CONTRIBUIÇÃO" vals={mv.map(v => v.contribuicao)} tot={tContribuicao} />
-              <RowPct label="Margem de Contribuição (%)" vals={mv.map(v => v.margContrib)} tot={tRecBruta > 0 ? tContribuicao / tRecBruta * 100 : null} />
+              <RowBig label="RECEITA BRUTA" vals={cv.map(v => v.recBruta)} tot={tRecBruta} />
+              <RowExp label="(+) Aparelhos"           cat="Aparelhos"           vals={cv.map(v => v.aparelhos)}   tot={S('aparelhos')}   tipo="Entrada" />
+              <RowExp label="(+) Acessórios"          cat="Acessórios"          vals={cv.map(v => v.acessorios)}  tot={S('acessorios')}  tipo="Entrada" />
+              <RowExp label="(+) Assistência Técnica" cat="Assistência Técnica" vals={cv.map(v => v.assistencia)} tot={S('assistencia')} tipo="Entrada" />
+              <RowExp label="(+) Outros Produtos"     cat="Outros Produtos"     vals={cv.map(v => v.outrosProd)}  tot={S('outrosProd')}  tipo="Entrada" />
+              <RowExp label="(+) Receitas Não-Operacionais" cat="Receitas Não-Operacionais" vals={cv.map(v => v.recNaoOp)} tot={S('recNaoOp')} tipo="Entrada" />
+              <RowExp label="(-) Deduções das Vendas" cat="Deduções das Vendas" vals={cv.map(v => v.deducoes)} tot={S('deducoes')} neg />
+              <RowBig label="(=) RECEITA LÍQUIDA" vals={cv.map(v => v.recLiquida)} tot={tRecLiq} />
+              <RowBig label="(-) CMV — Custo de Mercadoria Vendida" vals={cv.map(v => v.cmvTotal)} tot={tCmv} neg />
+              <RowExp label="(-) Custos Variáveis Diretos" cat="Custos Variáveis Diretos" vals={cv.map(v => v.cmvDir)} tot={S('cmvDir')} neg tipo={null} />
+              <RowBig label="(=) LUCRO BRUTO" vals={cv.map(v => v.lucroBruto)} tot={tLucroBruto} />
+              <RowExp label="(-) Custos Variáveis Indiretos" cat="Custos Variáveis Indiretos" vals={cv.map(v => v.custosVarInd)} tot={tCustosVarInd} neg />
+              <RowBig label="(=) MARGEM DE CONTRIBUIÇÃO" vals={cv.map(v => v.contribuicao)} tot={tContribuicao} />
+              <RowPct label="Margem de Contribuição (%)" vals={cv.map(v => v.margContrib)} tot={tRecBruta > 0 ? tContribuicao / tRecBruta * 100 : null} />
               <tr className="row-pct">
                 <td style={{ paddingLeft: 8, fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>Ponto de Equilíbrio</td>
-                {mv.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{v.pontoEq !== null ? d(v.pontoEq) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>)}
+                {cv.map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{v.pontoEq !== null ? d(v.pontoEq) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>)}
                 <td style={{ textAlign: 'right' }}>{tContribuicao > 0 && tRecBruta > 0 ? d(tSga / (tContribuicao / tRecBruta)) : <span style={{ color: 'var(--text2)' }}>—</span>}</td>
               </tr>
-              <RowBig label="(-) Despesas SG&A" vals={mv.map(v => v.sga)} tot={tSga} neg />
-              <RowExp label="(-) Despesas com Ocupação"   cat="Despesas com Ocupação"   vals={mv.map(v => v.ocupacao)}  tot={S('ocupacao')}  neg />
-              <RowExp label="(-) Despesas com Pessoal"    cat="Despesas com Pessoal"    vals={mv.map(v => v.pessoal)}   tot={S('pessoal')}   neg />
-              <RowExp label="(-) Despesas Variáveis"      cat="Despesas Variáveis"      vals={mv.map(v => v.variaveis)} tot={S('variaveis')} neg />
-              <RowExp label="(-) Marketing"              cat="Marketing"              vals={mv.map(v => v.marketing)} tot={S('marketing')} neg />
-              <RowExp label="(-) Softwares / Tecnologias" cat="Softwares / Tecnologias" vals={mv.map(v => v.softwares)} tot={S('softwares')} neg />
-              <RowExp label="(-) Serviços Terceirizados"  cat="Serviços Terceirizados"  vals={mv.map(v => v.terceiros)} tot={S('terceiros')} neg />
-              <RowExp label="(-) Impostos"              cat="Impostos"              vals={mv.map(v => v.impostos)} tot={S('impostos')} neg />
-              <RowBig label="(=) LUCRO OPERACIONAL (EBITDA)" vals={mv.map(v => v.ebitda)} tot={tEbitda} />
-              <RowPct label="Margem EBITDA (%)" vals={mv.map(v => v.margEbitda)} tot={tRecBruta > 0 ? tEbitda / tRecBruta * 100 : null} />
-              <RowMed label="(=) Resultado Financeiro" vals={mv.map(v => v.resFin)} tot={tResFin} />
-              <RowMed label="(+) Receitas Financeiras [Aplic. fora da Cia]" vals={mv.map(v => v.recFin)} tot={S('recFin')} />
-              <RowExp label="(-) Despesas Financeiras [Juros/Empréstimos]" cat="Dívidas / Empréstimos"    vals={mv.map(v => v.despJuros)} tot={S('despJuros')} neg />
-              <RowExp label="(-) Despesas Não-Operacionais"                cat="Saídas Não-Operacionais" vals={mv.map(v => v.despNaoOp)} tot={S('despNaoOp')} neg />
-              <RowEdit label="(-) Depreciação" campo="depreciacao" />
-              <RowBig label="(=) LUCRO ANTES DO IR (LAIR)" vals={mv.map(v => v.lair)} tot={tLair} />
-              <RowEdit label="(-) Imposto sobre Lucro (IRPJ)" campo="irpj" />
-              <RowBig label="(=) LUCRO LÍQUIDO" vals={mv.map(v => v.lucroLiq)} tot={tLucroLiq} final />
-              <RowPct label="Margem Líquida (%)" vals={mv.map(v => v.margLiq)} tot={tRecBruta > 0 ? tLucroLiq / tRecBruta * 100 : null} />
+              <RowBig label="(-) Despesas SG&A" vals={cv.map(v => v.sga)} tot={tSga} neg />
+              <RowExp label="(-) Despesas com Ocupação"   cat="Despesas com Ocupação"   vals={cv.map(v => v.ocupacao)}  tot={S('ocupacao')}  neg />
+              <RowExp label="(-) Despesas com Pessoal"    cat="Despesas com Pessoal"    vals={cv.map(v => v.pessoal)}   tot={S('pessoal')}   neg />
+              <RowExp label="(-) Despesas Variáveis"      cat="Despesas Variáveis"      vals={cv.map(v => v.variaveis)} tot={S('variaveis')} neg />
+              <RowExp label="(-) Marketing"              cat="Marketing"              vals={cv.map(v => v.marketing)} tot={S('marketing')} neg />
+              <RowExp label="(-) Softwares / Tecnologias" cat="Softwares / Tecnologias" vals={cv.map(v => v.softwares)} tot={S('softwares')} neg />
+              <RowExp label="(-) Serviços Terceirizados"  cat="Serviços Terceirizados"  vals={cv.map(v => v.terceiros)} tot={S('terceiros')} neg />
+              <RowExp label="(-) Impostos"              cat="Impostos"              vals={cv.map(v => v.impostos)} tot={S('impostos')} neg />
+              <RowBig label="(=) LUCRO OPERACIONAL (EBITDA)" vals={cv.map(v => v.ebitda)} tot={tEbitda} />
+              <RowPct label="Margem EBITDA (%)" vals={cv.map(v => v.margEbitda)} tot={tRecBruta > 0 ? tEbitda / tRecBruta * 100 : null} />
+              <RowMed label="(=) Resultado Financeiro" vals={cv.map(v => v.resFin)} tot={tResFin} />
+              <RowMed label="(+) Receitas Financeiras [Aplic. fora da Cia]" vals={cv.map(v => v.recFin)} tot={S('recFin')} />
+              <RowExp label="(-) Despesas Financeiras [Juros/Empréstimos]" cat="Dívidas / Empréstimos"    vals={cv.map(v => v.despJuros)} tot={S('despJuros')} neg />
+              <RowExp label="(-) Despesas Não-Operacionais"                cat="Saídas Não-Operacionais" vals={cv.map(v => v.despNaoOp)} tot={S('despNaoOp')} neg />
+              <RowEdit label="(-) Depreciação" campo="depreciacao" chave="dep" />
+              <RowBig label="(=) LUCRO ANTES DO IR (LAIR)" vals={cv.map(v => v.lair)} tot={tLair} />
+              <RowEdit label="(-) Imposto sobre Lucro (IRPJ)" campo="irpj" chave="irpj" />
+              <RowBig label="(=) LUCRO LÍQUIDO" vals={cv.map(v => v.lucroLiq)} tot={tLucroLiq} final />
+              <RowPct label="Margem Líquida (%)" vals={cv.map(v => v.margLiq)} tot={tRecBruta > 0 ? tLucroLiq / tRecBruta * 100 : null} />
             </tbody>
           </table>
         </div>
@@ -516,7 +534,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                                 if (!subVals.some(v => v !== 0) && subTot === 0) return null;
                                 return (
                                   <tr key={sub}>
-                                    <td style={{ paddingLeft: 36, fontSize: 11, color: 'var(--text2)', borderLeft: '2px solid #22c55e22' }}>{sub}</td>
+                                    <td style={{ paddingLeft: 36, fontSize: 11, color: 'var(--text2)', borderLeft: '2px solid color-mix(in srgb, var(--entrada) 13%, transparent)' }}>{sub}</td>
                                     {subVals.map((v, i) => <td key={i} style={{ textAlign: 'right', fontSize: 11, color: 'var(--text2)' }}>{v ? fmt(v) : '—'}</td>)}
                                     <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--text2)' }}>{subTot ? fmt(subTot) : '—'}</td>
                                   </tr>
@@ -724,7 +742,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   );
 
   const Grupo = ({ label }) => (
-    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, padding: '12px 0 4px', marginTop: 4 }}>{label}</div>
+    <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text2)', padding: '12px 0 4px', marginTop: 4 }}>{label}</div>
   );
 
   return (
@@ -767,8 +785,8 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>ATIVO</h3>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando('escolha')}>⬇ Importar Patrimônio</button>
-              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}>✏️ Editar</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando('escolha')}><Icone nome="baixar" tamanho={13} /> Importar Patrimônio</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}><Icone nome="editar" tamanho={13} /> Editar</button>
             </div>
           </div>
           {importInfo?.itens > 0 && (
@@ -942,7 +960,7 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
       <div className="table-panel">
         {upgrades.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">📦</div>
+            <div className="icon"><Icone nome="caixa" tamanho={30} traco={1.6} /></div>
             <div>Nenhum upgrade registrado no período</div>
           </div>
         ) : (
@@ -988,7 +1006,7 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
                           <td style={{ color: 'var(--text2)', paddingLeft: 20 }}>{l.descricao || '—'}</td>
                           <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 700 }}>{fmt(l._valorUpgrade)}</td>
                           <td>
-                            <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: l._origem === 'novo' ? '#8b5cf622' : '#f59e0b22', color: l._origem === 'novo' ? '#8b5cf6' : '#f59e0b', fontWeight: 600 }}>
+                            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: l._origem === 'novo' ? '#8b5cf622' : 'color-mix(in srgb, var(--warn) 13%, transparent)', color: l._origem === 'novo' ? '#8b5cf6' : 'var(--warn)', fontWeight: 600 }}>
                               {l._origem === 'novo' ? 'Novo' : 'Anterior'}
                             </span>
                           </td>
@@ -1077,18 +1095,18 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const ref  = meta || projVal || 1;
     const pAt  = Math.min(100, ref > 0 ? (atual / ref * 100) : 0);
     const pPr  = Math.min(100, ref > 0 ? (projVal / ref * 100) : 0);
-    const barCor = projVal >= (meta || projVal) ? '#22c55e' : projVal >= (meta || projVal) * 0.8 ? '#f59e0b' : '#f03e3e';
+    const barCor = projVal >= (meta || projVal) ? 'var(--entrada)' : projVal >= (meta || projVal) * 0.8 ? 'var(--warn)' : 'var(--saida)';
     const fmtV = (v) => isMoney ? fmt(v) : Math.round(v).toString();
 
     return (
       <div className="table-panel" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: .5 }}>{titulo}</div>
-          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setEditando({ campo, titulo }); setMetaValor(meta || ''); }}>✏️ Meta</button>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text2)' }}>{titulo}</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setEditando({ campo, titulo }); setMetaValor(meta || ''); }}><Icone nome="editar" tamanho={13} /> Meta</button>
         </div>
         <div style={{ fontSize: 26, fontWeight: 800, color: cor }}>{fmtV(atual)}</div>
         <div style={{ position: 'relative', height: 14, background: 'var(--surface2)', borderRadius: 7, overflow: 'hidden', margin: '10px 0 4px' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pPr}%`, background: `${barCor}44`, borderRadius: 7 }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pPr}%`, background: `color-mix(in srgb, ${barCor} 27%, transparent)`, borderRadius: 7 }} />
           <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pAt}%`, background: barCor, borderRadius: 7 }} />
           {meta > 0 && <div style={{ position: 'absolute', right: 0, top: 0, width: 2, height: '100%', background: 'var(--text)', opacity: .4 }} />}
         </div>
@@ -1105,13 +1123,13 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     const teto  = getMeta('teto_gastos');
     const gasto = proj.totalSaidas;
     const pct   = teto > 0 ? Math.min(100, gasto / teto * 100) : 0;
-    const cor   = pct >= 100 ? '#f03e3e' : pct >= 80 ? '#f59e0b' : '#22c55e';
+    const cor   = pct >= 100 ? 'var(--saida)' : pct >= 80 ? 'var(--warn)' : 'var(--entrada)';
 
     return (
-      <div className="table-panel" style={{ padding: '16px 20px', borderLeft: teto > 0 && pct >= 80 ? `4px solid ${cor}` : undefined }}>
+      <div className="table-panel" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: .5 }}>Teto de Gastos</div>
-          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setEditando({ campo: 'teto_gastos', titulo: 'Teto de Gastos' }); setMetaValor(teto || ''); }}>✏️ Definir</button>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text2)' }}>Teto de Gastos</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setEditando({ campo: 'teto_gastos', titulo: 'Teto de Gastos' }); setMetaValor(teto || ''); }}><Icone nome="editar" tamanho={13} /> Definir</button>
         </div>
         <div style={{ fontSize: 26, fontWeight: 800, color: teto > 0 ? cor : 'var(--text)' }}>{fmt(gasto)}</div>
         {teto > 0 ? (
@@ -1124,8 +1142,8 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
               <span>{pct.toFixed(0)}% do teto</span>
               <span>Teto: <strong>{fmt(teto)}</strong></span>
             </div>
-            {pct >= 100 && <div style={{ marginTop: 6, fontSize: 12, color: '#f03e3e', fontWeight: 600 }}>⚠️ Teto atingido!</div>}
-            {pct >= 80 && pct < 100 && <div style={{ marginTop: 6, fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>⚠️ {(100 - pct).toFixed(0)}% restante do teto</div>}
+            {pct >= 100 && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--saida)', fontWeight: 600 }}><Icone nome="alerta" tamanho={13} /> Teto atingido!</div>}
+            {pct >= 80 && pct < 100 && <div style={{ marginTop: 6, fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}><Icone nome="alerta" tamanho={13} /> {(100 - pct).toFixed(0)}% restante do teto</div>}
           </>
         ) : (
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 8 }}>Defina um teto para controlar os gastos do mês.</div>
@@ -1134,14 +1152,14 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
     );
   };
 
-  const ritmoCor = proj.projFat >= (getMeta('meta_fat') || proj.projFat) ? '#22c55e' : proj.projFat >= (getMeta('meta_fat') || proj.projFat) * 0.8 ? '#f59e0b' : '#f03e3e';
+  const ritmoCor = proj.projFat >= (getMeta('meta_fat') || proj.projFat) ? 'var(--entrada)' : proj.projFat >= (getMeta('meta_fat') || proj.projFat) * 0.8 ? 'var(--warn)' : 'var(--saida)';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div className="table-panel" style={{ padding: '16px 20px', borderLeft: `4px solid ${ritmoCor}` }}>
+      <div className="table-panel" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 2 }}>Projeção de Fechamento</div>
+            <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text2)', marginBottom: 2 }}>Projeção de Fechamento</div>
             <div style={{ fontSize: 18, fontWeight: 800 }}>{nomeMes} {anoN}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -1152,13 +1170,13 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-        <MetricCard titulo="Faturamento"        campo="meta_fat"    atual={proj.fat}      proj={proj.projFat}    cor="#22c55e" />
-        <MetricCard titulo="Lucro Líquido"      campo="meta_lucro"  atual={proj.lucroLiq} proj={proj.projLucro}  cor={proj.lucroLiq >= 0 ? '#3b82f6' : '#f03e3e'} />
-        <MetricCard titulo="Aparelhos Vendidos" campo="meta_uni"    atual={proj.uni}      proj={proj.projUni}    cor="#f59e0b" isMoney={false} />
+        <MetricCard titulo="Faturamento"        campo="meta_fat"    atual={proj.fat}      proj={proj.projFat}    cor="var(--entrada)" />
+        <MetricCard titulo="Lucro Líquido"      campo="meta_lucro"  atual={proj.lucroLiq} proj={proj.projLucro}  cor={proj.lucroLiq >= 0 ? '#3b82f6' : 'var(--saida)'} />
+        <MetricCard titulo="Aparelhos Vendidos" campo="meta_uni"    atual={proj.uni}      proj={proj.projUni}    cor="var(--warn)" isMoney={false} />
         <MetricCard titulo="Ticket Médio"       campo="meta_ticket" atual={proj.ticket}   proj={proj.projTicket} cor="#8b5cf6" />
         <MetricCard titulo="Fat. Acessórios"     campo="meta_acess"   atual={proj.fatAcess}  proj={proj.fat > 0 ? proj.projFat * (proj.fatAcess / proj.fat) : proj.fatAcess}  cor="#06b6d4" />
-        <MetricCard titulo="Fat. Assistência"   campo="meta_assist"  atual={proj.fatAssist} proj={proj.fat > 0 ? proj.projFat * (proj.fatAssist / proj.fat) : proj.fatAssist} cor="#f59e0b" />
-        <MetricCard titulo="Geração de Caixa"  campo="meta_caixa"  atual={proj.caixaLiq}  proj={proj.projCaixa}  cor={proj.caixaLiq >= 0 ? '#22c55e' : '#f03e3e'} />
+        <MetricCard titulo="Fat. Assistência"   campo="meta_assist"  atual={proj.fatAssist} proj={proj.fat > 0 ? proj.projFat * (proj.fatAssist / proj.fat) : proj.fatAssist} cor="var(--warn)" />
+        <MetricCard titulo="Geração de Caixa"  campo="meta_caixa"  atual={proj.caixaLiq}  proj={proj.projCaixa}  cor={proj.caixaLiq >= 0 ? 'var(--entrada)' : 'var(--saida)'} />
         <TetoCustosCard />
       </div>
 

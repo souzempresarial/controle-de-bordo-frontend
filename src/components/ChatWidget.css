@@ -6,8 +6,8 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
+  background: var(--destaque);
+  color: var(--destaque-texto);
   border: none;
   cursor: pointer;
   display: flex;
@@ -131,8 +131,8 @@
 .chat-msg-texto strong { font-weight: 700; }
 
 .chat-msg--user .chat-msg-texto {
-  background: var(--accent);
-  color: #fff;
+  background: var(--nav-ativo);
+  color: var(--nav-ativo-texto);
   border-bottom-right-radius: 4px;
 }
 
@@ -201,10 +201,10 @@
 .chat-enviar {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: 50%;
   border: none;
-  background: var(--accent);
-  color: #fff;
+  background: var(--destaque);
+  color: var(--destaque-texto);
   cursor: pointer;
   display: flex;
   align-items: center;

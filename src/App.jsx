@@ -65,7 +65,7 @@ export default function App() {
   const [usuario, setUsuario] = useState(getUsuarioInicial);
 
   useEffect(() => {
-    const tema = localStorage.getItem('sf_tema') || 'dark';
+    const tema = localStorage.getItem('sf_tema') || 'light';
     document.documentElement.dataset.theme = tema;
   }, []);
 

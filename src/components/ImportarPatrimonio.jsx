@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import Icone from './Icone';
 import { API } from '../services/api';
 import { fmt, MESES_FULL } from '../services/utils';
 import './ImportarPatrimonio.css';
@@ -155,7 +156,7 @@ export default function ImportarPatrimonio({ clienteId, periodo, arquivo, onFech
                             {i.dataEntrada && <> · entrada {i.dataEntrada.split('-').reverse().join('/')}</>}
                           </div>
                           {i.alertas.length > 0 && (
-                            <div className="imp-alertas">{i.alertas.map(a => <span key={a}>⚠ {a}</span>)}</div>
+                            <div className="imp-alertas">{i.alertas.map(a => <span key={a}><Icone nome="alerta" tamanho={12} /> {a}</span>)}</div>
                           )}
                         </td>
                         <td className="imp-sit">{i.disponibilidade || (i.linha ? `Linha ${i.linha}` : '—')}</td>
@@ -253,7 +254,7 @@ export function OrigemPatrimonio({ clienteId, onMP, onArquivo, onFechar }) {
             <input id="imp-arquivo" type="file" accept=".xlsx,.xls,.csv" onChange={escolherArquivo} disabled={lendo} hidden />
           </label>
           {erro && <div className="imp-erro" role="alert">{erro}</div>}
-          <button type="button" className="btn btn-ghost btn-sm imp-modelo" onClick={baixarModelo}>⬇ Baixar planilha modelo</button>
+          <button type="button" className="btn btn-ghost btn-sm imp-modelo" onClick={baixarModelo}><Icone nome="baixar" tamanho={13} /> Baixar planilha modelo</button>
         </div>
       </div>
     </div>

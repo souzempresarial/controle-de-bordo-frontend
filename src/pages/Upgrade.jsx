@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import Icone from '../components/Icone';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { fmt, fmtData, hoje } from '../services/utils';
@@ -6,10 +7,10 @@ import SimuladorUpgrade from './SimuladorUpgrade';
 import './Upgrade.css';
 
 const STATUS_CFG = {
-  'NO PRAZO': { cor: 'var(--entrada)',  bg: '#16a34a18' },
-  'ALERTA':   { cor: '#f59e0b',         bg: '#f59e0b18' },
+  'NO PRAZO': { cor: 'var(--entrada)',  bg: 'color-mix(in srgb, var(--entrada) 9%, transparent)' },
+  'ALERTA':   { cor: 'var(--warn)',         bg: 'color-mix(in srgb, var(--warn) 9%, transparent)' },
   'ATENÇÃO':  { cor: '#f97316',         bg: '#f9731618' },
-  'URGENTE':  { cor: 'var(--saida)',    bg: '#f03e3e18' },
+  'URGENTE':  { cor: 'var(--saida)',    bg: 'color-mix(in srgb, var(--saida) 9%, transparent)' },
   'VENDIDO':  { cor: 'var(--text2)',    bg: 'var(--surface2)' },
 };
 
@@ -293,7 +294,7 @@ export default function Upgrade() {
       ? (lucroProj / parseFloat(ap.valor_pretendido) * 100).toFixed(1) : null;
     const diasColor = vendido ? 'var(--text2)'
       : dias >= 15 ? 'var(--saida)'
-      : dias >= 7  ? '#f59e0b'
+      : dias >= 7  ? 'var(--warn)'
       : 'var(--entrada)';
     const cardClass = STATUS_CARD_CLASS[ap.statusAuto] || 'up-card-no-prazo';
     const specs = [ap.armazenamento, ap.cor].filter(Boolean).join(' · ');
@@ -313,7 +314,7 @@ export default function Upgrade() {
                 <div className="up-card-specs">
                   {specs}
                   {ap.bateria != null && (
-                    <span style={{ color: ap.bateria < 80 ? '#f59e0b' : 'inherit' }}>
+                    <span style={{ color: ap.bateria < 80 ? 'var(--warn)' : 'inherit' }}>
                       {specs ? ' · ' : ''}Bat. {ap.bateria}%
                     </span>
                   )}
@@ -397,7 +398,7 @@ export default function Upgrade() {
       {/* Alert banner */}
       {resumo.urgente > 0 && (
         <div className="up-alert">
-          ⚠ {resumo.urgente} aparelho{resumo.urgente > 1 ? 's' : ''} {resumo.urgente > 1 ? 'estão' : 'está'} há mais de 15 dias em estoque
+          <Icone nome="alerta" tamanho={14} /> {resumo.urgente} aparelho{resumo.urgente > 1 ? 's' : ''} {resumo.urgente > 1 ? 'estão' : 'está'} há mais de 15 dias em estoque
         </div>
       )}
 
@@ -424,7 +425,7 @@ export default function Upgrade() {
       {/* Busca */}
       <input
         className="search-box"
-        placeholder="🔍 Buscar modelo, cor, IMEI..."
+        placeholder="Buscar modelo, cor, IMEI..."
         value={busca}
         onChange={e => setBusca(e.target.value)}
         style={{ maxWidth: 320 }}
@@ -435,7 +436,7 @@ export default function Upgrade() {
         <div className="empty-state"><div>Carregando...</div></div>
       ) : emEstoque.length === 0 ? (
         <div className="empty-state">
-          <div className="icon">📱</div>
+          <div className="icon"><Icone nome="celular" tamanho={30} traco={1.6} /></div>
           <div>
             {aparelhos.filter(a => a.status === 'estoque').length === 0
               ? 'Nenhum aparelho em estoque. Clique em "+ Novo Aparelho" para começar.'

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icone from '../components/Icone';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../services/api';
 import { useApp } from '../context/AppContext';
@@ -200,7 +201,7 @@ export default function ClienteSelect({ onLogout }) {
   return (
     <div className="clientes-screen">
       <button className="clientes-tema-btn" onClick={toggleTema} title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
-        {tema === 'dark' ? '☀️' : '🌙'}
+        <Icone nome={tema === 'dark' ? 'sol' : 'lua'} tamanho={17} />
       </button>
       <div className="clientes-box">
         <div className="clientes-header">
@@ -221,7 +222,7 @@ export default function ClienteSelect({ onLogout }) {
           <div className="clientes-lista">
             {clientes.length === 0 ? (
               <div className="clientes-empty">
-                <div className="icon">👤</div>
+                <div className="icon"><Icone nome="pessoa" tamanho={30} traco={1.6} /></div>
                 <div>Nenhum cliente cadastrado ainda.</div>
               </div>
             ) : (
@@ -249,14 +250,14 @@ export default function ClienteSelect({ onLogout }) {
                         className={`btn btn-ghost btn-sm ${expandido === c.id ? 'active' : ''}`}
                         onClick={() => toggleExpandido(c.id)}
                       >
-                        👥 Usuários
+                        <Icone nome="pessoas" tamanho={13} /> Usuários
                       </button>
                       <button
                         className={`btn btn-ghost btn-sm ${regrasAberto === c.id ? 'active' : ''}`}
                         onClick={() => toggleRegras(c)}
                         title={c.regras || 'Nenhuma regra particular cadastrada'}
                       >
-                        📋 Regras{c.regras ? ' •' : ''}
+                        <Icone nome="documento" tamanho={13} /> Regras{c.regras ? ' •' : ''}
                       </button>
                       <button
                         className="btn btn-ghost btn-sm btn-excluir"

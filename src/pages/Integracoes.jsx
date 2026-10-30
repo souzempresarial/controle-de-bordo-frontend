@@ -208,7 +208,7 @@ export default function Integracoes() {
       </div>
 
       {/* ── Integrações futuras ── */}
-      <h3 style={{ margin: '32px 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <h3 style={{ margin: '32px 0 14px', fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
         Em breve
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -270,10 +270,10 @@ const inputStyle = {
 
 const btnPrimStyle = {
   padding: '9px 18px',
-  borderRadius: 8,
+  borderRadius: 999,
   border: 'none',
-  background: 'var(--accent)',
-  color: '#fff',
+  background: 'var(--destaque)',
+  color: 'var(--destaque-texto)',
   fontWeight: 600,
   fontSize: 13,
   cursor: 'pointer',

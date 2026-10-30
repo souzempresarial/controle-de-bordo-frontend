@@ -4,15 +4,8 @@ import { useChat } from '../context/ChatContext';
 import TextoFormatado from '../components/TextoFormatado';
 import BotaoMicrofone from '../components/BotaoMicrofone';
 import ModoVoz from '../components/ModoVoz';
-import { MESES_FULL } from '../services/utils';
+import { MESES_FULL, nomeSaudacao } from '../services/utils';
 import './Chat.css';
-
-function nomeSaudacao(clienteAtivo) {
-  // Admin olhando um cliente vê o nome da loja; o próprio cliente vê o primeiro nome dele
-  if (sessionStorage.getItem('sf_papel') === 'admin') return clienteAtivo?.nome?.trim() || '';
-  const nome = (sessionStorage.getItem('sf_nome') || '').trim();
-  return nome ? nome.split(' ')[0] : (clienteAtivo?.nome?.trim() || '');
-}
 
 function sugestoes() {
   const mesPassado = MESES_FULL[(new Date().getMonth() + 11) % 12];

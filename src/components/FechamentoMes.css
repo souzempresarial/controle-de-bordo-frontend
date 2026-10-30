@@ -12,14 +12,14 @@
 
 .fech-tabela { overflow-x: auto; }
 .fech-tabela table { width: 100%; border-collapse: collapse; min-width: 620px; }
-.fech-tabela th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text2); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.fech-tabela th { text-align: right; font-size: 11px; color: var(--text2); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface2); }
 .fech-tabela th:first-child, .fech-tabela td:first-child { text-align: left; }
 .fech-tabela td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: right; vertical-align: middle; }
 .fech-tabela tfoot td { background: var(--surface2); font-weight: 700; border-bottom: 0; }
 .fech-tabela tr.inativa td { opacity: .6; }
 
 .fech-conta { display: flex; align-items: center; gap: 10px; }
-.fech-ico { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: none; background: #0f766e; }
+.fech-ico { width: 30px; height: 30px; border-radius: var(--radius-sm); display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: none; background: #0f766e; }
 .fech-ico-maquininha { background: #15803d; }
 .fech-ico-especie { background: #64748b; }
 .fech-cnome { font-weight: 600; }

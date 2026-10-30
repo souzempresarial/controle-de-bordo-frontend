@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icone from '../components/Icone';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
@@ -41,7 +42,7 @@ export default function RedefinirSenha() {
   return (
     <div className="login-container">
       <button className="login-tema-btn" onClick={toggleTema} title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
-        {tema === 'dark' ? '☀️' : '🌙'}
+        <Icone nome={tema === 'dark' ? 'sol' : 'lua'} tamanho={17} />
       </button>
       <div className="login-card">
         <div className="login-header">

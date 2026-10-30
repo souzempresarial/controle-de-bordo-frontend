@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo } from 'react';
+import Icone from '../components/Icone';
 import { useApp } from '../context/AppContext';
 import { fmt, hoje, upgradeNoCaixa } from '../services/utils';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, APORTE_CATS } from '../services/constants';
@@ -214,7 +215,7 @@ export default function Exportar() {
             Baixar CSV
           </button>
           <button className="btn btn-primary" onClick={gerarRelatorioExec} disabled={!temDados}>
-            ⬇ Relatório Executivo PDF
+            <Icone nome="baixar" tamanho={14} /> Relatório Executivo PDF
           </button>
         </div>
 

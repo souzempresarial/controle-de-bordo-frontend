@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme';
 import { API } from '../services/api';
 import PasswordInput from './PasswordInput';
 import ChatWidget from './ChatWidget';
+import Icone from './Icone';
 import './Layout.css';
 
 export default function Layout({ children, usuario, onLogout }) {
@@ -91,16 +92,6 @@ export default function Layout({ children, usuario, onLogout }) {
               {clienteAtivo.obs?.trim() || clienteAtivo.nome}
             </div>
           )}
-          <button onClick={abrirPerfil} className="btn-topbar" title="Meu perfil" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span className="btn-topbar-nome">{usuario?.nome}</span>
-          </button>
-          <button onClick={toggleTema} className="btn-topbar btn-tema" title={tema === 'dark' ? 'Modo claro' : 'Modo escuro'}>
-            {tema === 'dark'
-              ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-              : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            }
-          </button>
           <button onClick={handleLogout} className="btn-topbar btn-topbar-sair">Sair</button>
         </div>
       </header>
@@ -109,21 +100,6 @@ export default function Layout({ children, usuario, onLogout }) {
 
       <nav className={`sidebar${sidebarAberta ? ' sidebar--aberta' : ''}`}>
         <button className="sidebar-fechar" onClick={fecharSidebar}>✕</button>
-        <div className="sidebar-topo">
-          <span className="nav-section">Menu</span>
-          <button
-            type="button"
-            className="sidebar-recolher"
-            onClick={alternarRecolhida}
-            aria-label={recolhida ? 'Expandir menu' : 'Recolher menu'}
-            title={recolhida ? 'Expandir menu' : 'Recolher menu'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>
-              {recolhida ? <polyline points="13,9 16,12 13,15"/> : <polyline points="16,9 13,12 16,15"/>}
-            </svg>
-          </button>
-        </div>
         {podeVer('dashboard') && <NavLink to="/dashboard" title="Visão Geral" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           Visão Geral
@@ -161,26 +137,30 @@ export default function Layout({ children, usuario, onLogout }) {
           Integrações
         </NavLink>}
 
-        <div className="sidebar-footer">
-          <button className="nav-btn" onClick={() => { fecharSidebar(); abrirPerfil(); }}>
-            <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Meu Perfil
+        {isAdmin && (
+          <NavLink to="/ranking" title="Ranking" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+            <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+            Ranking
+          </NavLink>
+        )}
+
+        <div className="sidebar-rodape">
+          <button type="button" className="sidebar-usuario" onClick={() => { fecharSidebar(); abrirPerfil(); }} title="Meu perfil">
+            <span className="sidebar-avatar" aria-hidden="true">{(usuario?.nome || '?').trim()[0].toUpperCase()}</span>
+            <span className="sidebar-usuario-nome">{usuario?.nome}</span>
           </button>
-          <button className="nav-btn" onClick={handleLogout}>
-            <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sair
+          <div className="sidebar-acoes">
+            <button type="button" className="sidebar-acao" onClick={toggleTema} aria-label={tema === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} title={tema === 'dark' ? 'Tema claro' : 'Tema escuro'}>
+              <Icone nome={tema === 'dark' ? 'sol' : 'lua'} tamanho={16} />
+            </button>
+            <button type="button" className="sidebar-acao sidebar-recolher" onClick={alternarRecolhida} aria-label={recolhida ? 'Expandir menu' : 'Recolher menu'} title={recolhida ? 'Expandir menu' : 'Recolher menu'}>
+              <Icone nome="layout" tamanho={16} />
+            </button>
+          </div>
+          <button type="button" className="nav-btn sidebar-sair" onClick={handleLogout}>
+            <Icone nome="sair" tamanho={16} /> Sair
           </button>
         </div>
-
-        {isAdmin && (
-          <>
-            <span className="nav-section">Admin</span>
-            <NavLink to="/ranking" title="Ranking" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
-              <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-              Ranking
-            </NavLink>
-          </>
-        )}
       </nav>
 
       <main className="main">
@@ -197,14 +177,13 @@ export default function Layout({ children, usuario, onLogout }) {
 
       {/* Modal Perfil */}
       {perfilAberto && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={e => e.target === e.currentTarget && setPerfilAberto(false)}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 28px 20px', width: 400, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 17 }}>Meu Perfil</h3>
-              <button onClick={() => setPerfilAberto(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text2)' }}>✕</button>
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setPerfilAberto(false)}>
+          <form className="modal-box modal-small" onSubmit={salvarPerfil}>
+            <div className="modal-header">
+              <h3>Meu Perfil</h3>
+              <button type="button" className="modal-close" onClick={() => setPerfilAberto(false)} aria-label="Fechar"><Icone nome="fechar" tamanho={16} /></button>
             </div>
-            <form onSubmit={salvarPerfil} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="modal-body">
               <div className="field">
                 <label>Nome</label>
                 <input type="text" value={perfilForm.nome} onChange={e => setPerfilForm(f => ({ ...f, nome: e.target.value }))} />
@@ -214,31 +193,25 @@ export default function Layout({ children, usuario, onLogout }) {
                 <input type="email" value={perfilForm.email} onChange={e => setPerfilForm(f => ({ ...f, email: e.target.value }))} />
               </div>
               <div className="field">
-                <label>WhatsApp <span style={{ fontSize: 11, color: 'var(--text2)' }}>(com DDD, ex: 11999990000)</span></label>
+                <label>WhatsApp <span style={{ opacity: .75 }}>(com DDD, ex: 11999990000)</span></label>
                 <input type="tel" placeholder="11999990000" value={perfilForm.telefone} onChange={e => setPerfilForm(f => ({ ...f, telefone: e.target.value.replace(/\D/g, '') }))} />
               </div>
               <div className="field">
-                <label>Senha atual <span style={{ fontSize: 11, color: 'var(--text2)' }}>(obrigatório para alterar e-mail ou senha)</span></label>
+                <label>Senha atual <span style={{ opacity: .75 }}>(obrigatório para alterar e-mail ou senha)</span></label>
                 <PasswordInput placeholder="••••••••" value={perfilForm.senhaAtual} onChange={e => setPerfilForm(f => ({ ...f, senhaAtual: e.target.value }))} />
               </div>
               <div className="field">
-                <label>Nova senha <span style={{ fontSize: 11, color: 'var(--text2)' }}>(deixe vazio para não alterar)</span></label>
+                <label>Nova senha <span style={{ opacity: .75 }}>(deixe vazio para não alterar)</span></label>
                 <PasswordInput placeholder="Mínimo 6 caracteres" value={perfilForm.novaSenha} onChange={e => setPerfilForm(f => ({ ...f, novaSenha: e.target.value }))} />
               </div>
-              {perfilErro && <div style={{ color: 'var(--saida)', fontSize: 13 }}>{perfilErro}</div>}
-              {perfilMsg  && <div style={{ color: 'var(--entrada)', fontSize: 13 }}>{perfilMsg}</div>}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-                <button type="button" onClick={() => setPerfilAberto(false)}
-                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 14 }}>
-                  Cancelar
-                </button>
-                <button type="submit" disabled={perfilSalvando}
-                  style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-                  {perfilSalvando ? 'Salvando...' : 'Salvar'}
-                </button>
-              </div>
-            </form>
-          </div>
+              {perfilErro && <div className="form-erro">{perfilErro}</div>}
+              {perfilMsg  && <div style={{ color: 'var(--entrada)', fontSize: 13, textAlign: 'center' }}>{perfilMsg}</div>}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setPerfilAberto(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={perfilSalvando}>{perfilSalvando ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </form>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
+import Icone from '../components/Icone';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
@@ -6,7 +7,7 @@ import { CMVCATS, DEDUCOES_CATS, APORTE_CATS, getCatsPorTipo, getSubcats, CATEGO
 import SelectBanco from '../components/SelectBanco';
 import AlertaVencimentos from '../components/AlertaVencimentos';
 import GraficoFluxo from '../components/GraficoFluxo';
-import { fmt, fmtData, hoje, MESES, upgradeNoCaixa, deducaoNaVenda } from '../services/utils';
+import { fmt, fmtData, hoje, MESES, upgradeNoCaixa, deducaoNaVenda, nomeSaudacao } from '../services/utils';
 import './Dashboard.css';
 
 function mesAnterior(mes) {
@@ -55,6 +56,11 @@ function LinhaReceita({ tipo, rotulo, itens, aberto, onClick }) {
   );
 }
 
+function saudacao() {
+  const hora = new Date().getHours();
+  return hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+}
+
 function calcularTotais(lista) {
   let entradas = 0, saidas = 0;
   lista
@@ -76,6 +82,7 @@ const formVazio = (bancoDefault = '') => ({
 export default function Dashboard() {
   const { lancamentos, setLancamentos, clienteAtivo, contas } = useApp();
   const navigate = useNavigate();
+  const nome = nomeSaudacao(clienteAtivo);
 
   const mesAtual = hoje().slice(0, 7);
   const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
@@ -429,20 +436,25 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
 
-      {/* Seletor de período */}
-      <div className="period-row">
-        <span className="period-label">Período</span>
-        <select className="period-select" value={mes} onChange={e => { setMes(e.target.value); localStorage.setItem('dash_mes', e.target.value); }}>
+      {/* Saudação e seletor de período */}
+      <div className="dash-cabecalho">
+        <div className="dash-saudacao">
+          <h1>{saudacao()}{nome ? `, ${nome}` : ''}</h1>
+          <p>Acompanhe vendas, gastos e o caixa da sua loja.</p>
+        </div>
+        <div className="period-row">
+        <select className="period-select" aria-label="Mês" value={mes} onChange={e => { setMes(e.target.value); localStorage.setItem('dash_mes', e.target.value); }}>
           {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
             <option key={m} value={m}>
               {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
             </option>
           ))}
         </select>
-        <select className="period-select" value={ano} onChange={e => { setAno(e.target.value); localStorage.setItem('dash_ano', e.target.value); }}>
+        <select className="period-select" aria-label="Ano" value={ano} onChange={e => { setAno(e.target.value); localStorage.setItem('dash_ano', e.target.value); }}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
-        <button className="btn btn-primary dash-novo" onClick={abrirNovo}>＋ Novo Lançamento</button>
+        <button className="btn btn-primary" onClick={abrirNovo}>＋ Novo Lançamento</button>
+        </div>
       </div>
 
       {/* Topo: 4 cards e gráfico à esquerda, contas a pagar na coluna da direita */}
@@ -454,14 +466,16 @@ export default function Dashboard() {
               {
                 label: 'Faturamento',
                 value: fmt(fat),
-                cor: '#22c55e',
+                cor: 'var(--entrada)',
+                icone: 'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.500 3.500 0 0 1 0 7H6',
                 sub: fatPrev > 0 ? `Mês anterior: ${fmt(fatPrev)}` : 'Sem dados anteriores',
                 delta: fatPrev > 0 ? ((fat - fatPrev) / fatPrev * 100) : null,
               },
               {
                 label: 'Gastos Totais',
                 value: fmt(gastos),
-                cor: '#ef4444',
+                cor: 'var(--saida)',
+                icone: 'M12 5v14M6 13l6 6 6-6',
                 sub: gastosPrev > 0 ? `Mês anterior: ${fmt(gastosPrev)}` : 'Sem dados anteriores',
                 delta: gastosPrev > 0 ? ((gastos - gastosPrev) / gastosPrev * 100) : null,
                 deltaInverso: true,
@@ -470,6 +484,7 @@ export default function Dashboard() {
                 label: 'Lucro por Aparelho',
                 value: unidades > 0 ? fmt(lucPorAp) : '—',
                 cor: '#8b5cf6',
+                icone: 'M3 17l6-6 4 4 8-8M15 7h6v6',
                 sub: lucPorApPrev > 0 ? `Mês anterior: ${fmt(lucPorApPrev)}` : 'Sem dados anteriores',
                 delta: lucPorApDelta,
               },
@@ -477,19 +492,25 @@ export default function Dashboard() {
                 label: 'Aparelhos Vendidos',
                 value: String(unidades),
                 cor: '#3b82f6',
+                icone: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01',
                 sub: unidadesPrev > 0 ? `Mês anterior: ${unidadesPrev} un.` : 'Sem dados anteriores',
                 delta: unidadesPrev > 0 ? ((unidades - unidadesPrev) / unidadesPrev * 100) : null,
               },
-            ].map(({ label, value, cor, sub, delta, deltaInverso }) => {
+            ].map(({ label, value, cor, icone, sub, delta, deltaInverso }) => {
               const deltaOk = delta !== null && delta !== undefined;
               const deltaPos = deltaInverso ? delta < 0 : delta >= 0;
               return (
-                <div key={label} className="dash-kpi-card" style={{ borderLeft: `4px solid ${cor}` }}>
-                  <div className="dash-kpi-label">{label}</div>
-                  <div className="dash-kpi-value" style={{ color: cor }}>{value}</div>
+                <div key={label} className="dash-kpi-card">
+                  <div className="dash-kpi-topo">
+                    <span className="dash-kpi-icone" style={{ '--cor': cor }} aria-hidden="true">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={icone} /></svg>
+                    </span>
+                    <div className="dash-kpi-label">{label}</div>
+                  </div>
+                  <div className="dash-kpi-value">{value}</div>
                   <div className="dash-kpi-footer">
                     {deltaOk && (
-                      <span style={{ color: deltaPos ? '#22c55e' : '#ef4444', fontWeight: 700, fontSize: 11 }}>
+                      <span className={`dash-kpi-delta ${deltaPos ? 'bom' : 'ruim'}`}>
                         {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
                       </span>
                     )}
@@ -687,8 +708,8 @@ export default function Dashboard() {
 
               {erroForm && <div className="form-erro">{erroForm}</div>}
               {confirmarDuplicata && (
-                <div style={{ background: 'var(--warn-bg, #fef9c3)', border: '1px solid #ca8a04', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#78350f' }}>
-                  ⚠️ Já existe um lançamento de <strong>{confirmarDuplicata.tipo === 'Entrada' ? '+' : '-'}R$ {parseFloat(confirmarDuplicata.valor).toFixed(2).replace('.', ',')}</strong> em <strong>{fmtData(confirmarDuplicata.data)}</strong> ({confirmarDuplicata.descricao || confirmarDuplicata.categoria}). Pode ser duplicata.
+                <div style={{ background: 'color-mix(in srgb, var(--warn) 10%, var(--surface))', border: '1px solid color-mix(in srgb, var(--warn) 40%, transparent)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', fontSize: 13, color: 'var(--text)' }}>
+                  <Icone nome="alerta" tamanho={14} /> Já existe um lançamento de <strong>{confirmarDuplicata.tipo === 'Entrada' ? '+' : '-'}R$ {parseFloat(confirmarDuplicata.valor).toFixed(2).replace('.', ',')}</strong> em <strong>{fmtData(confirmarDuplicata.data)}</strong> ({confirmarDuplicata.descricao || confirmarDuplicata.categoria}). Pode ser duplicata.
                   <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                     <button className="btn btn-sm btn-primary" onClick={salvar}>Salvar mesmo assim</button>
                     <button className="btn btn-sm btn-ghost" onClick={() => setConfirmarDuplicata(null)}>Cancelar</button>

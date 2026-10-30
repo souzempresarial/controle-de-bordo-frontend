@@ -51,7 +51,7 @@
 .souz-chat-enviar {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px; border: none; cursor: pointer;
   display: grid; place-items: center;
-  background: var(--accent); color: #fff; transition: opacity .15s;
+  background: var(--destaque); color: var(--destaque-texto); transition: opacity .15s;
 }
 .souz-chat-enviar:disabled { opacity: .35; cursor: default; }
 .souz-chat-enviar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -64,7 +64,7 @@
 .souz-chat-identidade { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
 .souz-chat-identidade i {
   width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
-  background: var(--accent); color: #fff;
+  background: var(--destaque); color: var(--destaque-texto);
 }
 .souz-chat-mensagens {
   flex: 1; min-height: 0; overflow-y: auto;
@@ -75,7 +75,7 @@
 .souz-msg--assistant { align-self: stretch; max-width: 860px; }
 .souz-msg-corpo { font-size: 14.5px; line-height: 1.6; color: var(--text); word-break: break-word; }
 .souz-msg--user .souz-msg-corpo {
-  background: var(--accent); color: #fff; padding: 10px 14px;
+  background: var(--surface); color: var(--text); box-shadow: var(--sombra); padding: 10px 14px;
   border-radius: 16px; border-bottom-right-radius: 4px; white-space: pre-wrap;
 }
 .souz-msg--erro .souz-msg-corpo {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icone from '../components/Icone';
 import { fmt } from '../services/utils';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
@@ -225,7 +226,7 @@ export default function SimuladorUpgrade() {
         <div className="sim-tabs">
           <button className={`sim-tab ${tab === 'upgrade' ? 'active' : ''}`} onClick={() => setTab('upgrade')}>Upgrade</button>
         </div>
-        <button className="sim-cfg-btn" onClick={() => setShowCfg(true)}>⚙ Configurar</button>
+        <button className="sim-cfg-btn" onClick={() => setShowCfg(true)}><Icone nome="config" tamanho={14} /> Configurar</button>
       </div>
 
       <div className="sim-body">

@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo } from 'react';
+import Icone from '../components/Icone';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { CMVCATS, DEDUCOES_CATS, SGA_CATS, NAOOP_CATS, GASTOS_CATS, APORTE_CATS } from '../services/constants';
@@ -471,7 +472,7 @@ export default function Relatorio() {
 
       {d.fat === 0 && (
         <div className="empty-state">
-          <div className="icon">📊</div>
+          <div className="icon"><Icone nome="grafico" tamanho={30} traco={1.6} /></div>
           <div>Nenhum lançamento para {labelPeriodo}</div>
         </div>
       )}

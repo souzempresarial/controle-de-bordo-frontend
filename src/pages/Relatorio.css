@@ -17,10 +17,10 @@
 /* ── Header Resumo Executivo ── */
 .rel-exec-header {
   background:
-    radial-gradient(ellipse at 50% 60%, rgba(34,197,94,0.07) 0%, transparent 65%),
-    linear-gradient(135deg, #0a1f0a 0%, #0f2e10 50%, #071a07 100%);
-  border: 1px solid #1e3a1e;
-  border-radius: 16px;
+    radial-gradient(ellipse at 18% 0%, rgba(182,242,62,0.16) 0%, transparent 60%),
+    linear-gradient(135deg, #111511 0%, #151a15 100%);
+  border: 1px solid #262d26;
+  border-radius: var(--radius);
   min-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
@@ -45,7 +45,7 @@
 .rel-exec-label {
   font-size: 11px;
   font-weight: 700;
-  color: #22c55e;
+  color: #b6f23e;
   letter-spacing: 4px;
   text-transform: uppercase;
   margin-bottom: 20px;
@@ -54,7 +54,7 @@
 .rel-exec-divider {
   width: 48px;
   height: 2px;
-  background: #22c55e;
+  background: #b6f23e;
   border-radius: 2px;
   margin-bottom: 24px;
 }
@@ -109,7 +109,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -269,7 +269,7 @@
 
 .rel-caixa-main {
   border: 2px solid rgba(34, 197, 94, .4);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 22px 26px;
   display: flex;
   flex-direction: column;
@@ -299,7 +299,7 @@
 
 .rel-caixa-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 16px 20px;
   background: var(--surface2);
 }
@@ -363,7 +363,7 @@
 
 .rel-lucro-card {
   border: 2px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 20px 22px 22px;
   display: flex;
   flex-direction: column;
@@ -453,7 +453,7 @@
     page-break-before: always;
     page-break-inside: avoid;
     border: 1px solid #ddd !important;
-    border-radius: 12px !important;
+    border-radius: var(--radius) !important;
   }
 
   /* Gráficos: forçar renderização */

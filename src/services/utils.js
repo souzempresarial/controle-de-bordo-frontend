@@ -12,3 +12,10 @@ export const upgradeNoCaixa = (l) => (l.tipo === 'Entrada' && l.valorUpgrade > 0
 
 export const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 export const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Admin olhando um cliente vê o nome da loja; o próprio cliente vê o primeiro nome dele
+export function nomeSaudacao(clienteAtivo) {
+  if (sessionStorage.getItem('sf_papel') === 'admin') return clienteAtivo?.nome?.trim() || '';
+  const nome = (sessionStorage.getItem('sf_nome') || '').trim();
+  return nome ? nome.split(' ')[0] : (clienteAtivo?.nome?.trim() || '');
+}

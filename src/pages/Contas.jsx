@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import Icone from '../components/Icone';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { getCatsPorTipo, getSubcats } from '../services/constants';
@@ -334,7 +335,7 @@ export default function Contas() {
     return (
       <>
         <tr>
-          <td colSpan={5} style={{ background: 'var(--surface)', padding: '6px 12px', fontSize: 11, fontWeight: 700, color: cor, textTransform: 'uppercase', letterSpacing: '.6px' }}>
+          <td colSpan={5} style={{ background: 'var(--surface)', padding: '10px 14px 6px', fontSize: 12.5, fontWeight: 600, color: cor }}>
             {titulo} · {fmt(lista.reduce((a, c) => a + parseFloat(c.valor), 0))}
           </td>
         </tr>
@@ -359,8 +360,8 @@ export default function Contas() {
                   <button className="btn btn-ghost btn-sm" onClick={() => adiar(c)} title="Adiar para o próximo mês">
                     Adiar
                   </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)}>✏️</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(c)}>🗑</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(c)} aria-label="Editar conta" title="Editar"><Icone nome="editar" tamanho={14} /></button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setConfirmando(c)} aria-label="Excluir conta" title="Excluir"><Icone nome="lixo" tamanho={14} /></button>
                 </div>
               </td>
             </tr>
@@ -371,7 +372,7 @@ export default function Contas() {
   }
 
   const TabelaContas = ({ lista, tipoLabel }) => {
-    if (lista.length === 0) return <div className="empty-state"><div className="icon">✅</div><div>Nenhuma conta a {tipoLabel} pendente</div></div>;
+    if (lista.length === 0) return <div className="empty-state"><div className="icon"><Icone nome="checkRedondo" tamanho={30} traco={1.6} /></div><div>Nenhuma conta a {tipoLabel} pendente</div></div>;
     const grupos = agrupar(lista);
     return (
       <div style={{ overflowX: 'auto' }}>
@@ -480,21 +481,21 @@ export default function Contas() {
       {aba === 'pagar' && <>
         <div className="contas-kpis">
           <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
-            <div className="contas-kpi-icon">📋</div>
+            <div className="contas-kpi-icon"><Icone nome="documento" /></div>
             <div className="contas-kpi-label">Total do Mês</div>
-            <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totGeral)}</div>
+            <div className="contas-kpi-value">{fmt(totGeral)}</div>
             <div className="contas-kpi-sub">{pendP.length + quitadasP.length} conta{(pendP.length + quitadasP.length) !== 1 ? 's' : ''}</div>
           </div>
-          <div className="contas-kpi" style={{ '--kpi-cor': '#f59e0b' }}>
-            <div className="contas-kpi-icon">🕐</div>
+          <div className="contas-kpi" style={{ '--kpi-cor': 'var(--warn)' }}>
+            <div className="contas-kpi-icon"><Icone nome="relogio" /></div>
             <div className="contas-kpi-label">A Pagar</div>
-            <div className="contas-kpi-value" style={{ color: '#f59e0b' }}>{fmt(totAPagar)}</div>
+            <div className="contas-kpi-value">{fmt(totAPagar)}</div>
             <div className="contas-kpi-sub">{aPagarP.length} conta{aPagarP.length !== 1 ? 's' : ''}</div>
           </div>
-          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-            <div className="contas-kpi-icon">✅</div>
+          <div className="contas-kpi" style={{ '--kpi-cor': 'var(--entrada)' }}>
+            <div className="contas-kpi-icon"><Icone nome="check" /></div>
             <div className="contas-kpi-label">Pagas</div>
-            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuit)}</div>
+            <div className="contas-kpi-value">{fmt(totQuit)}</div>
             <div className="contas-kpi-sub">{quitadasP.length} quitada{quitadasP.length !== 1 ? 's' : ''}</div>
           </div>
         </div>
@@ -509,14 +510,14 @@ export default function Contas() {
           {contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente').length > 1 && (
             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginLeft: 'auto' }}
               onClick={() => setConfirmandoBulk('todas')}>
-              🗑 Excluir todas pendentes ({contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente').length})
+              <Icone nome="lixo" tamanho={13} /> Excluir todas pendentes ({contas.filter(c => c.tipo === 'pagar' && c.status === 'pendente').length})
             </button>
           )}
         </div>
 
         <div className="table-panel">
           <div className="table-header">
-            <h2 style={{ color: 'var(--saida)' }}>Pendentes</h2>
+            <h2>Pendentes</h2>
             {pendP.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendP.length} pendente{pendP.length !== 1 ? 's' : ''} · Total: {fmt(totP)}</span>}
           </div>
           <TabelaContas lista={pendP} tipoLabel="pagar" />
@@ -550,28 +551,28 @@ export default function Contas() {
       {/* ── Aba: A Receber ── */}
       {aba === 'receber' && <>
         <div className="contas-kpis">
-          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-            <div className="contas-kpi-icon">💰</div>
+          <div className="contas-kpi" style={{ '--kpi-cor': 'var(--entrada)' }}>
+            <div className="contas-kpi-icon"><Icone nome="moeda" /></div>
             <div className="contas-kpi-label">Total do Mês</div>
-            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totR + totQuitR)}</div>
+            <div className="contas-kpi-value">{fmt(totR + totQuitR)}</div>
             <div className="contas-kpi-sub">{pendR.length + quitadasR.length} conta{(pendR.length + quitadasR.length) !== 1 ? 's' : ''}</div>
           </div>
           <div className="contas-kpi" style={{ '--kpi-cor': '#3b82f6' }}>
-            <div className="contas-kpi-icon">🕐</div>
+            <div className="contas-kpi-icon"><Icone nome="relogio" /></div>
             <div className="contas-kpi-label">A Receber</div>
-            <div className="contas-kpi-value" style={{ color: '#3b82f6' }}>{fmt(totARecR)}</div>
+            <div className="contas-kpi-value">{fmt(totARecR)}</div>
             <div className="contas-kpi-sub">{aReceberR.length} conta{aReceberR.length !== 1 ? 's' : ''}</div>
           </div>
-          <div className="contas-kpi" style={{ '--kpi-cor': '#22c55e' }}>
-            <div className="contas-kpi-icon">✅</div>
+          <div className="contas-kpi" style={{ '--kpi-cor': 'var(--entrada)' }}>
+            <div className="contas-kpi-icon"><Icone nome="check" /></div>
             <div className="contas-kpi-label">Recebidas</div>
-            <div className="contas-kpi-value" style={{ color: '#22c55e' }}>{fmt(totQuitR)}</div>
+            <div className="contas-kpi-value">{fmt(totQuitR)}</div>
             <div className="contas-kpi-sub">{quitadasR.length} recebida{quitadasR.length !== 1 ? 's' : ''}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" style={{ background: 'var(--entrada)' }} onClick={abrirNovo}>＋ Nova Conta a Receber</button>
+          <button className="btn btn-primary" onClick={abrirNovo}>＋ Nova Conta a Receber</button>
           {quitadasR.length > 0 && (
             <button className="btn btn-ghost btn-sm" onClick={() => setVerQuitadasR(v => !v)}>
               {verQuitadasR ? 'Ocultar recebidas' : `Ver recebidas (${quitadasR.length})`}
@@ -581,7 +582,7 @@ export default function Contas() {
 
         <div className="table-panel">
           <div className="table-header">
-            <h2 style={{ color: 'var(--entrada)' }}>Pendentes</h2>
+            <h2>Pendentes</h2>
             {pendR.length > 0 && <span style={{ fontSize: 12, color: 'var(--text2)' }}>{pendR.length} pendente{pendR.length !== 1 ? 's' : ''} · Total: {fmt(totR)}</span>}
           </div>
           <TabelaContas lista={pendR} tipoLabel="receber" />

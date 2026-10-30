@@ -1,4 +1,5 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
+import Icone from '../components/Icone';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { CATEGORIAS_CMV, getCatsPorTipo, getSubcats, getCmvSubAuto, BANCOS } from '../services/constants';
@@ -854,7 +855,7 @@ export default function Lancamentos() {
             onClick={() => abrirNovo('Entrada')}
             title="Novo lançamento de entrada"
           >+ Novo lançamento</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}>⬆ Importar extrato</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setExtratoModal(true); setExtratoLinhas([]); setExtratoErro(''); }}><Icone nome="enviar" tamanho={13} /> Importar extrato</button>
           {mpConfigurado && (
             <div className="mp-busca">
               <button
@@ -864,7 +865,7 @@ export default function Lancamentos() {
                 aria-expanded={!!mpPeriodo}
                 title="Buscar vendas e OS pendentes do Mercado Phone em um período"
               >
-                {(mpCarregando || osCarregando) ? '⏳ Buscando...' : '🔄 Buscar no MP'}
+                {(mpCarregando || osCarregando) ? 'Buscando...' : <><Icone nome="atualizar" tamanho={13} /> Buscar no MP</>}
               </button>
               {mpPeriodo && (
                 <div className="mp-busca-painel" role="dialog" aria-label="Período da busca no Mercado Phone">
@@ -1020,7 +1021,7 @@ export default function Lancamentos() {
 
         {filtrados.length === 0 && !mpPendentes.length && !osPendentes.length && !mpCarregando && !osCarregando ? (
           <div className="empty-state">
-            <div className="icon">📭</div>
+            <div className="icon"><Icone nome="documento" tamanho={30} traco={1.6} /></div>
             <div>Nenhum lançamento encontrado</div>
           </div>
         ) : (
@@ -1059,7 +1060,7 @@ export default function Lancamentos() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
                             {mpPendentes.length} pendente{mpPendentes.length !== 1 ? 's' : ''} do Mercado Phone
-                            {dupCount > 0 && <span style={{ color: '#d97706', marginLeft: 8 }}>· {dupCount} possível duplicata</span>}
+                            {dupCount > 0 && <span style={{ color: 'var(--warn)', marginLeft: 8 }}>· {dupCount} possível duplicata</span>}
                             {preVendaCount > 0 && <span style={{ color: '#0891b2', marginLeft: 8 }}>· {preVendaCount} pré-venda em aberto</span>}
                             {upgradeCount > 0 && <span style={{ color: '#7c3aed', marginLeft: 8 }}>· {upgradeCount} upgrade sem valor do aparelho</span>}
                           </span>
@@ -1092,7 +1093,7 @@ export default function Lancamentos() {
                   const isUpgradeEfetivo = edit.isUpgrade ?? t.isUpgrade;
                   const upgradeOk  = !mpUpgradeSemValor(t);
                   const rowBg      = isUpgradeEfetivo    ? 'color-mix(in srgb, #7c3aed 6%, var(--surface2))'
-                                   : t.possivelDuplicata ? 'color-mix(in srgb, #d97706 8%, var(--surface2))'
+                                   : t.possivelDuplicata ? 'color-mix(in srgb, var(--warn) 8%, var(--surface2))'
                                    : 'var(--surface2)';
                   return (
                     <React.Fragment key={`mp-${itemKey}`}>
@@ -1106,20 +1107,20 @@ export default function Lancamentos() {
                           <div style={{ display: 'flex', gap: 5, alignItems: 'baseline', flexWrap: 'wrap' }}>
                             <span>{t.descricao || '—'}</span>
                             {t.quantidade > 1 && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 12%, transparent)', borderRadius: 999, padding: '1px 7px' }}>
                                 × {t.quantidade}
                               </span>
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--primary)', background: 'color-mix(in srgb, var(--primary) 10%, transparent)', borderRadius: 999, padding: '1px 7px' }}>
                               Mercado Phone{t.chaveNome ? ` · ${t.chaveNome}` : ''}
                             </span>
-                            {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: '#d97706', background: '#d9770618', borderRadius: 3, padding: '1px 5px' }}>⚠ Possível duplicata</span>}
-                            {t.preVenda && <span title="Venda ainda em aberto no MP: importe quando o aparelho for entregue" style={{ fontSize: 10, fontWeight: 600, color: '#0891b2', background: '#0891b218', borderRadius: 3, padding: '1px 5px' }}>⏸ Pré-venda em aberto</span>}
-                            {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 3, padding: '1px 5px' }}>↑ Upgrade</span>}
-                            {t.categoriaPeloHistorico && <span title='Mesma categoria usada antes para este produto' style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', background: 'color-mix(in srgb, var(--entrada) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>✓ histórico</span>}
-                            {parseFloat(edit.deducaoCartao) > 0 && <span title="Taxa/dedução — recebido = valor − dedução" style={{ fontSize: 10, fontWeight: 600, color: 'var(--saida)', background: 'color-mix(in srgb, var(--saida) 10%, transparent)', borderRadius: 3, padding: '1px 5px' }}>− {fmt(parseFloat(edit.deducaoCartao))} taxa · recebido {fmt((parseFloat(edit.valor) || t.valor) - parseFloat(edit.deducaoCartao))}</span>}
+                            {t.possivelDuplicata && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--warn)', background: 'color-mix(in srgb, var(--warn) 9%, transparent)', borderRadius: 999, padding: '1px 7px' }}>Possível duplicata</span>}
+                            {t.preVenda && <span title="Venda ainda em aberto no MP: importe quando o aparelho for entregue" style={{ fontSize: 10, fontWeight: 600, color: '#0891b2', background: '#0891b218', borderRadius: 999, padding: '1px 7px' }}>Pré-venda em aberto</span>}
+                            {isUpgradeEfetivo && <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: '#7c3aed18', borderRadius: 999, padding: '1px 7px' }}>↑ Upgrade</span>}
+                            {t.categoriaPeloHistorico && <span title='Mesma categoria usada antes para este produto' style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', background: 'color-mix(in srgb, var(--entrada) 10%, transparent)', borderRadius: 999, padding: '1px 7px' }}>✓ histórico</span>}
+                            {parseFloat(edit.deducaoCartao) > 0 && <span title="Taxa/dedução — recebido = valor − dedução" style={{ fontSize: 10, fontWeight: 600, color: 'var(--saida)', background: 'color-mix(in srgb, var(--saida) 10%, transparent)', borderRadius: 999, padding: '1px 7px' }}>− {fmt(parseFloat(edit.deducaoCartao))} taxa · recebido {fmt((parseFloat(edit.valor) || t.valor) - parseFloat(edit.deducaoCartao))}</span>}
                           </div>
                           {t.resumoPagamentos && (
                             <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 3 }}>{t.resumoPagamentos}</div>
@@ -1144,7 +1145,7 @@ export default function Lancamentos() {
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button
                               className="btn btn-sm"
-                              style={{ background: expanded ? 'var(--primary)' : 'transparent', color: expanded ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
+                              style={{ background: expanded ? 'var(--nav-ativo)' : 'transparent', color: expanded ? 'var(--nav-ativo-texto)' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
                               onClick={() => mpToggleExpand(itemKey)}
                               title={expanded ? 'Fechar edição' : 'Editar antes de importar'}
                             >
@@ -1303,15 +1304,15 @@ export default function Lancamentos() {
                 {osPendentes.length > 0 && !osCarregando && (
                   <>
                     <tr>
-                      <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, #059669 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
+                      <td colSpan={11} style={{ padding: '8px 14px', background: 'color-mix(in srgb, var(--entrada) 6%, transparent)', borderBottom: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
-                            🔧 {osPendentes.length} OS pendente{osPendentes.length !== 1 ? 's' : ''} do Mercado Phone — Assistência Técnica
+                            <Icone nome="ferramenta" tamanho={14} /> {osPendentes.length} OS pendente{osPendentes.length !== 1 ? 's' : ''} do Mercado Phone — Assistência Técnica
                             <span style={{ fontWeight: 400, marginLeft: 6 }}>(todas não importadas)</span>
                           </span>
                           <button
                             className="btn btn-primary btn-sm"
-                            style={{ marginLeft: 'auto', background: '#059669' }}
+                            style={{ marginLeft: 'auto' }}
                             disabled={osImportandoSet.size > 0}
                             onClick={async () => {
                               const paraImportar = osPendentes
@@ -1365,12 +1366,12 @@ export default function Lancamentos() {
                         finally { setOsImportandoSet(prev => { const s = new Set(prev); s.delete(os.osId); return s; }); }
                       };
                       const AT_SUBS = ['Conserto de Tela','Troca de Bateria','Troca de Traseira','Doc de Carga','Garantia','Outro'];
-                      const rowBg   = 'color-mix(in srgb, #059669 4%, var(--surface2))';
+                      const rowBg   = 'color-mix(in srgb, var(--entrada) 4%, var(--surface2))';
                       return (
                         <React.Fragment key={`os-${os.osId}`}>
                           <tr style={{ background: rowBg, opacity: 0.9, borderBottom: expanded ? 'none' : undefined }}>
                             <td className="id-cell" style={{ whiteSpace: 'nowrap' }}>
-                              <span style={{ fontSize: 10, background: '#05966920', color: '#059669', borderRadius: 4, padding: '2px 5px', fontWeight: 700 }}>OS</span>
+                              <span style={{ fontSize: 10, background: 'color-mix(in srgb, var(--entrada) 13%, transparent)', color: 'var(--entrada)', borderRadius: 999, padding: '1px 7px', fontWeight: 700 }}>OS</span>
                               <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 4 }}>{os.codigo}</span>
                             </td>
                             <td style={{ whiteSpace: 'nowrap' }}>{os.data ? os.data.split('-').reverse().join('/') : '—'}</td>
@@ -1380,7 +1381,7 @@ export default function Lancamentos() {
                             <td>
                               <span>{edit.descricao || os.descricao}</span>
                               {os.tipoAparelho && <span style={{ fontSize: 11, color: 'var(--text2)', marginLeft: 6 }}>· {os.tipoAparelho}</span>}
-                              <div style={{ fontSize: 10, fontWeight: 600, color: '#059669', background: '#05966912', borderRadius: 3, padding: '1px 5px', display: 'inline-block', marginTop: 2, marginLeft: os.tipoAparelho ? 6 : 0 }}>
+                              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', background: 'color-mix(in srgb, var(--entrada) 7%, transparent)', borderRadius: 999, padding: '1px 7px', display: 'inline-block', marginTop: 2, marginLeft: os.tipoAparelho ? 6 : 0 }}>
                                 Mercado Phone{os.chaveNome ? ` · ${os.chaveNome}` : ''}
                               </div>
                             </td>
@@ -1394,13 +1395,13 @@ export default function Lancamentos() {
                               <div style={{ display: 'flex', gap: 4 }}>
                                 <button
                                   className="btn btn-sm"
-                                  style={{ background: expanded ? '#059669' : 'transparent', color: expanded ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
+                                  style={{ background: expanded ? 'var(--entrada)' : 'transparent', color: expanded ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', padding: '2px 7px', fontSize: 13 }}
                                   onClick={toggleExpand}
                                   title={expanded ? 'Fechar edição' : 'Editar antes de importar'}
                                 >✎</button>
                                 <button
                                   className="btn btn-primary btn-sm"
-                                  style={{ background: '#059669' }}
+                                 
                                   disabled={osImportandoSet.has(os.osId)}
                                   onClick={osImportar}
                                   title={`Importar OS · ${os.clienteNome}`}
@@ -1473,7 +1474,7 @@ export default function Lancamentos() {
                                   </div>
                                   <button
                                     className="btn btn-primary btn-sm"
-                                    style={{ background: '#059669', alignSelf: 'flex-end' }}
+                                    style={{ alignSelf: 'flex-end' }}
                                     disabled={osImportandoSet.has(os.osId)}
                                     onClick={osImportar}
                                   >{osImportandoSet.has(os.osId) ? 'Importando...' : '✓ Importar esta'}</button>
@@ -1550,8 +1551,8 @@ export default function Lancamentos() {
                       <td className="lc-banco">{l.banco || '—'}</td>
                       <td><span className={`lc-status${l.status === 'Pendente' ? ' pend' : ''}`}>{l.status}</span></td>
                       <td className="lc-acoes-linha">
-                        <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)} aria-label={`Editar ${l.descricao || 'lançamento'}`}>✏️</button>
-                        <button className="btn btn-ghost btn-sm lc-del" onClick={() => setConfirmando(l)} aria-label={`Apagar ${l.descricao || 'lançamento'}`}>🗑</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => abrirEditar(l)} aria-label={`Editar ${l.descricao || 'lançamento'}`}><Icone nome="editar" tamanho={14} /></button>
+                        <button className="btn btn-ghost btn-sm lc-del" onClick={() => setConfirmando(l)} aria-label={`Apagar ${l.descricao || 'lançamento'}`}><Icone nome="lixo" tamanho={14} /></button>
                       </td>
                     </tr>
                   );
@@ -1697,7 +1698,7 @@ export default function Lancamentos() {
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={fecharModal}>Cancelar</button>
               <button className="btn btn-ghost" onClick={() => abrirDividir(editando, 'lancamento')} style={{ color: 'var(--text2)' }}>
-                ✂️ Dividir
+                <Icone nome="cortar" tamanho={13} /> Dividir
               </button>
               <button className="btn btn-primary" onClick={salvar} disabled={salvando}>
                 {salvando ? 'Salvando...' : 'Salvar Alterações'}
@@ -1737,7 +1738,7 @@ export default function Lancamentos() {
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 14, color: 'var(--text)' }}>
-                Você está prestes a apagar <strong style={{ color: '#f03e3e' }}>{selecionadosLista.length} lançamento{selecionadosLista.length !== 1 ? 's' : ''}</strong> selecionado{selecionadosLista.length !== 1 ? 's' : ''}
+                Você está prestes a apagar <strong style={{ color: 'var(--saida)' }}>{selecionadosLista.length} lançamento{selecionadosLista.length !== 1 ? 's' : ''}</strong> selecionado{selecionadosLista.length !== 1 ? 's' : ''}
                 {' '}(com o CMV de cada venda junto).
               </p>
               <p style={{ fontSize: 13, color: 'var(--text2)' }}>
@@ -1832,14 +1833,14 @@ export default function Lancamentos() {
                       return (
                         <span style={{ display: 'block', marginTop: 4 }}>
                           <span style={{ color: 'var(--entrada)', fontWeight: 600 }}>{nHist} pelo histórico do cliente</span>
-                          {' · '}<span style={{ color: '#ca8a04', fontWeight: 600 }}>{nIA} pela IA (confira)</span>
+                          {' · '}<span style={{ color: 'var(--warn)', fontWeight: 600 }}>{nIA} pela IA (confira)</span>
                           {nSem > 0 && <>{' · '}<span style={{ color: 'var(--saida)', fontWeight: 600 }}>{nSem} sem categoria</span></>}
                         </span>
                       );
                     })()}
                     {extratoLinhas.some(l => l._duplicata) && (
-                      <span style={{ marginLeft: 8, color: '#ca8a04', fontWeight: 600 }}>
-                        ⚠️ {extratoLinhas.filter(l => l._duplicata).length} possível(is) duplicata(s) — remova com ✕ se já existir.
+                      <span style={{ marginLeft: 8, color: 'var(--warn)', fontWeight: 600 }}>
+                        <Icone nome="alerta" tamanho={13} /> {extratoLinhas.filter(l => l._duplicata).length} possível(is) duplicata(s) — remova com ✕ se já existir.
                       </span>
                     )}
                   </p>
@@ -1865,7 +1866,7 @@ export default function Lancamentos() {
                             </td>
                             <td style={{ padding: '6px 10px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {l._duplicata && <span title="Possível duplicata" style={{ color: '#ca8a04', fontSize: 13, flexShrink: 0 }}>⚠️</span>}
+                                {l._duplicata && <span title="Possível duplicata" style={{ color: 'var(--warn)', fontSize: 13, flexShrink: 0 }}><Icone nome="alerta" tamanho={13} /></span>}
                                 <input value={l.descricao} onChange={e => editarLinha(l._id, 'descricao', e.target.value)}
                                   style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '2px 6px', fontSize: 12, width: '100%' }} />
                               </div>
@@ -1892,7 +1893,7 @@ export default function Lancamentos() {
                                 <div title="Mesma categoria usada antes para esta descrição" style={{ fontSize: 10, fontWeight: 600, color: 'var(--entrada)', marginTop: 2 }}>✓ histórico</div>
                               )}
                               {l.origem_sugestao === 'ia' && (
-                                <div title="Sugestão da IA — confira antes de importar" style={{ fontSize: 10, fontWeight: 600, color: '#ca8a04', marginTop: 2 }}>IA · confira</div>
+                                <div title="Sugestão da IA — confira antes de importar" style={{ fontSize: 10, fontWeight: 600, color: 'var(--warn)', marginTop: 2 }}>IA · confira</div>
                               )}
                             </td>
                             <td style={{ padding: '6px 10px' }}>
@@ -1908,7 +1909,7 @@ export default function Lancamentos() {
                               <div style={{ display: 'flex', gap: 4 }}>
                                 <button onClick={() => abrirDividir(l, 'extrato')}
                                   title="Dividir em partes"
-                                  style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 14 }}>✂️</button>
+                                  style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 14 }}><Icone nome="cortar" tamanho={14} /></button>
                                 <button onClick={() => setExtratoLinhas(p => p.filter(x => x._id !== l._id))}
                                   style={{ background: 'none', border: 'none', color: 'var(--saida)', cursor: 'pointer', fontSize: 16 }}>✕</button>
                               </div>
@@ -1937,7 +1938,7 @@ export default function Lancamentos() {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && !dividirSalvando && setDividindo(null)}>
           <div className="modal-box" style={{ maxWidth: 720, width: '95vw' }}>
             <div className="modal-header">
-              <h3>✂️ Dividir: {dividindo.descricao}</h3>
+              <h3>Dividir: {dividindo.descricao}</h3>
               <button className="modal-close" onClick={() => !dividirSalvando && setDividindo(null)}>✕</button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

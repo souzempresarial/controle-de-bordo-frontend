@@ -3,18 +3,18 @@
 
 .imp-aviso {
   font-size: 13px; line-height: 1.5; color: var(--text);
-  padding: 10px 14px; border-radius: 10px;
+  padding: 10px 14px; border-radius: var(--radius);
   border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface));
 }
 .imp-carregando, .imp-vazio { padding: 24px; text-align: center; color: var(--text2); font-size: 13px; }
-.imp-erro { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--saida); color: var(--saida); font-size: 13px; }
+.imp-erro { padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--saida); color: var(--saida); font-size: 13px; }
 
 .imp-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
 .imp-resumo > div {
   display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
-  border: 1px solid var(--border); border-radius: 10px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2);
 }
-.imp-resumo span { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+.imp-resumo span { font-size: 11px; color: var(--text2); }
 .imp-resumo strong { font-size: 16px; color: var(--entrada); font-variant-numeric: tabular-nums; }
 .imp-resumo-total { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 8%, var(--surface)) !important; }
 
@@ -29,25 +29,25 @@
 .imp-filtros button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #imp-busca {
   flex: 1; min-width: 180px; font-size: 13px; padding: 6px 10px;
-  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
 }
 .imp-massa { display: flex; gap: 6px; }
 
-.imp-tabela-wrap { overflow: auto; flex: 1; min-height: 200px; border: 1px solid var(--border); border-radius: 10px; }
+.imp-tabela-wrap { overflow: auto; flex: 1; min-height: 200px; border: 1px solid var(--border); border-radius: var(--radius); }
 .imp-tabela { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .imp-tabela th {
   position: sticky; top: 0; z-index: 1; background: var(--surface2);
-  text-align: left; font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .04em;
+  text-align: left; font-size: 11px; color: var(--text2);
   padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 .imp-tabela td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); }
 .imp-tabela .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .imp-tabela input[type=number] {
   width: 84px; text-align: right; font-size: 12.5px; padding: 3px 6px;
-  border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
 }
 .imp-tabela select {
-  font-size: 12px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 12px; padding: 3px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--text);
 }
 .imp-tabela input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
@@ -68,7 +68,7 @@
 .imp-origem-corpo { display: flex; flex-direction: column; gap: 10px; }
 .imp-opcao {
   display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer;
-  padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); color: var(--text); font: inherit;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface2); color: var(--text); font: inherit;
 }
 .imp-opcao strong { font-size: 14px; }
 .imp-opcao span { font-size: 12.5px; color: var(--text2); }

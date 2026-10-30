@@ -1,35 +1,25 @@
 .financeiro-page { display: flex; flex-direction: column; gap: 18px; }
 
 /* ── ABAS ── */
-.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.abas::-webkit-scrollbar { display: none; }
-.aba-btn {
-  background: none; border: none; color: var(--text2);
-  padding: 8px 18px; font-size: 13px; font-weight: 600;
-  cursor: pointer; border-bottom: 2px solid transparent;
-  margin-bottom: -1px; transition: all .15s; white-space: nowrap; flex-shrink: 0;
-}
-.aba-btn:hover { color: var(--text); }
-.aba-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ── DRE TABLE ── */
 .dre-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .dre-table th {
-  padding: 8px 12px; text-align: left; font-size: 11px;
-  color: var(--text2); text-transform: uppercase; letter-spacing: .5px;
+  padding: 10px 14px; text-align: left; font-size: 12px;
+  color: var(--text2);
   border-bottom: 1px solid var(--border); background: var(--surface2);
-  font-weight: 600; white-space: nowrap;
+  font-weight: 500; white-space: nowrap;
 }
-.dre-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dre-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .dre-table tr:hover td { background: var(--surface2); }
 
 
-.row-big td   { font-weight: 700; background: var(--surface2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); font-size: 12px; }
+.row-big td   { font-weight: 700; background: var(--surface2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 12px; }
 .row-med td   { font-weight: 600; }
 .row-pct td   { font-style: italic; }
 .row-sub td   { background: transparent; }
-.row-final td { font-weight: 800; background: linear-gradient(#22c55e18, #22c55e18), var(--surface); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
-.row-sep td   { background: linear-gradient(#22c55e22, #22c55e22), var(--surface); color: #22c55e; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 12px; white-space: nowrap; }
+.row-final td { font-weight: 800; background: color-mix(in srgb, var(--destaque) 16%, var(--surface)); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.row-sep td   { background: var(--surface2); color: var(--text2); font-weight: 700; font-size: 11px;  padding: 8px 12px; white-space: nowrap; }
 
 /* ── DRE/DFC: nomes das linhas e meses fixos ao rolar ── */
 .dre-scroll { overflow: auto; max-height: calc(100vh - 220px); overscroll-behavior-x: contain; }
@@ -46,19 +36,27 @@
 .dre-titulo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dre-setas { display: flex; gap: 4px; flex-shrink: 0; }
 .dre-setas button {
-  width: 26px; height: 22px; border-radius: 6px; cursor: pointer;
+  width: 26px; height: 22px; border-radius: var(--radius-sm); cursor: pointer;
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
   font-size: 15px; line-height: 1; padding: 0;
 }
 .dre-setas button:hover { border-color: var(--accent); color: var(--accent); }
 .dre-setas button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.dre-visoes { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--surface2); }
+.dre-visoes button {
+  border: 0; background: none; color: var(--text2); font-size: 12.5px; font-weight: 600;
+  padding: 6px 14px; border-radius: 999px; cursor: pointer;
+}
+.dre-visoes button:hover { color: var(--text); }
+.dre-visoes button.ativo { background: var(--nav-ativo); color: var(--nav-ativo-texto); }
+.dre-visoes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .ah-var { font-size: 10px; font-weight: 600; font-style: normal; margin-top: 2px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ah-toggle {
   border: 1px solid var(--border); background: var(--surface); color: var(--text2);
-  border-radius: 8px; padding: 0 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  border-radius: var(--radius-sm); padding: 0 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .ah-toggle:hover { color: var(--text); border-color: var(--accent); }
-.ah-toggle.ativo { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ah-toggle.ativo { background: var(--nav-ativo); border-color: var(--nav-ativo); color: var(--nav-ativo-texto); }
 .ah-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .dre-table th.mes-ativo { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
 

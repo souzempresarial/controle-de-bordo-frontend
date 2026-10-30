@@ -14,6 +14,11 @@ function inline(linha) {
 
 const semNegrito = t => t.replace(/\*\*/g, '').trim();
 
+function semValor(texto, valor) {
+  const resto = texto.replace(`**${valor}**`, '').replace(valor, '').replace(/^[\s,:;.\-–—]+/, '').trim();
+  return resto ? resto[0].toUpperCase() + resto.slice(1) : '';
+}
+
 function numero(valor) {
   const n = parseFloat(String(valor).replace(/[^\d,-]/g, '').replace(',', '.'));
   return Number.isFinite(n) ? Math.abs(n) : 0;
@@ -41,7 +46,9 @@ function classificar(linha) {
       // Só vira número grande quando é o único do card: com vários, o primeiro nem sempre é o que importa
       const valores = card[2].match(VALORES) || [];
       const corpo = card[2].includes('**') ? card[2] : card[2].replace(VALORES, '**$&**');
-      return { tipo: 'card', titulo: card[1], corpo, valor: valores.length === 1 ? valores[0] : null };
+      const valor = valores.length === 1 ? valores[0] : null;
+      const resto = valor ? semValor(corpo, valor) : corpo;
+      return { tipo: 'card', titulo: card[1], corpo: resto, valor };
     }
     const partes = conteudo.split(/\s+[—–]\s+/);
     if (partes.length >= 2 && VALOR.test(partes.at(-1))) {
@@ -118,7 +125,7 @@ export default function TextoFormatado({ texto }) {
               <article key={j} className="resp-card">
                 <h5>{c.titulo}</h5>
                 {c.valor && <strong className="resp-card-valor">{c.valor}</strong>}
-                <p>{inline(c.corpo)}</p>
+                {c.corpo && <p>{inline(c.corpo)}</p>}
               </article>
             ))}
           </div>

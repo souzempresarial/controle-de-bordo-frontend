@@ -19,39 +19,53 @@
 @media (max-width: 900px) { .dash-kpis { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 500px) { .dash-kpis { grid-template-columns: 1fr; } }
 
+.dash-cabecalho { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.dash-saudacao { min-width: 0; }
+.dash-saudacao h1 { font-size: 30px; font-weight: 600; letter-spacing: -.025em; line-height: 1.15; text-wrap: balance; }
+.dash-saudacao p { margin-top: 5px; font-size: 14px; color: var(--text2); }
+@media (max-width: 500px) { .dash-saudacao h1 { font-size: 24px; } }
+
 .dash-kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px 20px 16px;
+  border-radius: var(--radius);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  transition: box-shadow .15s;
+  gap: 12px;
+  min-width: 0;
 }
-.dash-kpi-card:hover { box-shadow: 0 4px 20px #0003; }
+
+.dash-kpi-topo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dash-kpi-icone {
+  display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  color: var(--cor); background: color-mix(in srgb, var(--cor) 14%, var(--surface));
+}
 
 .dash-kpi-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .dash-kpi-value {
-  font-size: 26px;
-  font-weight: 900;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1.1;
-  letter-spacing: -.5px;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
 }
 
 .dash-kpi-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
 }
+
+.dash-kpi-delta { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dash-kpi-delta.bom { color: var(--entrada); }
+.dash-kpi-delta.ruim { color: var(--saida); }
 
 .dash-kpi-sub {
   font-size: 11px;
@@ -79,7 +93,7 @@
 }
 .linha-receita-grupo { cursor: pointer; }
 .linha-receita-grupo td { font-weight: 700; background: var(--surface2); }
-.linha-receita-grupo td:first-child { text-transform: uppercase; letter-spacing: .04em; font-size: 12px; }
+.linha-receita-grupo td:first-child { font-size: 12px; }
 .linha-receita-grupo:hover td { background: color-mix(in srgb, var(--accent) 7%, var(--surface2)); }
 .linha-receita-grupo:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .linha-receita-item td:first-child { font-weight: 600; padding-left: 32px; }
@@ -91,12 +105,9 @@
 @media (prefers-reduced-motion: reduce) { .linha-receita-seta { transition: none; } }
 
 /* ── Layout novo: cards + gráfico à esquerda, contas a pagar à direita ── */
-.dash-novo { margin-left: auto; }
 .dash-topo { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: stretch; }
 .dash-principal { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .dash-topo .dash-kpis { gap: 10px; }
-.dash-topo .dash-kpi-card { padding: 14px 14px 12px; }
-.dash-topo .dash-kpi-value { font-size: 20px; }
 @media (max-width: 1100px) {
   .dash-topo { grid-template-columns: 1fr; }
   .dash-topo .contas-painel { max-height: 420px; }
