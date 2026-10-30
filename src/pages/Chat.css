@@ -59,28 +59,29 @@
 /* ── Conversa ── */
 .souz-chat-topo {
   display: flex; justify-content: space-between; align-items: center;
-  padding-bottom: 10px; border-bottom: 1px solid var(--border);
-  font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--text2);
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.souz-chat-identidade { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
+.souz-chat-identidade i {
+  width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--accent); color: #fff;
 }
 .souz-chat-mensagens {
   flex: 1; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 14px; padding-block: 18px;
 }
-.souz-msg { display: flex; flex-direction: column; gap: 3px; max-width: 85%; }
+.souz-msg { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
 .souz-msg--user { align-self: flex-end; align-items: flex-end; }
-.souz-msg--assistant { align-self: flex-start; }
+.souz-msg--assistant { align-self: stretch; max-width: 860px; }
 .souz-msg-corpo { font-size: 14.5px; line-height: 1.6; color: var(--text); word-break: break-word; }
 .souz-msg--user .souz-msg-corpo {
   background: var(--accent); color: #fff; padding: 10px 14px;
   border-radius: 16px; border-bottom-right-radius: 4px; white-space: pre-wrap;
 }
-.souz-msg--assistant .souz-msg-corpo {
-  background: var(--surface); border: 1px solid var(--border);
-  padding: 12px 16px; border-radius: 16px; border-bottom-left-radius: 4px;
+.souz-msg--erro .souz-msg-corpo {
+  background: var(--surface); padding: 12px 16px; border: 1px solid var(--saida); border-radius: 16px;
 }
 .souz-msg--assistant .souz-msg-corpo .chat-digitando { padding: 4px 0; background: none; }
-.souz-msg--erro .souz-msg-corpo { border-color: var(--saida); }
-.souz-msg-corpo .chat-item { padding-left: 12px; text-indent: -10px; }
 .souz-msg-canal { font-size: 10px; color: var(--text2); }
 .souz-chat-rodape { padding-top: 8px; }
 

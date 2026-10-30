@@ -8,10 +8,9 @@ import './ChatWidget.css';
 
 export default function ChatWidget() {
   const { clienteAtivo } = useApp();
-  const { mensagens, carregando, enviar, limpar } = useChat();
+  const { mensagens, carregando, enviar, limpar, painelAberto: aberto, setPainelAberto: setAberto } = useChat();
   const { pathname } = useLocation();
   const usuarioNome = sessionStorage.getItem('sf_nome') || '';
-  const [aberto, setAberto] = useState(false);
   const [input, setInput]   = useState('');
   const fimRef   = useRef(null);
   const inputRef = useRef(null);

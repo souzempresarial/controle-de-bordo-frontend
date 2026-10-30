@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useChat } from '../context/ChatContext';
 import TextoFormatado from '../components/TextoFormatado';
 import BotaoMicrofone from '../components/BotaoMicrofone';
+import ModoVoz from '../components/ModoVoz';
 import { MESES_FULL } from '../services/utils';
 import './Chat.css';
 
@@ -23,7 +24,7 @@ function sugestoes() {
   ];
 }
 
-export default function Chat() {
+function Conversa({ abrirVoz }) {
   const { clienteAtivo } = useApp();
   const { mensagens, carregando, enviar, limpar } = useChat();
   const [input, setInput] = useState('');
@@ -56,6 +57,7 @@ export default function Chat() {
   }
 
   const nome = nomeSaudacao(clienteAtivo);
+  const vozSuportada = !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
 
   const caixa = (
     <form className="souz-chat-caixa" onSubmit={e => { e.preventDefault(); mandar(input); }}>
@@ -71,9 +73,15 @@ export default function Chat() {
         disabled={!clienteAtivo}
       />
       <BotaoMicrofone onTexto={receberDitado} disabled={carregando} />
-      <button type="submit" className="souz-chat-enviar" disabled={!input.trim() || carregando} aria-label="Enviar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
-      </button>
+      {input.trim() || !vozSuportada ? (
+        <button type="submit" className="souz-chat-enviar" disabled={!input.trim() || carregando} aria-label="Enviar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>
+        </button>
+      ) : (
+        <button type="button" className="souz-chat-enviar" onClick={abrirVoz} disabled={carregando || !clienteAtivo} aria-label="Conversar por voz" title="Conversar por voz">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" /></svg>
+        </button>
+      )}
     </form>
   );
 
@@ -102,7 +110,10 @@ export default function Chat() {
   return (
     <div className="souz-chat">
       <div className="souz-chat-topo">
-        <span>SOUZ AI</span>
+        <span className="souz-chat-identidade">
+          <i aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /></svg></i>
+          SOUZ AI
+        </span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={limpar} disabled={carregando}>Nova conversa</button>
       </div>
       <div className="souz-chat-mensagens" aria-live="polite">
@@ -123,5 +134,16 @@ export default function Chat() {
       </div>
       <div className="souz-chat-rodape">{caixa}</div>
     </div>
+  );
+}
+
+// A voz fica fora da conversa: o chat vazio e o com mensagens são telas diferentes, e a troca a destruiria
+export default function Chat() {
+  const [modoVoz, setModoVoz] = useState(false);
+  return (
+    <>
+      <Conversa abrirVoz={() => setModoVoz(true)} />
+      {modoVoz && <ModoVoz onFechar={() => setModoVoz(false)} />}
+    </>
   );
 }

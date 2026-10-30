@@ -37,8 +37,9 @@ async function apiFetch(path, options = {}) {
     return new Promise(() => {});
   }
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.erro || 'Erro na requisição');
+  // Corte do gateway (502/504) pode vir sem JSON: a pessoa vê um aviso claro, não um erro de leitura
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data) throw new Error(data?.erro || (res.status >= 502 ? 'O servidor demorou para responder' : 'Erro na requisição'));
   return data;
 }
 
@@ -86,6 +87,7 @@ export const API = {
   chatHistorico: (cid)            => apiFetch(`/clientes/${cid}/chat/historico`),
   chatLimpar:    (cid)            => apiFetch(`/clientes/${cid}/chat/historico`, { method: 'DELETE' }),
   chatTranscrever: (cid, dados)   => apiFetch(`/clientes/${cid}/chat/transcrever`, { method: 'POST', body: JSON.stringify(dados) }),
+  chatFalar:     (cid, dados)    => apiFetch(`/clientes/${cid}/chat/falar`, { method: 'POST', body: JSON.stringify(dados) }),
 
   listarContas:  (cid)            => apiFetch(`/clientes/${cid}/contas`),
   criarConta:    (cid, dados)     => apiFetch(`/clientes/${cid}/contas`, { method: 'POST', body: JSON.stringify(dados) }),

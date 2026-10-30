@@ -1,19 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
+import { blobParaBase64, formatoAudio } from '../services/gravacao';
 import './BotaoMicrofone.css';
 
 const LIMITE_SEGUNDOS = 60;
-const FORMATOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-
-function blobParaBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(',')[1]);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
-}
 
 // Ditado: grava, a IA transcreve e o texto vai para a caixa — o usuário confere antes de enviar
 export default function BotaoMicrofone({ onTexto, disabled, compacto = false }) {
@@ -46,7 +37,7 @@ export default function BotaoMicrofone({ onTexto, disabled, compacto = false }) 
       setErro('Libere o acesso ao microfone no navegador para usar o ditado.');
       return;
     }
-    const mimeType = FORMATOS.find(f => MediaRecorder.isTypeSupported?.(f)) || '';
+    const mimeType = formatoAudio();
     const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
     const partes = [];
     rec.ondataavailable = e => { if (e.data.size) partes.push(e.data); };

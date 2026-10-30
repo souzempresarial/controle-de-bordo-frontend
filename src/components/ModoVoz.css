@@ -1,0 +1,62 @@
+/* Tela imersiva: escura de propósito nos dois temas, para a aurora brilhar */
+.modo-voz {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: radial-gradient(90% 70% at 50% 42%, #0c2a20 0%, #07150f 52%, #040b08 100%);
+  color: #eef7f2;
+  animation: modo-voz-entra .3s ease-out;
+}
+.modo-voz-topo {
+  display: flex; justify-content: flex-end;
+}
+.modo-voz-fechar {
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .06); color: #eef7f2;
+  backdrop-filter: blur(10px);
+  transition: background .15s, border-color .15s;
+}
+.modo-voz-fechar:hover { background: rgba(255, 255, 255, .13); border-color: rgba(255, 255, 255, .25); }
+.modo-voz-fechar:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+
+.modo-voz-centro {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; text-align: center; min-height: 0;
+}
+
+.modo-voz-aurora {
+  width: min(82vw, 440px); aspect-ratio: 1; max-height: 56vh;
+  padding: 0; border: none; background: none; border-radius: 50%; cursor: default;
+  display: grid; place-items: center;
+}
+.modo-voz-aurora:not(:disabled) { cursor: pointer; }
+.modo-voz-aurora:focus-visible { outline: 2px solid #4ade80; outline-offset: 4px; }
+.modo-voz-aurora canvas { width: 100%; height: 100%; object-fit: contain; filter: blur(7px) saturate(1.3); }
+.modo-voz--erro .modo-voz-aurora canvas { opacity: .6; }
+
+.modo-voz-estado {
+  margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -.01em;
+  max-width: 34ch; text-wrap: balance;
+}
+.modo-voz-pontos { display: inline-flex; gap: 4px; margin-left: 6px; }
+.modo-voz-pontos i {
+  width: 4px; height: 4px; border-radius: 50%; background: currentColor;
+  animation: modo-voz-ponto 1.2s ease-in-out infinite;
+}
+.modo-voz-pontos i:nth-child(2) { animation-delay: .15s; }
+.modo-voz-pontos i:nth-child(3) { animation-delay: .3s; }
+.modo-voz-legenda {
+  margin: 0; font-size: 15px; line-height: 1.5; color: rgba(238, 247, 242, .6);
+  max-width: 52ch; max-height: 4.6em; overflow-y: auto;
+}
+
+@keyframes modo-voz-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modo-voz-ponto {
+  0%, 100% { opacity: .25; transform: translateY(0); }
+  40%      { opacity: 1; transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modo-voz { animation: none; }
+  .modo-voz-pontos i { animation: none; opacity: .7; }
+}
