@@ -86,7 +86,7 @@ export function getSubcats(cat) {
 // Fora da lista dá para digitar em "Outro…" (componente SelectBanco)
 export const BANCOS = [
   'AustPay', 'Banco do Brasil', 'Banco Inter', 'Bradesco', 'BTG Pactual', 'C6 Bank', 'Caixa Econômica Federal',
-  'Cielo', 'Cora', 'Digio', 'FCR Pay', 'Getnet', 'Infinity Pay', 'Intermediadora', 'Itaú',
+  'Cielo', 'Cora', 'Cresol', 'Digio', 'FCR Pay', 'Getnet', 'Infinity Pay', 'Intermediadora', 'Itaú',
   'LeansPay', 'Mercado Pago', 'Nubank', 'PagBank', 'PagFlex', 'PicPay', 'Rede', 'Santander', 'Sicoob', 'Sicredi',
   'Stone', 'SumUp', 'Ton', 'Unicred',
 ];
