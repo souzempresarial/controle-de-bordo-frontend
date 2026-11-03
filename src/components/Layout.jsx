@@ -8,6 +8,10 @@ import ChatWidget from './ChatWidget';
 import Icone from './Icone';
 import './Layout.css';
 
+// Controle de Upgrade fora do menu desde 03/11/2026 para medir se os clientes sentem falta.
+// A página continua em /upgrade; para voltar ao menu, troque para true.
+const MOSTRAR_UPGRADE = false;
+
 export default function Layout({ children, usuario, onLogout }) {
   const { clienteAtivo, erroEntrar, loading: carregandoCliente, recarregarCliente } = useApp();
   const navigate = useNavigate();
@@ -124,7 +128,7 @@ export default function Layout({ children, usuario, onLogout }) {
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
           Financeiro
         </NavLink>}
-        {podeVer('upgrade') && <NavLink to="/upgrade" title="Controle de Upgrade" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
+        {MOSTRAR_UPGRADE && podeVer('upgrade') && <NavLink to="/upgrade" title="Controle de Upgrade" onClick={fecharSidebar} className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           <svg className="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
           Controle de Upgrade
         </NavLink>}
