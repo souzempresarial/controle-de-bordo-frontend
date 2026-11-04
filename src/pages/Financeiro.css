@@ -18,7 +18,7 @@
 .row-med td   { font-weight: 600; }
 .row-pct td   { font-style: italic; }
 .row-sub td   { background: transparent; }
-.row-final td { font-weight: 800; background: color-mix(in srgb, var(--destaque) 16%, var(--surface)); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.row-final td { font-weight: 800; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .row-sep td   { background: var(--surface2); color: var(--text2); font-weight: 700; font-size: 11px;  padding: 8px 12px; white-space: nowrap; }
 
 /* ── DRE/DFC: nomes das linhas e meses fixos ao rolar ── */
@@ -31,6 +31,7 @@
   box-shadow: 1px 0 0 var(--border), 4px 0 8px -4px rgba(0, 0, 0, .25);
 }
 .dre-scroll .dre-table thead th:first-child { z-index: 3; background-color: var(--surface2); }
+.dre-scroll .row-sep td:first-child,
 .dre-scroll .row-big td:first-child,
 .dre-scroll .dre-table tr:hover td:first-child { background-color: var(--surface2); }
 .dre-titulo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
