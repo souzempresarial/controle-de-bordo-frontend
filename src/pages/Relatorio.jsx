@@ -40,6 +40,20 @@ function calcPeriodo(lancamentos, inicio, fim) {
                     + accs.reduce((a, l) => a + deducaoNaVenda(l), 0);
   const lucAcc      = fatAcc - cmvAcc - dedAcc;
 
+  // Lucro por venda: só vendas com aparelho, somando os acessórios que saíram junto.
+  // No Mercado Phone a venda é o número MP-<id> da obs; fora dele, o grupo do lançamento (ou o próprio lançamento).
+  const chaveVenda  = l => { const m = (l.obs || '').match(/^\[MP-(\d+)/); return m ? 'mp' + m[1] : 'g' + (l.grupoId || l.id); };
+  const custoGrupo  = {};
+  for (const l of lm) {
+    if (!l.grupoId || l.tipo !== 'Saída') continue;
+    if (l.isCMV || CMVCATS.includes(l.categoria) || DEDUCOES_CATS.includes(l.categoria)) custoGrupo[l.grupoId] = (custoGrupo[l.grupoId] || 0) + l.valor;
+  }
+  const lucItem     = l => l.valor - (l.grupoId ? custoGrupo[l.grupoId] || 0 : 0) - deducaoNaVenda(l);
+  const vendasAp    = new Set(aps.map(chaveVenda));
+  const lucVendasAp = [...aps, ...accs.filter(l => vendasAp.has(chaveVenda(l)))].reduce((a, l) => a + lucItem(l), 0);
+  const nVendas     = vendasAp.size;
+  const lucVenda    = nVendas > 0 ? lucVendasAp / nVendas : 0;
+
   const lmDFC        = lm.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
   const entBruto     = lmDFC.filter(l => l.tipo === 'Entrada').reduce((a, l) => a + l.valor, 0);
   const dedInline    = lmDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a, l) => a + (l.valor - l.valorRecebido), 0);
@@ -57,7 +71,7 @@ function calcPeriodo(lancamentos, inicio, fim) {
   const pe          = imc > 0 ? custoFixos / imc : 0;
 
   return { fat, deducoes, cmvTotal, sga, naoOp, gastos, lucBruto, lucLiq,
-           uni, fatAp, ticket, lucMedio, uniAcc, fatAcc, cmvAcc, lucAcc,
+           uni, fatAp, ticket, lucMedio, uniAcc, fatAcc, cmvAcc, lucAcc, nVendas, lucVenda,
            entCaixa, saiCaixa, caixaLiq, margemBruta, cvIndiretos, custoFixos, imc, pe };
 }
 
@@ -499,6 +513,7 @@ export default function Relatorio() {
                 <div className="rel-kv"><span>Lucro médio por aparelho</span><strong>{d.uni ? fmt(d.lucMedio) : '—'}</strong></div>
                 <div className="rel-kv"><span>Acessórios vendidos</span><strong>{d.uniAcc || '—'}</strong></div>
                 <div className="rel-kv"><span>Lucro com acessórios</span><strong>{d.uniAcc ? fmt(d.lucAcc) : '—'}</strong></div>
+                <div className="rel-kv" title="Média das vendas com aparelho: lucro do aparelho mais o dos acessórios vendidos junto"><span>Lucro médio por venda</span><strong>{d.nVendas ? fmt(d.lucVenda) : '—'}</strong></div>
               </div>
             </div>
 
