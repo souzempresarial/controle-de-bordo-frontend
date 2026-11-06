@@ -26,24 +26,32 @@ function useRolarParaMes(mesFiltro, ano, dados) {
   return ref;
 }
 
-function TituloComSetas({ titulo, scrollRef }) {
-  const rolar = dir => {
-    const el = scrollRef.current;
-    const col = el?.querySelector('th[data-mes]')?.offsetWidth || 100;
-    el?.scrollBy({ left: dir * col * 3, behavior: 'smooth' });
-  };
+
+const QUARTERS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
+
+// Período da tabela (DRE e Fluxo): 0 a 3 = Q1 a Q4 (meses do trimestre), 'qs' = os quatro trimestres, 'ano' = os 12 meses
+function useVisao(mesFiltro) {
+  const [visao, setVisao] = useState(() => Math.floor(mesFiltro / 3));
+  useEffect(() => { setVisao(v => (typeof v === 'string' ? v : Math.floor(mesFiltro / 3))); }, [mesFiltro]);
+  const colunas = useMemo(() => (
+    visao === 'qs'  ? QUARTERS.map((meses, q) => ({ rotulo: `Q${q + 1}`, meses }))
+    : visao === 'ano' ? MESES.map((m, i) => ({ rotulo: m, meses: [i] }))
+    : QUARTERS[visao].map(i => ({ rotulo: MESES[i], meses: [i] }))), [visao]);
+  const rotuloTotal = typeof visao === 'string' ? 'TOTAL' : `TOTAL Q${visao + 1}`;
+  return { visao, setVisao, colunas, rotuloTotal };
+}
+
+function SeletorVisao({ visao, setVisao }) {
   return (
-    <div className="dre-titulo">
-      <span>{titulo}</span>
-      <span className="dre-setas">
-        <button type="button" onClick={() => rolar(-1)} aria-label="Meses anteriores" title="Meses anteriores">‹</button>
-        <button type="button" onClick={() => rolar(1)} aria-label="Próximos meses" title="Próximos meses">›</button>
-      </span>
+    <div className="dre-visoes" role="group" aria-label="Período da tabela">
+      {QUARTERS.map((meses, q) => (
+        <button key={q} type="button" className={visao === q ? 'ativo' : ''} aria-pressed={visao === q} title={`${MESES[meses[0]]} a ${MESES[meses[2]]}`} onClick={() => setVisao(q)}>Q{q + 1}</button>
+      ))}
+      <button type="button" className={visao === 'qs' ? 'ativo' : ''} aria-pressed={visao === 'qs'} title="Os quatro trimestres do ano" onClick={() => setVisao('qs')}>Qs</button>
+      <button type="button" className={visao === 'ano' ? 'ativo' : ''} aria-pressed={visao === 'ano'} title="Os doze meses do ano" onClick={() => setVisao('ano')}>Ano</button>
     </div>
   );
 }
-
-const QUARTERS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
 
 function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, setMesFiltro, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
@@ -56,11 +64,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
 
   const [expandedRows, setExpanded] = useState(new Set());
   const [mostrarAH, setMostrarAH]   = useState(false);
-  const [visao, setVisao]           = useState(() => Math.floor(mesFiltro / 3)); // 0 a 3 = Q1 a Q4, ou 'ano'
-  useEffect(() => { setVisao(v => (v === 'ano' ? v : Math.floor(mesFiltro / 3))); }, [mesFiltro]);
-  const colunas = useMemo(() => (visao === 'ano'
-    ? QUARTERS.map((meses, q) => ({ rotulo: `Q${q + 1}`, meses }))
-    : QUARTERS[visao].map(i => ({ rotulo: MESES[i], meses: [i] }))), [visao]);
+  const { visao, setVisao, colunas, rotuloTotal } = useVisao(mesFiltro);
   const ultimoMesComDados = ano < anoAtual ? 11 : ano > anoAtual ? -1 : Number(hoje().slice(5, 7)) - 1;
 
   // Análise Horizontal: variação contra o mês anterior. Em linhas de custo (neg), subir é ruim.
@@ -214,7 +218,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
     </tr>
   );
 
-  // Só se digita mês a mês: na visão por ano o trimestre mostra a soma
+  // Só se digita mês a mês: na visão Qs o trimestre mostra a soma
   const RowEdit = ({ label, campo, chave }) => (
     <tr className="row-med">
       <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>{label}</td>
@@ -279,12 +283,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
       <div className="table-panel">
         <div className="table-header">
           <h2>DRE — Resultado do Exercício</h2>
-          <div className="dre-visoes" role="group" aria-label="Período da tabela">
-            {QUARTERS.map((meses, q) => (
-              <button key={q} type="button" className={visao === q ? 'ativo' : ''} aria-pressed={visao === q} title={`${MESES[meses[0]]} a ${MESES[meses[2]]}`} onClick={() => setVisao(q)}>Q{q + 1}</button>
-            ))}
-            <button type="button" className={visao === 'ano' ? 'ativo' : ''} aria-pressed={visao === 'ano'} title="Os quatro trimestres do ano" onClick={() => setVisao('ano')}>Ano</button>
-          </div>
+          <SeletorVisao visao={visao} setVisao={setVisao} />
         </div>
         <div className="dre-scroll">
           <table className="dre-table">
@@ -292,7 +291,7 @@ function DRE({ lancamentos, clienteAtivo, metasCache, setMetasCache, mesFiltro, 
               <tr>
                 <th style={{ minWidth: 280 }}>Conta</th>
                 {colunas.map(c => <th key={c.rotulo} className={c.meses.includes(mesFiltro) ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 110 }}>{c.rotulo}</th>)}
-                <th style={{ textAlign: 'right', minWidth: 120 }}>{visao === 'ano' ? 'TOTAL' : `TOTAL Q${visao + 1}`}</th>
+                <th style={{ textAlign: 'right', minWidth: 120 }}>{rotuloTotal}</th>
               </tr>
             </thead>
             <tbody>
@@ -363,7 +362,8 @@ const DFC_GRUPOS = [
 ];
 
 function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setAno }) {
-  const scrollRef = useRolarParaMes(mesFiltro, ano, lancamentos);
+  const { visao, setVisao, colunas, rotuloTotal } = useVisao(mesFiltro);
+  const scrollRef = useRolarParaMes(mesFiltro, ano, `${lancamentos.length}-${visao}`);
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -420,9 +420,6 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
     ? <span style={{ color: 'var(--text2)' }}>—</span>
     : <span style={{ color: cor || (v >= 0 ? 'var(--entrada)' : 'var(--saida)'), fontWeight: 600 }}>{fmt(v)}</span>;
 
-  const totEnt = mv.reduce((a,m) => a+m.ent, 0);
-  const totSai = mv.reduce((a,m) => a+m.sai, 0);
-  const totSaldo = totEnt - totSai;
 
   // Evolução do caixa a partir do primeiro saldo das contas informado (dia 1 do mês).
   // Início = saldo informado no dia 1 (ou o calculado desde o último informado); Final pelo sistema = Início + Saldo do mês;
@@ -440,13 +437,26 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       return { ini: base.valor, informado: base.informado, fim, real, dif: real == null ? null : real - fim };
     });
   }, [mv, totaisContas, lancamentos, ano]);
-  const evoValidas = evolucao.filter(Boolean);
-  const evoIni     = evoValidas[0]?.ini;
-  const evoUltima  = evoValidas[evoValidas.length - 1];
-  const evoReal    = [...evoValidas].reverse().find(e => e.real != null)?.real;
-  const evoDifTot  = evoValidas.some(e => e.dif != null) ? evoValidas.reduce((a, e) => a + (e.dif || 0), 0) : null;
-  const evoMes     = evolucao[mesFiltro];
+  const evoMes = evolucao[mesFiltro];
   const s = v => v == null ? <span style={{ color: 'var(--text2)' }}>—</span> : d(v);
+
+  // Colunas no padrão do DRE (Q1–Q4, Qs, Ano): cada coluna soma os seus meses; o total soma todos os visíveis
+  const mesesVisiveis = colunas.flatMap(c => c.meses);
+  const porColuna = fn => colunas.map(c => c.meses.reduce((a, i) => a + fn(mv[i]), 0));
+  const noTotal   = fn => mesesVisiveis.reduce((a, i) => a + fn(mv[i]), 0);
+  // Evolução de um conjunto de meses: começa no início do primeiro, termina no fim do último
+  const evoDe = meses => {
+    const v = meses.map(i => evolucao[i]).filter(Boolean);
+    if (!v.length) return null;
+    const ult = v[v.length - 1];
+    return { ini: v[0].ini, fim: ult.fim, real: ult.real, dif: v.some(e => e.dif != null) ? v.reduce((a, e) => a + (e.dif || 0), 0) : null };
+  };
+  // Categorias recolhidas como no DRE: clique abre as subcategorias
+  const [abertas, setAbertas] = useState(new Set());
+  const alternar = cat => setAbertas(prev => { const n = new Set(prev); if (n.has(cat)) n.delete(cat); else n.add(cat); return n; });
+  const evoCols  = colunas.map(c => evoDe(c.meses));
+  const evoTotal = evoDe(mesesVisiveis);
+  const nCols    = colunas.length + 1;
 
 
   return (
@@ -498,39 +508,43 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
       </div>
 
       <div className="table-panel">
+        <div className="table-header">
+          <h2>Fluxo de Caixa</h2>
+          <SeletorVisao visao={visao} setVisao={setVisao} />
+        </div>
         <div className="dre-scroll" ref={scrollRef}>
           <table className="dre-table">
             <thead>
               <tr>
-                <th style={{ minWidth: 260 }}><TituloComSetas titulo="Fluxo de Caixa" scrollRef={scrollRef} /></th>
-                {MESES.map((m, i) => <th key={m} data-mes={i} className={i === mesFiltro ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 90 }}>{m}</th>)}
-                <th style={{ textAlign: 'right', minWidth: 100 }}>TOTAL</th>
+                <th style={{ minWidth: 280 }}>Conta</th>
+                {colunas.map(c => <th key={c.rotulo} data-mes={c.meses.length === 1 ? c.meses[0] : undefined} className={c.meses.includes(mesFiltro) ? 'mes-ativo' : ''} style={{ textAlign: 'right', minWidth: 110 }}>{c.rotulo}</th>)}
+                <th style={{ textAlign: 'right', minWidth: 120 }}>{rotuloTotal}</th>
               </tr>
             </thead>
             <tbody>
               <tr className="row-big">
                 <td>ENTRADAS TOTAL</td>
-                {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.ent, 'var(--entrada)')}</td>)}
-                <td style={{ textAlign: 'right' }}>{d(totEnt, 'var(--entrada)')}</td>
+                {porColuna(m => m.ent).map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{d(v, 'var(--entrada)')}</td>)}
+                <td style={{ textAlign: 'right' }}>{d(noTotal(m => m.ent), 'var(--entrada)')}</td>
               </tr>
               <tr className="row-big">
                 <td>SAÍDAS TOTAL</td>
-                {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.sai, 'var(--saida)')}</td>)}
-                <td style={{ textAlign: 'right' }}>{d(totSai, 'var(--saida)')}</td>
+                {porColuna(m => m.sai).map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{d(v, 'var(--saida)')}</td>)}
+                <td style={{ textAlign: 'right' }}>{d(noTotal(m => m.sai), 'var(--saida)')}</td>
               </tr>
               <tr className="row-final">
-                <td>SALDO DO MÊS</td>
-                {mv.map((m, i) => <td key={i} style={{ textAlign: 'right' }}>{d(m.saldo)}</td>)}
-                <td style={{ textAlign: 'right' }}>{d(totSaldo)}</td>
+                <td>{typeof visao === 'number' || visao === 'ano' ? 'SALDO DO MÊS' : 'SALDO DO PERÍODO'}</td>
+                {porColuna(m => m.saldo).map((v, i) => <td key={i} style={{ textAlign: 'right' }}>{d(v)}</td>)}
+                <td style={{ textAlign: 'right' }}>{d(noTotal(m => m.saldo))}</td>
               </tr>
               {DFC_GRUPOS.map(({ sep, grupos }) => (
                 <>
                   <tr key={sep} className="row-sep">
-                    <td>{sep}</td><td colSpan={13} />
+                    <td>{sep}</td><td colSpan={nCols} />
                   </tr>
                   {grupos.map(({ label, cats }) => {
-                    const grupoVals = mv.map(m => cats.reduce((a, c) => a + m.catVal(c), 0));
-                    const grupoTot  = grupoVals.reduce((a,b) => a+b, 0);
+                    const grupoVals = porColuna(m => cats.reduce((a, c) => a + m.catVal(c), 0));
+                    const grupoTot  = noTotal(m => cats.reduce((a, c) => a + m.catVal(c), 0));
                     if (!grupoVals.some(v => v !== 0) && grupoTot === 0) return null;
                     return (
                       <>
@@ -540,20 +554,28 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                           <td style={{ textAlign: 'right' }}>{d(grupoTot)}</td>
                         </tr>
                         {cats.map(cat => {
-                          const catVals = mv.map(m => m.catVal(cat));
-                          const catTot  = catVals.reduce((a,b) => a+b, 0);
+                          const catVals = porColuna(m => m.catVal(cat));
+                          const catTot  = noTotal(m => m.catVal(cat));
                           if (!catVals.some(v => v !== 0) && catTot === 0) return null;
-                          const subs = getSubcats(cat);
+                          const subs = getSubcats(cat).filter(sub => mesesVisiveis.some(i => mv[i].subVal(cat, sub) !== 0));
+                          const temSubs = subs.length > 0;
+                          const aberta = abertas.has(cat);
                           return (
                             <>
-                              <tr key={cat} className="row-med">
-                                <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>{cat}</td>
+                              <tr key={cat} className="row-med" style={temSubs ? { cursor: 'pointer' } : undefined}
+                                onClick={() => temSubs && alternar(cat)} aria-expanded={temSubs ? aberta : undefined}>
+                                <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>
+                                  {temSubs
+                                    ? <span style={{ marginRight: 6, fontSize: 9, display: 'inline-block', transform: aberta ? 'rotate(90deg)' : 'none', transition: 'transform .15s', color: 'var(--text2)' }}>▶</span>
+                                    : <span style={{ display: 'inline-block', width: 15 }} />}
+                                  {cat}
+                                </td>
                                 {catVals.map((v, i) => <td key={i} style={{ textAlign: 'right', color: 'var(--text2)' }}>{v ? fmt(v) : '—'}</td>)}
                                 <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{catTot ? fmt(catTot) : '—'}</td>
                               </tr>
-                              {subs.map(sub => {
-                                const subVals = mv.map(m => m.subVal(cat, sub));
-                                const subTot  = subVals.reduce((a,b) => a+b, 0);
+                              {aberta && subs.map(sub => {
+                                const subVals = porColuna(m => m.subVal(cat, sub));
+                                const subTot  = noTotal(m => m.subVal(cat, sub));
                                 if (!subVals.some(v => v !== 0) && subTot === 0) return null;
                                 return (
                                   <tr key={sub}>
@@ -572,11 +594,11 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                 </>
               ))}
               <tr className="row-sep">
-                <td>EVOLUÇÃO DO CAIXA</td><td colSpan={13} />
+                <td>EVOLUÇÃO DO CAIXA</td><td colSpan={nCols} />
               </tr>
-              {!evoValidas.length ? (
+              {!evolucao.some(Boolean) ? (
                 <tr>
-                  <td colSpan={14} style={{ color: 'var(--text2)', fontSize: 12 }}>
+                  <td colSpan={nCols + 1} style={{ color: 'var(--text2)', fontSize: 12 }}>
                     Informe quanto a loja tem em cada conta no início do mês (botão “Saldo das contas”) para acompanhar o caixa.
                   </td>
                 </tr>
@@ -584,23 +606,23 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
                 <>
                   <tr className="row-big">
                     <td>SALDO INICIAL (CONTAS)</td>
-                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.ini)}</td>)}
-                    <td style={{ textAlign: 'right' }}>{s(evoIni)}</td>
+                    {evoCols.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.ini)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoTotal?.ini)}</td>
                   </tr>
                   <tr className="row-med">
                     <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>Saldo final pelo sistema</td>
-                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right', color: 'var(--text2)' }}>{e ? fmt(e.fim) : '—'}</td>)}
-                    <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{evoUltima ? fmt(evoUltima.fim) : '—'}</td>
+                    {evoCols.map((e, i) => <td key={i} style={{ textAlign: 'right', color: 'var(--text2)' }}>{e ? fmt(e.fim) : '—'}</td>)}
+                    <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{evoTotal ? fmt(evoTotal.fim) : '—'}</td>
                   </tr>
                   <tr className="row-final">
                     <td>SALDO REAL NAS CONTAS</td>
-                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.real)}</td>)}
-                    <td style={{ textAlign: 'right' }}>{s(evoReal)}</td>
+                    {evoCols.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.real)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoTotal?.real)}</td>
                   </tr>
                   <tr className="row-med">
                     <td style={{ paddingLeft: 20, color: 'var(--text2)' }} title="Saldo real − saldo pelo sistema. Positivo: entrou dinheiro sem lançamento. Negativo: saiu dinheiro sem lançamento.">Diferença (real − sistema)</td>
-                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.dif)}</td>)}
-                    <td style={{ textAlign: 'right' }}>{s(evoDifTot)}</td>
+                    {evoCols.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.dif)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoTotal?.dif)}</td>
                   </tr>
                 </>
               )}
