@@ -80,13 +80,15 @@ const formVazio = (bancoDefault = '') => ({
 });
 
 export default function Dashboard() {
-  const { lancamentos, setLancamentos, clienteAtivo, contas } = useApp();
+  const { lancamentos, setLancamentos, clienteAtivo, contas, periodo, setPeriodo } = useApp();
   const navigate = useNavigate();
   const nome = nomeSaudacao(clienteAtivo);
 
   const mesAtual = hoje().slice(0, 7);
-  const [mes, setMes] = useState(() => localStorage.getItem('dash_mes') || mesAtual.slice(5, 7));
-  const [ano, setAno] = useState(() => localStorage.getItem('dash_ano') || mesAtual.slice(0, 4));
+  // Mês do sistema todo (AppContext): o mesmo do DRE, do Fluxo e das outras telas
+  const mes = periodo.slice(5, 7), ano = periodo.slice(0, 4);
+  const setMes = m => setPeriodo(`${ano}-${m}`);
+  const setAno = a => setPeriodo(`${a}-${mes}`);
   const [gruposAbertos, setGruposAbertos] = useState(lerGruposAbertos);
 
   function salvarGruposAbertos(set) {
@@ -117,7 +119,7 @@ export default function Dashboard() {
   const cmvCats = CATEGORIAS_CMV;
   const cmvSubs = CATEGORIAS_CMV[form.cmvCat] || [];
 
-  const periodo = `${ano}-${mes}`;
+  // periodo (AAAA-MM) vem do AppContext
   const prevMes = mesAnterior(periodo);
 
   const bancosOrdenados = useMemo(() => {
@@ -443,14 +445,14 @@ export default function Dashboard() {
           <p>Acompanhe vendas, gastos e o caixa da sua loja.</p>
         </div>
         <div className="period-row">
-        <select className="period-select" aria-label="Mês" value={mes} onChange={e => { setMes(e.target.value); localStorage.setItem('dash_mes', e.target.value); }}>
+        <select className="period-select" aria-label="Mês" value={mes} onChange={e => setMes(e.target.value)}>
           {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
             <option key={m} value={m}>
               {new Date(2024, i).toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
             </option>
           ))}
         </select>
-        <select className="period-select" aria-label="Ano" value={ano} onChange={e => { setAno(e.target.value); localStorage.setItem('dash_ano', e.target.value); }}>
+        <select className="period-select" aria-label="Ano" value={ano} onChange={e => setAno(e.target.value)}>
           {anos.map(a => <option key={a}>{a}</option>)}
         </select>
         <button className="btn btn-primary" onClick={abrirNovo}>＋ Novo Lançamento</button>

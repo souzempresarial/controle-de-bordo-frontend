@@ -202,13 +202,11 @@ function Pagina({ titulo, sub, icone, children }) {
 const CORES_MIX = ['#b6f23e', 'var(--text)', '#7c8f6a', '#c3cdb9', '#4d8f0a', '#a3a99e', '#e3e8de'];
 
 export default function Relatorio() {
-  const { lancamentos, clienteAtivo } = useApp();
+  const { lancamentos, clienteAtivo, periodoEscolhido, setPeriodo } = useApp();
 
-  const [mes, setMes] = useState(() => {
-    try { const s = localStorage.getItem('rel_mes'); if (s) return s; } catch { /* sem storage */ }
-    return mesAnterior(hoje().slice(0, 7));
-  });
-  function mudarMes(v) { if (!v) return; setMes(v); try { localStorage.setItem('rel_mes', v); } catch { /* sem storage */ } }
+  // Mês do sistema todo (AppContext). Sem mês escolhido ainda, o Resumo abre no mês anterior (o último fechado)
+  const mes = periodoEscolhido || mesAnterior(hoje().slice(0, 7));
+  function mudarMes(v) { if (v) setPeriodo(v); }
 
   const [verLancamentos, setVerLancamentos] = useState(false);
   const [imprimindo, setImprimindo]         = useState(false);

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { API } from '../services/api';
+import { hoje } from '../services/utils';
 
 const AppContext = createContext(null);
 
@@ -10,6 +11,14 @@ function clienteSalvo() {
 
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
+// Mês escolhido vale para o sistema todo (DRE, Fluxo, Balanço, Visão Geral, Contas, Resumo) até a pessoa trocar.
+// Fica na sessão da aba: ao abrir o sistema de novo começa no mês atual
+const MES_ATUAL = () => hoje().slice(0, 7);
+function periodoSalvo() {
+  try { const p = sessionStorage.getItem('sf_periodo'); if (/^\d{4}-\d{2}$/.test(p || '')) return p; } catch { /* sem storage */ }
+  return null;
+}
+
 export function AppProvider({ children }) {
   // Volta com o cliente já definido após F5; os dados chegam depois, sem deixar clienteAtivo null no meio
   const [clienteAtivo, setClienteAtivo] = useState(clienteSalvo);
@@ -18,6 +27,14 @@ export function AppProvider({ children }) {
   const [metasCache, setMetasCache]     = useState({});
   const [loading, setLoading]           = useState(false);
   const [erroEntrar, setErroEntrar]     = useState('');
+  // periodoEscolhido: null enquanto a pessoa não trocou o mês (o Resumo Executivo abre no mês anterior nesse caso)
+  const [periodoEscolhido, setPeriodoEscolhido] = useState(periodoSalvo);
+  const periodo = periodoEscolhido || MES_ATUAL();
+  const setPeriodo = useCallback((p) => {
+    if (!/^\d{4}-\d{2}$/.test(p || '')) return;
+    setPeriodoEscolhido(p);
+    try { sessionStorage.setItem('sf_periodo', p); } catch { /* sem storage: vale só nesta tela */ }
+  }, []);
 
   const entrarCliente = useCallback(async (cliente) => {
     setLoading(true);
@@ -82,6 +99,7 @@ export function AppProvider({ children }) {
       contas, setContas,
       metasCache, setMetasCache,
       loading, erroEntrar, entrarCliente, sairCliente, recarregarCliente,
+      periodo, periodoEscolhido, setPeriodo,
     }}>
       {children}
     </AppContext.Provider>
