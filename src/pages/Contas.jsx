@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { API } from '../services/api';
 import { getCatsPorTipo, getSubcats } from '../services/constants';
 import { fmt, fmtData, hoje } from '../services/utils';
+import { competenciaPadrao } from '../services/competencia';
 import './Contas.css';
 
 function vencInfo(venc) {
@@ -21,8 +22,11 @@ function vencInfo(venc) {
 const formVazio = () => ({
   tipo: 'pagar', descricao: '', valor: '', vencimento: '', categoria: '',
   subcategoria: '', recorrente: false, periodicidade: 'mensal',
-  parcelas: '', taxaJuros: '', primeiraParcela: '',
+  parcelas: '', taxaJuros: '', primeiraParcela: '', competencia: '',
 });
+
+const MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const fmtMes = ym => (ym ? `${MESES_ABREV[+ym.slice(5, 7) - 1]}/${ym.slice(0, 4)}` : '');
 
 function calcPMT(pv, n, iMensal) {
   if (pv <= 0 || n <= 0) return 0;
@@ -40,7 +44,7 @@ function addMeses(dateStr, n) {
 }
 
 export default function Contas() {
-  const { contas, setContas, lancamentos, setLancamentos, clienteAtivo } = useApp();
+  const { contas, setContas, lancamentos, setLancamentos, clienteAtivo, periodo: periodoGlobal, setPeriodo } = useApp();
 
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId]   = useState(null);
@@ -55,8 +59,10 @@ export default function Contas() {
   const [verQuitadasR, setVerQuitadasR] = useState(false);
   const [aba, setAba]                   = useState('pagar');
   const mesAtual = hoje().slice(0, 7);
-  const [mes, setMes] = useState(mesAtual.slice(5, 7));
-  const [ano, setAno] = useState(mesAtual.slice(0, 4));
+  // Mês do sistema todo (AppContext)
+  const mes = periodoGlobal.slice(5, 7), ano = periodoGlobal.slice(0, 4);
+  const setMes = m => setPeriodo(`${ano}-${m}`);
+  const setAno = a => setPeriodo(`${a}-${mes}`);
 
   function showToast(msg, tipo = 'ok') {
     setToast({ msg, tipo });
@@ -131,6 +137,7 @@ export default function Contas() {
       subcategoria: c.subcategoria || '',
       recorrente: !!c.recorrente, periodicidade: c.periodicidade || 'mensal',
       parcelas: '', taxaJuros: '', primeiraParcela: '',
+      competencia: c.competencia || '',
     });
     setErroForm('');
     setModalAberto(true);
@@ -201,6 +208,8 @@ export default function Contas() {
       recorrente: form.recorrente,
       periodicidade: form.recorrente ? form.periodicidade : null,
       status: 'pendente',
+      // Vazio = o sistema calcula pelo vencimento e pela categoria
+      competencia: form.competencia || undefined,
     };
 
     setSalvando(true); setErroForm('');
@@ -248,7 +257,8 @@ export default function Contas() {
     setQuitando(c.id);
     const tipoLanc = c.tipo === 'receber' ? 'Entrada' : 'Saída';
     try {
-      await API.editarConta(clienteAtivo.id, c.id, { ...c, status: 'quitado' });
+      // A resposta traz a data de pagamento, que o Balanço Patrimonial usa
+      const quitada = await API.editarConta(clienteAtivo.id, c.id, { ...c, status: 'quitado' });
 
       const valorJuros = parseFloat(c.valor_juros) || 0;
       if (tipoLanc === 'Saída' && valorJuros > 0) {
@@ -273,7 +283,7 @@ export default function Contas() {
         setLancamentos(prev => [novoLanc, ...prev]);
       }
 
-      setContas(prev => prev.map(x => x.id === c.id ? { ...x, status: 'quitado' } : x));
+      setContas(prev => prev.map(x => x.id === c.id ? { ...x, ...quitada, status: 'quitado' } : x));
 
       if (c.recorrente && c.periodicidade && c.vencimento) {
         let proximaData;
@@ -656,6 +666,19 @@ export default function Contas() {
                   <div className="field">
                     <label>Vencimento</label>
                     <input type="date" value={form.vencimento} onChange={e => setField('vencimento', e.target.value)} />
+                  </div>
+                )}
+
+                {/* Competência: o mês a que a conta pertence, usado no Balanço Patrimonial */}
+                {(!isEmprestimo || editandoId) && (
+                  <div className="field">
+                    <label htmlFor="conta-competencia">Mês de competência</label>
+                    <input id="conta-competencia" type="month" value={form.competencia} onChange={e => setField('competencia', e.target.value)} />
+                    <span style={{ fontSize: 11, color: 'var(--text2)' }}>
+                      {form.competencia
+                        ? 'Mês a que a conta se refere'
+                        : `Automático: ${fmtMes(competenciaPadrao({ tipo: form.tipo, categoria: form.categoria, vencimento: form.vencimento })) || 'pelo vencimento'}`}
+                    </span>
                   </div>
                 )}
 

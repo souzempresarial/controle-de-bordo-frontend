@@ -81,3 +81,36 @@
   .dfc-header .cards { grid-template-columns: repeat(2, 1fr); }
   .dfc-controls { flex-wrap: wrap; }
 }
+
+/* ── Balanço Patrimonial ─────────────────────────────────────────────── */
+.bp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.bp-painel { padding: 16px 20px; }
+.bp-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.bp-cabecalho h3 { margin: 0; }
+.bp-nota { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.bp-grupo { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); padding: 14px 0 4px; }
+.bp-linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 0 7px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.bp-rotulo { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--text); }
+.bp-valor { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bp-clicavel { cursor: pointer; border-radius: 6px; transition: background .15s; }
+.bp-clicavel:hover { background: var(--surface2); }
+.bp-clicavel:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bp-seta { display: inline-block; width: 10px; color: var(--text2); transition: transform .15s; }
+.bp-seta.aberta { transform: rotate(90deg); }
+.bp-qtd { font-size: 10.5px; color: var(--text2); background: var(--surface2); border-radius: 10px; padding: 0 6px; line-height: 16px; }
+.bp-detalhe { margin: 2px 0 8px 16px; padding: 6px 10px; background: var(--surface2); border-radius: 8px; max-height: 260px; overflow-y: auto; }
+.bp-detalhe-origem { font-size: 10.5px; color: var(--text2); padding-bottom: 4px; }
+.bp-detalhe-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 4px 0; font-size: 12px; border-bottom: 1px dashed var(--border); }
+.bp-detalhe-item:last-child { border-bottom: none; }
+.bp-detalhe-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.bp-detalhe-data { color: var(--text2); white-space: nowrap; }
+.bp-detalhe-valor { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.bp-subtotal { display: flex; justify-content: space-between; padding: 7px 0; font-size: 12.5px; font-weight: 600; color: var(--text2); font-variant-numeric: tabular-nums; }
+.bp-vazio { font-size: 12px; color: var(--text2); padding: 6px 0 6px 16px; font-style: italic; }
+.bp-total { display: flex; justify-content: space-between; padding: 10px 0 2px; margin-top: 6px; border-top: 2px solid var(--border); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) {
+  .bp-painel { padding: 14px 14px; }
+  .bp-detalhe-item { grid-template-columns: 1fr auto; }
+  .bp-detalhe-data { grid-column: 1; font-size: 11px; }
+  .bp-detalhe-valor { grid-row: 1; grid-column: 2; }
+}

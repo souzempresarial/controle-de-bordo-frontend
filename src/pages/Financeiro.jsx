@@ -6,7 +6,9 @@ import { CMVCATS, SGA_CATS, NAOOP_CATS, getSubcats } from '../services/constants
 import { calcDREBase } from '../services/dre';
 import { fmt, fmtPct, hoje, MESES, MESES_FULL, upgradeNoCaixa } from '../services/utils';
 import ImportarPatrimonio, { OrigemPatrimonio } from '../components/ImportarPatrimonio';
-import FechamentoMes from '../components/FechamentoMes';
+import SaldoContas from '../components/SaldoContas';
+import { caixaNoDia1, proximoMes } from '../services/caixa';
+import { competenciaDe, abertaNoFimDe, fimDoMes } from '../services/competencia';
 import './Financeiro.css';
 
 // ── DRE CALCULATION ──────────────────────────────────────────────────────────
@@ -370,16 +372,16 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   }, [lancamentos, anoAtual]);
 
 
-  const [saldoInicial, setSI] = useState(0);
-  const [saldoMes, setSIMes]  = useState(0);
-  const [modalSaldo, setModalSaldo] = useState(false);   // fechamento do mês (saldo de cada conta no início e no fim)
+  // Saldo das contas no dia 1 de cada mês informado: [{ mes, total }]
+  const [totaisContas, setTotaisContas] = useState([]);
+  const [modalSaldo, setModalSaldo]     = useState(false);
 
   useEffect(() => {
-    if (!clienteAtivo) return;
-    API.buscarSaldo(clienteAtivo.id, ano)
-      .then(r => { if (r) { setSI(r.valor || 0); setSIMes(r.mes || 0); } })
-      .catch(() => {});
-  }, [clienteAtivo, ano]);
+    if (!clienteAtivo || modalSaldo) return;   // recarrega ao fechar a janela do saldo
+    API.fechamentoTotais(clienteAtivo.id)
+      .then(r => setTotaisContas(r || []))
+      .catch(() => setTotaisContas([]));
+  }, [clienteAtivo, modalSaldo]);
 
   const lancDFC = useMemo(() =>
     lancamentos.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente')),
@@ -422,18 +424,28 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
   const totSai = mv.reduce((a,m) => a+m.sai, 0);
   const totSaldo = totEnt - totSai;
 
-  // Evolução do caixa: o saldo inicial informado vale a partir do mês escolhido;
-  // cada mês começa com o saldo final do anterior (Final = Inicial + Saldo do Mês)
+  // Evolução do caixa a partir do primeiro saldo das contas informado (dia 1 do mês).
+  // Início = saldo informado no dia 1 (ou o calculado desde o último informado); Final pelo sistema = Início + Saldo do mês;
+  // Saldo real = contas no dia 1 do mês seguinte; Diferença = real − sistema (dinheiro que os lançamentos não explicam).
   const evolucao = useMemo(() => {
-    let atual = saldoInicial;
+    const mesAtual = hoje().slice(0, 7);
+    const informado = Object.fromEntries(totaisContas.map(t => [t.mes, t.total]));
     return mv.map((m, i) => {
-      if (i < saldoMes) return null;
-      const ini = atual;
-      atual = ini + m.saldo;
-      return { ini, fim: atual };
+      const ym = `${ano}-${String(i + 1).padStart(2, '0')}`;
+      if (ym > mesAtual) return null;
+      const base = caixaNoDia1(lancamentos, totaisContas, ym);
+      if (!base) return null;
+      const fim  = base.valor + m.saldo;
+      const real = informado[proximoMes(ym)] ?? null;
+      return { ini: base.valor, informado: base.informado, fim, real, dif: real == null ? null : real - fim };
     });
-  }, [mv, saldoInicial, saldoMes]);
-  const ultimaEvo = evolucao[evolucao.length - 1];
+  }, [mv, totaisContas, lancamentos, ano]);
+  const evoValidas = evolucao.filter(Boolean);
+  const evoIni     = evoValidas[0]?.ini;
+  const evoUltima  = evoValidas[evoValidas.length - 1];
+  const evoReal    = [...evoValidas].reverse().find(e => e.real != null)?.real;
+  const evoDifTot  = evoValidas.some(e => e.dif != null) ? evoValidas.reduce((a, e) => a + (e.dif || 0), 0) : null;
+  const evoMes     = evolucao[mesFiltro];
   const s = v => v == null ? <span style={{ color: 'var(--text2)' }}>—</span> : d(v);
 
 
@@ -441,11 +453,11 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
     <div>
       <div className="dfc-header" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
-          {saldoInicial > 0 && (
+          {evoMes && (
             <div className="card">
-              <div className="card-label">Saldo Inicial</div>
-              <div className="card-value" style={{ color: 'var(--accent)' }}>{fmt(saldoInicial)}</div>
-              <div className="card-sub">A partir de {MESES_FULL[saldoMes]}</div>
+              <div className="card-label">Saldo nas contas — início de {MESES[mesFiltro]}</div>
+              <div className="card-value" style={{ color: 'var(--accent)' }}>{fmt(evoMes.ini)}</div>
+              <div className="card-sub">{evoMes.informado ? 'Informado em Saldo das contas' : 'Calculado pelo sistema'}</div>
             </div>
           )}
           <div className="card">
@@ -457,11 +469,22 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
             <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(mv[mesFiltro]?.sai || 0)}</div>
           </div>
           <div className="card">
-            <div className="card-label">Saldo Final — {MESES[mesFiltro]}</div>
+            <div className="card-label">Saldo do Mês — {MESES[mesFiltro]}</div>
             <div className="card-value" style={{ color: (mv[mesFiltro]?.saldo ?? 0) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>
               {fmt(mv[mesFiltro]?.saldo ?? 0)}
             </div>
           </div>
+          {evoMes && (
+            <div className="card">
+              <div className="card-label">Saldo final — {MESES[mesFiltro]}</div>
+              <div className="card-value" style={{ color: 'var(--accent)' }}>{fmt(evoMes.real ?? evoMes.fim)}</div>
+              <div className="card-sub" style={evoMes.dif != null && Math.abs(evoMes.dif) > Math.max(50, (mv[mesFiltro]?.ent || 0) * 0.01) ? { color: 'var(--saida)' } : undefined}>
+                {evoMes.dif == null ? 'Pelo sistema (saldo do dia 1 seguinte não informado)'
+                  : Math.abs(evoMes.dif) <= Math.max(50, (mv[mesFiltro]?.ent || 0) * 0.01) ? 'Real das contas · bate com o sistema'
+                  : `Real das contas · ${evoMes.dif > 0 ? 'sobrou' : 'faltou'} ${fmt(Math.abs(evoMes.dif))}`}
+              </div>
+            </div>
+          )}
         </div>
         <div className="dfc-controls" style={{ display: 'flex', gap: 8 }}>
           <select className="period-select" value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))}>
@@ -470,7 +493,7 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
           <select className="period-select" value={ano} onChange={e => setAno(e.target.value)}>
             {anos.map(a => <option key={a}>{a}</option>)}
           </select>
-          <button className="btn btn-primary btn-sm" onClick={() => setModalSaldo(true)} title="Saldo de cada conta no início e no fim do mês">Saldo</button>
+          <button className="btn btn-primary btn-sm" onClick={() => setModalSaldo(true)} title="Saldo de cada conta no início e no fim do mês">Saldo das contas</button>
         </div>
       </div>
 
@@ -551,16 +574,36 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
               <tr className="row-sep">
                 <td>EVOLUÇÃO DO CAIXA</td><td colSpan={13} />
               </tr>
-              <tr className="row-big">
-                <td>SALDO INICIAL</td>
-                {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.ini)}</td>)}
-                <td style={{ textAlign: 'right' }}>{s(evolucao[saldoMes]?.ini)}</td>
-              </tr>
-              <tr className="row-final">
-                <td>SALDO FINAL</td>
-                {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.fim)}</td>)}
-                <td style={{ textAlign: 'right' }}>{s(ultimaEvo?.fim)}</td>
-              </tr>
+              {!evoValidas.length ? (
+                <tr>
+                  <td colSpan={14} style={{ color: 'var(--text2)', fontSize: 12 }}>
+                    Informe quanto a loja tem em cada conta no início do mês (botão “Saldo das contas”) para acompanhar o caixa.
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  <tr className="row-big">
+                    <td>SALDO INICIAL (CONTAS)</td>
+                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.ini)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoIni)}</td>
+                  </tr>
+                  <tr className="row-med">
+                    <td style={{ paddingLeft: 20, color: 'var(--text2)' }}>Saldo final pelo sistema</td>
+                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right', color: 'var(--text2)' }}>{e ? fmt(e.fim) : '—'}</td>)}
+                    <td style={{ textAlign: 'right', color: 'var(--text2)' }}>{evoUltima ? fmt(evoUltima.fim) : '—'}</td>
+                  </tr>
+                  <tr className="row-final">
+                    <td>SALDO REAL NAS CONTAS</td>
+                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.real)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoReal)}</td>
+                  </tr>
+                  <tr className="row-med">
+                    <td style={{ paddingLeft: 20, color: 'var(--text2)' }} title="Saldo real − saldo pelo sistema. Positivo: entrou dinheiro sem lançamento. Negativo: saiu dinheiro sem lançamento.">Diferença (real − sistema)</td>
+                    {evolucao.map((e, i) => <td key={i} style={{ textAlign: 'right' }}>{s(e?.dif)}</td>)}
+                    <td style={{ textAlign: 'right' }}>{s(evoDifTot)}</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
@@ -570,11 +613,11 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalSaldo(false)}>
           <div className="modal-box fech-modal" role="dialog" aria-label="Saldo das contas">
             <div className="modal-header">
-              <h3>Saldo</h3>
+              <h3>Saldo das contas</h3>
               <button className="modal-close" onClick={() => setModalSaldo(false)} aria-label="Fechar">✕</button>
             </div>
             <div className="modal-body">
-              <FechamentoMes lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />
+              <SaldoContas lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />
             </div>
           </div>
         </div>
@@ -584,14 +627,37 @@ function FluxoCaixa({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, s
 }
 
 // ── BALANÇO PATRIMONIAL ───────────────────────────────────────────────────────
+// Foto do último dia do mês escolhido. O Ativo vem dos Recursos em Capital (caixa, estoque do Mercado Phone,
+// reserva), das contas a receber e dos investimentos lançados. O Passivo vem da Gestão de Contas por
+// competência: entra o que pertence ao mês ou antes e ainda estava em aberto no fim do mês.
 const CAPITAL_CAMPOS = [
-  { campo: 'cap_caixa',               label: 'Capital Liq em Caixa' },
-  { campo: 'cap_estoque_aparelhos',   label: 'Capital em Estoque Aparelhos' },
-  { campo: 'cap_estoque_acessorios',  label: 'Capital em Estoque Acessórios' },
-  { campo: 'cap_reserva',             label: 'Reserva de Emergência' },
-  { campo: 'cap_manutencao',          label: 'Aparelhos em Manutenção' },
-  { campo: 'cap_receber',             label: 'Contas a Receber' },
+  { campo: 'cap_caixa',               label: 'Capital líquido em caixa' },
+  { campo: 'cap_estoque_aparelhos',   label: 'Capital em estoque — aparelhos' },
+  { campo: 'cap_estoque_acessorios',  label: 'Capital em estoque — acessórios' },
+  { campo: 'cap_manutencao',          label: 'Aparelhos em manutenção' },
+  { campo: 'cap_reserva',             label: 'Reserva de emergência' },
+  { campo: 'cap_receber',             label: 'Outros valores a receber' },
+  { campo: 'cap_imobilizado',         label: 'Bens anteriores ao sistema (imobilizado)' },
 ];
+
+// Grupo do Passivo de cada categoria de conta a pagar
+const GRUPO_PASSIVO = {
+  'Fornecedores (Estoque)':     'Fornecedores',
+  'Custos Variáveis Diretos':   'Fornecedores',
+  'Despesas com Pessoal':       'Salários e encargos',
+  'Impostos':                   'Impostos',
+  'Despesas com Ocupação':      'Aluguel e contas da loja',
+  'Serviços Terceirizados':     'Serviços e sistemas',
+  'Softwares / Tecnologias':    'Serviços e sistemas',
+};
+const ORDEM_PASSIVO = ['Fornecedores', 'Salários e encargos', 'Impostos', 'Aluguel e contas da loja', 'Serviços e sistemas', 'Outras contas a pagar'];
+
+const somaMeses = (ym, n) => {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const valorConta = c => parseFloat(c.valor || 0);
 
 function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setAno }) {
   const anoAtual = hoje().slice(0, 4);
@@ -607,6 +673,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
   const [capitalForm, setCapitalForm] = useState({});
   const [salvandoCap, setSalvandoCap] = useState(false);
   const [contas, setContas]       = useState([]);
+  const [aberta, setAberta]       = useState(null); // linha com o detalhe aberto
 
   const periodo = `${ano}-${mes}`;
 
@@ -614,6 +681,14 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     if (!clienteAtivo?.id) return;
     API.listarContas(clienteAtivo.id).then(setContas).catch(() => {});
   }, [clienteAtivo]);
+
+  // Caixa no fim do mês = saldo das contas no dia 1 do mês seguinte (informado ou calculado pelo sistema)
+  const [totaisContas, setTotaisContas] = useState([]);
+  useEffect(() => {
+    if (!clienteAtivo?.id) return;
+    API.fechamentoTotais(clienteAtivo.id).then(r => setTotaisContas(r || [])).catch(() => setTotaisContas([]));
+  }, [clienteAtivo]);
+  const caixaContas = useMemo(() => caixaNoDia1(lancamentos, totaisContas, proximoMes(periodo)), [lancamentos, totaisContas, periodo]);
 
   useEffect(() => {
     if (!clienteAtivo?.id || capitalCache[periodo] !== undefined) return;
@@ -624,7 +699,6 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
 
   const capital = capitalCache[periodo] || {};
   const getCapital = (campo) => capital[campo] || 0;
-  const totalCapital = CAPITAL_CAMPOS.reduce((a, { campo }) => a + getCapital(campo), 0);
 
   // null · 'escolha' (card de origem) · 'mp' (API do Mercado Phone) · 'arquivo' (planilha em arquivoImport)
   const [importando, setImportando] = useState(null);
@@ -667,35 +741,31 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
     finally { setSalvandoCap(false); }
   }
 
-  const dados = useMemo(() => {
-    const lancAteAno = lancamentos.filter(l => l.data.slice(0, 7) <= periodo);
-    const lancDFC    = lancAteAno.filter(l => !l.isCMV && !CMVCATS.includes(l.categoria) && !(l.tipo === 'Saída' && l.status === 'Pendente'));
-    const entDFCBruto   = lancDFC.filter(l => l.tipo === 'Entrada').reduce((a,l) => a + l.valor, 0);
-    const dedInline     = lancDFC.filter(l => l.tipo === 'Entrada' && l.valorRecebido != null).reduce((a,l) => a + (l.valor - l.valorRecebido), 0);
-    const upgradeInline = lancDFC.reduce((a,l) => a + upgradeNoCaixa(l), 0);
-    const entDFC        = entDFCBruto - upgradeInline;
-    const saiDFC        = lancDFC.filter(l => l.tipo === 'Saída').reduce((a,l) => a + l.valor, 0) + dedInline;
-    const caixa         = entDFC - saiDFC;
+  const b = useMemo(() => {
+    const fim = fimDoMes(periodo);
+    const limiteCurto = somaMeses(periodo, 12); // até 12 meses = circulante
+    const item = (descricao, data, valor, extra = '') => ({ descricao: descricao || '—', data: String(data || '').slice(0, 10), valor, extra });
 
+    // ATIVO — contas a receber em aberto no fim do mês (+ lançamentos de entrada pendentes)
+    const receber = [
+      ...contas.filter(c => c.tipo === 'receber' && competenciaDe(c) <= periodo && abertaNoFimDe(c, periodo))
+        .map(c => item(c.descricao, c.vencimento, valorConta(c), 'vence')),
+      ...lancamentos.filter(l => l.tipo === 'Entrada' && l.status === 'Pendente' && l.data <= fim && !l.isCMV && !CMVCATS.includes(l.categoria))
+        .map(l => item(l.descricao || l.subcategoria, l.data, l.valor, 'lançamento pendente')),
+    ];
+    // Investimentos lançados (equipamentos, reformas, veículos…) até o fim do mês, pelo valor pago, sem depreciação
+    const imobilizado = lancamentos.filter(l => l.tipo === 'Saída' && l.categoria === 'Investimentos' && l.data <= fim)
+      .map(l => item(l.descricao || l.subcategoria, l.data, l.valor, l.subcategoria));
 
-    const totalAReceber = lancAteAno.filter(l =>
-      l.tipo === 'Entrada' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria)
-    ).reduce((a,l) => a + l.valor, 0);
+    // PASSIVO — contas a pagar (menos empréstimos) por competência, em aberto no fim do mês
+    const grupos = Object.fromEntries(ORDEM_PASSIVO.map(g => [g, []]));
+    contas.filter(c => c.tipo === 'pagar' && c.categoria !== 'Dívidas / Empréstimos' && competenciaDe(c) <= periodo && abertaNoFimDe(c, periodo))
+      .forEach(c => grupos[GRUPO_PASSIVO[c.categoria] || 'Outras contas a pagar'].push(item(c.descricao, c.vencimento, valorConta(c), 'vence')));
+    lancamentos.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && l.data <= fim && !l.isCMV && !CMVCATS.includes(l.categoria) && l.categoria !== 'Dívidas / Empréstimos')
+      .forEach(l => grupos[GRUPO_PASSIVO[l.categoria] || 'Outras contas a pagar'].push(item(l.descricao || l.subcategoria, l.data, l.valor, 'lançamento pendente')));
 
-    const totalFornecPago = lancAteAno.filter(l =>
-      l.tipo === 'Saída' && l.categoria === 'Fornecedores (Estoque)' && l.status === 'Confirmado'
-    ).reduce((a,l) => a + l.valor, 0);
-
-    const totalCMVRec    = lancAteAno.filter(l => l.isCMV || CMVCATS.includes(l.categoria)).reduce((a,l) => a + l.valor, 0);
-    const estoque        = Math.max(0, totalFornecPago - totalCMVRec);
-    const upgradeEstoque = lancAteAno.filter(l => l.tipo === 'Entrada' && l.valorUpgrade > 0).reduce((a,l) => a + l.valorUpgrade, 0);
-    const totalAtivo     = Math.max(0, caixa) + totalAReceber + estoque + upgradeEstoque;
-
-    const aPagar              = lancAteAno.filter(l => l.tipo === 'Saída' && l.status === 'Pendente' && !l.isCMV && !CMVCATS.includes(l.categoria));
-    const totalFornecPagar    = aPagar.filter(l => l.categoria === 'Fornecedores (Estoque)').reduce((a,l) => a+l.valor, 0);
-    const totalOutrasPagar    = aPagar.filter(l => !['Fornecedores (Estoque)','Dívidas / Empréstimos','Impostos'].includes(l.categoria)).reduce((a,l) => a+l.valor, 0);
-    // Empréstimo entra no passivo a partir do mês da contratação (o mês antes da 1ª parcela) e o saldo do mês é
-    // o principal das parcelas que vencem depois dele, mais as vencidas que seguem em aberto
+    // Empréstimos: o saldo devedor é o principal (sem os juros futuros) das parcelas em aberto no fim do mês.
+    // Entra a partir do mês da contratação (o mês antes da 1ª parcela). Vencendo em até 12 meses = curto prazo
     const parcelasEmp = contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Dívidas / Empréstimos');
     const primeiraPorEmp = {};
     parcelasEmp.forEach(c => {
@@ -703,47 +773,94 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
       const venc = String(c.vencimento || '').slice(0, 7);
       if (venc && (!primeiraPorEmp[emp] || venc < primeiraPorEmp[emp])) primeiraPorEmp[emp] = venc;
     });
-    const mesAnterior = ym => { const [y, m] = ym.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`; };
-    const totalEmprestimosPagar = parcelasEmp.filter(c => {
+    const empAbertas = parcelasEmp.filter(c => {
       const primeira = primeiraPorEmp[String(c.descricao || '').split(' — Parcela')[0]];
-      const venc = String(c.vencimento || '').slice(0, 7);
-      return primeira && mesAnterior(primeira) <= periodo && (venc > periodo || c.status === 'pendente');
-    }).reduce((a,c) => a + (parseFloat(c.valor||0) - parseFloat(c.valor_juros||0)), 0);
-    // Passivo é o imposto que ainda falta pagar (lançamento pendente ou conta a pagar em aberto), não o que já foi pago
-    const totalImpostosPagar  = aPagar.filter(l => l.categoria === 'Impostos').reduce((a,l) => a+l.valor, 0)
-                              + contas.filter(c => c.tipo === 'pagar' && c.categoria === 'Impostos' && c.status === 'pendente'
-                                  && String(c.vencimento || '').slice(0, 7) <= periodo).reduce((a,c) => a + parseFloat(c.valor || 0), 0);
-    const totalPassivo        = totalFornecPagar + totalEmprestimosPagar + totalImpostosPagar + totalOutrasPagar;
-    const pl               = totalAtivo - totalPassivo;
-    const endividamento    = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
+      return primeira && somaMeses(primeira, -1) <= periodo && abertaNoFimDe(c, periodo);
+    }).map(c => ({ ...item(c.descricao, c.vencimento, valorConta(c) - parseFloat(c.valor_juros || 0), 'vence'), mes: String(c.vencimento || '').slice(0, 7) }));
+    const empCurto = empAbertas.filter(p => p.mes <= limiteCurto);
+    const empLongo = empAbertas.filter(p => p.mes > limiteCurto);
 
-    return { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalEmprestimosPagar, totalImpostosPagar, totalOutrasPagar, totalPassivo, pl, endividamento };
+    const soma = lista => lista.reduce((a, x) => a + x.valor, 0);
+    const passivoCirc = [
+      ...ORDEM_PASSIVO.map(g => ({ chave: 'p:' + g, label: g, itens: grupos[g] })),
+      { chave: 'p:emp', label: 'Empréstimos (próximos 12 meses)', itens: empCurto },
+    ].map(l => ({ ...l, valor: soma(l.itens) }));
+    const passivoLongo = [{ chave: 'p:empl', label: 'Empréstimos (após 12 meses)', itens: empLongo, valor: soma(empLongo) }];
+
+    return { receber, imobilizado, passivoCirc, passivoLongo, totReceber: soma(receber), totImobilizado: soma(imobilizado) };
   }, [lancamentos, periodo, contas]);
 
-  const { caixa, totalAReceber, estoque, upgradeEstoque, totalAtivo, totalFornecPago, totalCMVRec, totalFornecPagar, totalEmprestimosPagar, totalImpostosPagar, totalOutrasPagar, totalPassivo, pl, endividamento } = dados;
-  // O card mostra o Ativo dos Recursos em Capital; o endividamento tem que usar o mesmo Ativo
-  const endividamentoCapital = totalCapital > 0 ? (totalPassivo / totalCapital * 100) : 0;
+  // Linhas do Ativo: manuais (Recursos em Capital) + calculadas, com detalhe quando vêm de outra tela
+  const ativoCirc = [
+    caixaContas
+      ? { chave: 'a:caixa', label: 'Capital líquido em caixa', valor: caixaContas.valor, sempre: true,
+          origem: caixaContas.informado ? 'Saldo das contas informado no dia 1 do mês seguinte' : 'Saldo das contas informado + entradas − saídas lançadas',
+          itens: caixaContas.partes.map(p => ({
+            descricao: p.tipo === 'informado' ? 'Saldo das contas informado' : `Saldo do mês no Fluxo de Caixa (${MESES_FULL[Number(p.mes.slice(5)) - 1].toLowerCase()})`,
+            data: p.tipo === 'informado' ? `${p.mes}-01` : fimDoMes(p.mes), valor: p.valor, extra: '' })) }
+      : { chave: 'a:caixa', label: 'Capital líquido em caixa', valor: getCapital('cap_caixa'), sempre: true },
+    { chave: 'a:rec',    label: 'Contas a receber',          valor: b.totReceber, itens: b.receber, origem: 'Gestão de Contas', sempre: true },
+    { chave: 'a:recm',   label: 'Outros valores a receber',  valor: getCapital('cap_receber') },
+    { chave: 'a:ap',     label: 'Capital em estoque — aparelhos',  valor: getCapital('cap_estoque_aparelhos'), sempre: true },
+    { chave: 'a:ac',     label: 'Capital em estoque — acessórios', valor: getCapital('cap_estoque_acessorios'), sempre: true },
+    { chave: 'a:man',    label: 'Aparelhos em manutenção',   valor: getCapital('cap_manutencao') },
+    { chave: 'a:res',    label: 'Reserva de emergência',     valor: getCapital('cap_reserva') },
+  ];
+  const ativoNaoCirc = [
+    { chave: 'a:imob',   label: 'Investimentos lançados',    valor: b.totImobilizado, itens: b.imobilizado, origem: 'Lançamentos em Investimentos' },
+    { chave: 'a:imobm',  label: 'Bens anteriores ao sistema', valor: getCapital('cap_imobilizado') },
+  ];
+  const soma = linhas => linhas.reduce((a, l) => a + l.valor, 0);
+  const totAtivoCirc = soma(ativoCirc), totAtivoNaoCirc = soma(ativoNaoCirc);
+  const totalAtivo = totAtivoCirc + totAtivoNaoCirc;
+  const totPassCirc = soma(b.passivoCirc), totPassLongo = soma(b.passivoLongo);
+  const totalPassivo = totPassCirc + totPassLongo;
+  const pl = totalAtivo - totalPassivo;
+  const endividamento = totalAtivo > 0 ? (totalPassivo / totalAtivo * 100) : 0;
+  const liquidez = totPassCirc > 0 ? totAtivoCirc / totPassCirc : null;
 
-  const Linha = ({ label, val, indent = false, neg = false }) => {
-    const cor = val === 0 ? 'var(--text2)' : neg ? 'var(--saida)' : val > 0 ? 'var(--entrada)' : 'var(--saida)';
+  const Linha = ({ l, neg = false }) => {
+    const temDetalhe = l.itens?.length > 0;
+    const estaAberta = aberta === l.chave;
+    if (!l.valor && !temDetalhe && !l.sempre) return null; // as linhas principais aparecem mesmo zeradas
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-        <span style={{ paddingLeft: indent ? 16 : 0, color: indent ? 'var(--text2)' : 'var(--text)' }}>{label}</span>
-        <span style={{ color: cor, fontWeight: 600 }}>{fmt(val)}</span>
-      </div>
+      <>
+        <div
+          className={`bp-linha ${temDetalhe ? 'bp-clicavel' : ''}`}
+          role={temDetalhe ? 'button' : undefined}
+          tabIndex={temDetalhe ? 0 : undefined}
+          aria-expanded={temDetalhe ? estaAberta : undefined}
+          onClick={temDetalhe ? () => setAberta(estaAberta ? null : l.chave) : undefined}
+          onKeyDown={temDetalhe ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAberta(estaAberta ? null : l.chave); } } : undefined}
+        >
+          <span className="bp-rotulo">
+            {temDetalhe && <span className={`bp-seta ${estaAberta ? 'aberta' : ''}`}>›</span>}
+            {l.label}
+            {temDetalhe && <span className="bp-qtd">{l.itens.length}</span>}
+          </span>
+          <span className="bp-valor" style={{ color: l.valor === 0 ? 'var(--text2)' : neg ? 'var(--saida)' : 'var(--text)' }}>{fmt(l.valor)}</span>
+        </div>
+        {estaAberta && (
+          <div className="bp-detalhe">
+            {l.origem && <div className="bp-detalhe-origem">Origem: {l.origem}</div>}
+            {[...l.itens].sort((x, y) => x.data.localeCompare(y.data)).map((it, i) => (
+              <div key={i} className="bp-detalhe-item">
+                <span className="bp-detalhe-desc">{it.descricao}</span>
+                <span className="bp-detalhe-data">{it.data ? `${it.extra === 'vence' ? 'vence ' : ''}${it.data.split('-').reverse().join('/')}` : ''}{it.extra && it.extra !== 'vence' ? ` · ${it.extra}` : ''}</span>
+                <span className="bp-detalhe-valor">{fmt(it.valor)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
     );
   };
 
-  const LinhaTotal = ({ label, val, final = false }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', marginTop: 4, borderTop: `${final ? 2 : 1}px solid var(--border)`, fontSize: 13, fontWeight: 700 }}>
-      <span>{label}</span>
-      <span style={{ color: val >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(val)}</span>
-    </div>
+  const Subtotal = ({ label, val }) => (
+    <div className="bp-subtotal"><span>{label}</span><span>{fmt(val)}</span></div>
   );
-
-  const Grupo = ({ label }) => (
-    <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text2)', padding: '12px 0 4px', marginTop: 4 }}>{label}</div>
-  );
+  const Grupo = ({ label }) => <div className="bp-grupo">{label}</div>;
+  const nomeMes = `${MESES_FULL[parseInt(mes) - 1]}/${ano}`;
 
   return (
     <div>
@@ -751,23 +868,23 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         <div className="cards" style={{ flex: 1, minWidth: 0 }}>
           <div className="card">
             <div className="card-label">Total Ativo</div>
-            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totalCapital)}</div>
-            <div className="card-sub">Recursos em capital</div>
+            <div className="card-value" style={{ color: 'var(--entrada)' }}>{fmt(totalAtivo)}</div>
+            <div className="card-sub">Bens e direitos</div>
           </div>
           <div className="card">
             <div className="card-label">Total Passivo</div>
             <div className="card-value" style={{ color: 'var(--saida)' }}>{fmt(totalPassivo)}</div>
-            <div className="card-sub">Obrigações</div>
+            <div className="card-sub">Obrigações em aberto</div>
           </div>
           <div className="card">
             <div className="card-label">Patrimônio Líquido</div>
-            <div className="card-value" style={{ color: (totalCapital - totalPassivo) >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(totalCapital - totalPassivo)}</div>
+            <div className="card-value" style={{ color: pl >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(pl)}</div>
             <div className="card-sub">Ativo − Passivo</div>
           </div>
           <div className="card">
             <div className="card-label">Endividamento</div>
-            <div className="card-value" style={{ color: endividamentoCapital < 50 ? 'var(--entrada)' : endividamentoCapital < 80 ? 'var(--warn)' : 'var(--saida)' }}>{totalCapital > 0 ? fmtPct(endividamentoCapital) : '—'}</div>
-            <div className="card-sub">Passivo / Ativo</div>
+            <div className="card-value" style={{ color: endividamento < 50 ? 'var(--entrada)' : endividamento < 80 ? 'var(--warn)' : 'var(--saida)' }}>{totalAtivo > 0 ? fmtPct(endividamento) : '—'}</div>
+            <div className="card-sub">{liquidez != null ? `Liquidez corrente ${liquidez.toFixed(2).replace('.', ',')}` : 'Passivo / Ativo'}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -780,41 +897,49 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
-        <div className="table-panel" style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>ATIVO</h3>
+      <div className="bp-grid">
+        <div className="table-panel bp-painel">
+          <div className="bp-cabecalho">
+            <h3>ATIVO</h3>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => setImportando('escolha')}><Icone nome="baixar" tamanho={13} /> Importar Patrimônio</button>
               <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={abrirModalCapital}><Icone nome="editar" tamanho={13} /> Editar</button>
             </div>
           </div>
           {importInfo?.itens > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>
+            <div className="bp-nota">
               Estoque importado do Mercado Phone em {new Date(importInfo.importado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · {importInfo.itens} itens aprovados
             </div>
           )}
-          <Grupo label="Recursos em Capital" />
-          {CAPITAL_CAMPOS.map(({ campo, label }) => (
-            <Linha key={campo} label={label} val={getCapital(campo)} indent />
-          ))}
-          <LinhaTotal label="TOTAL ATIVO" val={totalCapital} final />
+          <Grupo label="Ativo Circulante" />
+          {ativoCirc.map(l => <Linha key={l.chave} l={l} />)}
+          <Subtotal label="Total Circulante" val={totAtivoCirc} />
+          <Grupo label="Ativo Não Circulante" />
+          {ativoNaoCirc.map(l => <Linha key={l.chave} l={l} />)}
+          {totAtivoNaoCirc === 0 && <div className="bp-vazio">Nenhum investimento lançado</div>}
+          <Subtotal label="Total Não Circulante" val={totAtivoNaoCirc} />
+          <div className="bp-total"><span>TOTAL ATIVO</span><span style={{ color: 'var(--entrada)' }}>{fmt(totalAtivo)}</span></div>
         </div>
 
-        <div className="table-panel" style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>PASSIVO + PL</h3>
-            <span style={{ fontSize: 12, color: 'var(--text2)' }}>Acumulado até {ano}</span>
+        <div className="table-panel bp-painel">
+          <div className="bp-cabecalho">
+            <h3>PASSIVO + PL</h3>
+            <span className="bp-nota" style={{ margin: 0 }}>Em aberto em {fimDoMes(periodo).split('-').reverse().join('/')}</span>
           </div>
           <Grupo label="Passivo Circulante" />
-          <Linha label="Fornecedores a Pagar" val={totalFornecPagar} indent neg />
-          {totalEmprestimosPagar > 0 && <Linha label="Empréstimos" val={totalEmprestimosPagar} indent neg />}
-          {totalImpostosPagar > 0 && <Linha label="Impostos" val={totalImpostosPagar} indent neg />}
-          {totalOutrasPagar > 0 && <Linha label="Outras Contas a Pagar" val={totalOutrasPagar} indent neg />}
-          <LinhaTotal label="TOTAL PASSIVO" val={totalPassivo} />
+          {b.passivoCirc.map(l => <Linha key={l.chave} l={{ ...l, origem: 'Gestão de Contas' }} neg />)}
+          {totPassCirc === 0 && <div className="bp-vazio">Nenhuma conta a pagar em aberto neste mês</div>}
+          <Subtotal label="Total Circulante" val={totPassCirc} />
+          <Grupo label="Passivo Não Circulante" />
+          {b.passivoLongo.map(l => <Linha key={l.chave} l={{ ...l, origem: 'Gestão de Contas' }} neg />)}
+          {totPassLongo === 0 && <div className="bp-vazio">Sem dívidas de longo prazo</div>}
+          <Subtotal label="Total Não Circulante" val={totPassLongo} />
           <Grupo label="Patrimônio Líquido" />
-          <Linha label="Resultado Acumulado" val={totalCapital - totalPassivo} indent neg={(totalCapital - totalPassivo) < 0} />
-          <LinhaTotal label="TOTAL PASSIVO + PL" val={totalCapital} final />
+          <div className="bp-linha">
+            <span className="bp-rotulo">Patrimônio do dono (Ativo − Passivo)</span>
+            <span className="bp-valor" style={{ color: pl >= 0 ? 'var(--entrada)' : 'var(--saida)' }}>{fmt(pl)}</span>
+          </div>
+          <div className="bp-total"><span>TOTAL PASSIVO + PL</span><span>{fmt(totalPassivo + pl)}</span></div>
         </div>
       </div>
 
@@ -835,15 +960,19 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setModalCapital(false)}>
           <div className="modal-box modal-small">
             <div className="modal-header">
-              <h3>Recursos em Capital — {MESES_FULL[parseInt(mes) - 1]}/{ano}</h3>
+              <h3>Valores do Ativo — {nomeMes}</h3>
               <button className="modal-close" onClick={() => setModalCapital(false)}>✕</button>
             </div>
             <div className="modal-body">
+              <p style={{ fontSize: 12, color: 'var(--text2)', margin: '0 0 12px' }}>
+                Contas a receber e investimentos vêm sozinhos da Gestão de Contas e dos lançamentos. Aqui entra só o que o sistema não sabe.
+              </p>
               <div className="form-grid">
                 {CAPITAL_CAMPOS.map(({ campo, label }) => (
                   <div key={campo} className="field">
-                    <label>{label}</label>
+                    <label htmlFor={`cap-${campo}`}>{label}</label>
                     <input
+                      id={`cap-${campo}`}
                       type="number" step="0.01" placeholder="0,00"
                       value={capitalForm[campo] || ''}
                       onChange={e => setCapitalForm(prev => ({ ...prev, [campo]: e.target.value }))}
@@ -862,20 +991,20 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
         </div>
       )}
 
-      {totalCapital > 0 && (
-        <div className="table-panel" style={{ padding: '16px 20px', marginTop: 0 }}>
+      {totalAtivo > 0 && (
+        <div className="table-panel" style={{ padding: '16px 20px', marginTop: 16 }}>
           <h3 style={{ marginTop: 0, marginBottom: 16 }}>Composição do Ativo</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {CAPITAL_CAMPOS.map(({ campo, label }, i) => ({ label, val: getCapital(campo), cor: ['#22c55e','#3b82f6','#f59e0b','#8b5cf6','#f03e3e','#06b6d4'][i] })).filter(({ val }) => val > 0).map(({ label, val, cor }) => {
-              const pct = totalCapital > 0 ? (val / totalCapital * 100) : 0;
+            {[...ativoCirc, ...ativoNaoCirc].map((l, i) => ({ ...l, cor: ['#22c55e','#3b82f6','#06b6d4','#f59e0b','#eab308','#f03e3e','#8b5cf6','#64748b','#94a3b8'][i] })).filter(l => l.valor > 0).map(l => {
+              const pct = l.valor / totalAtivo * 100;
               return (
-                <div key={label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text2)' }}>{label}</span>
-                    <span style={{ fontWeight: 700 }}>{fmt(val)} <span style={{ color: 'var(--text2)', fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
+                <div key={l.chave}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, gap: 8 }}>
+                    <span style={{ color: 'var(--text2)' }}>{l.label}</span>
+                    <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(l.valor)} <span style={{ color: 'var(--text2)', fontWeight: 400 }}>({pct.toFixed(1)}%)</span></span>
                   </div>
                   <div style={{ height: 6, background: 'var(--border)', borderRadius: 3 }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: cor, borderRadius: 3, transition: 'width .3s' }} />
+                    <div style={{ height: '100%', width: `${pct}%`, background: l.cor, borderRadius: 3, transition: 'width .3s' }} />
                   </div>
                 </div>
               );
@@ -888,7 +1017,7 @@ function Balanco({ lancamentos, clienteAtivo, mesFiltro, setMesFiltro, ano, setA
 }
 
 // ── CONTROLE DE UPGRADE ───────────────────────────────────────────────────────
-function ControleUpgrade({ lancamentos, ano, setAno }) {
+function ControleUpgrade({ lancamentos, ano, setAno, mesFiltro, setMesFiltro }) {
   const anoAtual = hoje().slice(0, 4);
   const anos = useMemo(() => {
     const set = new Set(lancamentos.map(l => l.data.slice(0, 4)));
@@ -896,7 +1025,8 @@ function ControleUpgrade({ lancamentos, ano, setAno }) {
     return [...set].sort().reverse();
   }, [lancamentos, anoAtual]);
 
-  const [mes, setMes] = useState(hoje().slice(5, 7));
+  const mes = String(mesFiltro + 1).padStart(2, '0');
+  const setMes = v => setMesFiltro(parseInt(v) - 1);
   const [diasAbertos, setDiasAbertos] = useState(new Set());
 
   const upgrades = useMemo(() => {
@@ -1206,12 +1336,14 @@ function Projecao({ lancamentos, clienteAtivo, metasCache, setMetasCache }) {
 
 // ── PÁGINA FINANCEIRO ─────────────────────────────────────────────────────────
 export default function Financeiro() {
-  const { lancamentos, clienteAtivo, metasCache, setMetasCache } = useApp();
-  const [aba, setAba] = useState('dre');
-  const anoAtual = hoje().slice(0, 4);
-  const mesAtual = parseInt(hoje().slice(5, 7)) - 1;
-  const [mesFiltro, setMesFiltro] = useState(mesAtual);
-  const [ano, setAno] = useState(anoAtual);
+  const { lancamentos, clienteAtivo, metasCache, setMetasCache, periodo, setPeriodo } = useApp();
+  // A aba e o mês ficam como a pessoa deixou ao sair e voltar para o Financeiro
+  const [aba, setAbaEstado] = useState(() => { try { return sessionStorage.getItem('fin_aba') || 'dre'; } catch { return 'dre'; } });
+  const setAba = a => { setAbaEstado(a); try { sessionStorage.setItem('fin_aba', a); } catch { /* sem storage */ } };
+  const mesFiltro = parseInt(periodo.slice(5, 7)) - 1;
+  const ano = periodo.slice(0, 4);
+  const setMesFiltro = m => setPeriodo(`${ano}-${String(m + 1).padStart(2, '0')}`);
+  const setAno = a => setPeriodo(`${a}-${periodo.slice(5, 7)}`);
 
   return (
     <div className="financeiro-page">
@@ -1226,7 +1358,7 @@ export default function Financeiro() {
       {aba === 'dre'     && <DRE     lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'fluxo'   && <FluxoCaixa lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
       {aba === 'balanco'  && <Balanco lancamentos={lancamentos} clienteAtivo={clienteAtivo} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} ano={ano} setAno={setAno} />}
-      {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} ano={ano} setAno={setAno} />}
+      {aba === 'upgrade'  && <ControleUpgrade lancamentos={lancamentos} ano={ano} setAno={setAno} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} />}
       {aba === 'proj'     && <Projecao lancamentos={lancamentos} clienteAtivo={clienteAtivo} metasCache={metasCache} setMetasCache={setMetasCache} />}
     </div>
   );
